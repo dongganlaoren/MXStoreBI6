@@ -1,0 +1,54 @@
+{# app/templates/main/index.html #}
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h1>Welcome to the Main Page!</h1>
+
+    <h2>店铺信息</h2>
+    {% if stores %}
+        <ul>
+            {% for store in stores %}
+                <li>
+                    店铺ID: {{ store.store_id }},
+                    店铺名称: {{ store.store_name }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>暂无店铺信息。</p>
+    {% endif %}
+
+    <h2>最近一次归档的日营业额</h2>
+    {% if last_archived_sales %}
+        <ul>
+            {% for store_id, sales_data in last_archived_sales.items() %}
+                <li>
+                    店铺ID: {{ store_id }},
+                    {% if sales_data %}
+                        日期: {{ sales_data.report_date.strftime('%Y-%m-%d') }},
+                        营业额: {{ sales_data.actual_sales }}
+                    {% else %}
+                        暂无数据
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>暂无归档的日营业额数据。</p>
+    {% endif %}
+
+    <h2>当月累计营业额</h2>
+    {% if cumulative_sales %}
+        <ul>
+            {% for store_id, total_sales in cumulative_sales.items() %}
+                <li>
+                    店铺ID: {{ store_id }},
+                    当月累计营业额: {{ total_sales }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>暂无当月累计营业额数据。</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+/* app/static/css/style.css */
+
+/* 数量调节器样式 */
+.number-adjuster {
+    display: flex;
+    align-items: center;
+}
+
+.number-adjuster button {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    cursor: pointer;
+}
+
+.number-adjuster input {
+    width: 70px;
+    text-align: center;
+    margin: 0 5px;
+}

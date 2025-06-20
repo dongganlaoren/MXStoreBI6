@@ -1,0 +1,13 @@
+Flask~=3.1.1             # 轻量级Web框架，提供路由、模板渲染等核心功能
+python-dotenv~=1.1.0
+Flask-Migrate~=4.1.0
+WTForms~=3.2.1           # 表单处理库，提供字段验证、CSRF保护和HTML生成
+SQLAlchemy~=2.0.41       # 强大ORM工具，支持多种数据库的Python化操作
+MarkupSafe~=3.0.2        # 安全字符串转义库，防止XSS攻击（Flask模板依赖）
+alembic                  # 数据库迁移引擎（Flask-Migrate的底层依赖）
+PyMySQL~=1.1.1
+Flask-WTF~=1.2.2
+flask-login~=0.6.3
+isort~=6.0.1
+#black~=25.1.0
+Faker

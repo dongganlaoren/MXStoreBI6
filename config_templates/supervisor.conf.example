@@ -1,0 +1,12 @@
+[program:mixue_bi]
+command=<PROJECT_ROOT_PATH>/venv/bin/gunicorn --workers 3 --bind unix:<PROJECT_ROOT_PATH>/mixue_bi.sock -m 007 wsgi:application
+; 或者: command=<PROJECT_ROOT_PATH>/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 wsgi:application
+directory=<PROJECT_ROOT_PATH>
+user=ubuntu
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/supervisor/mixue_bi_err.log
+stdout_logfile=/var/log/supervisor/mixue_bi_out.log
+environment=FLASK_APP="wsgi.py",FLASK_ENV="production"
+; 如果需要在这里设置更多环境变量，例如：
+; environment=FLASK_APP="wsgi.py",FLASK_ENV="production",SECRET_KEY="<生产密钥>",DATABASE_URL="<生产DB_URL>"

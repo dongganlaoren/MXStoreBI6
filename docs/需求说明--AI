@@ -1,0 +1,127 @@
+from app.extensions import db
+from datetime import datetime
+
+class User(db.Model):
+    """系统用户模型"""
+
+    __tablename__ = 'users'
+
+    user_id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment="用户主键，自增 ID")
+    username = db.Column(db.String(64), unique=True, nullable=False, comment="登录用户名")
+    password_hash = db.Column(db.String(128), nullable=False, comment="登录密码哈希")
+    user_status = db.Column(db.Integer, nullable=False, default=1, comment="用户状态（1=活跃，0=禁用）")
+    last_login_time = db.Column(db.DateTime, default=None, comment="最近一次登录时间")
+    created_at = db.Column(db.DateTime, default=datetime.now, comment="创建时间")
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment="更新时间")
+
+    def __repr__(self):
+        return f'<User {self.username}>'
+
+    def to_dict(self):
+        return {
+            'user_id': self.user_id,
+            'username': self.username,
+            'user_status': self.user_status,
+            'last_login_time': self.last_login_time,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
+
+ 我们先完成用户认证和授权功能，以上是我的model代码。
+ 请注意前端页面要适配手机屏幕，我希望是bootstrut。视图有创建注册、登录、注销视图，权限管理根据MVP规则，目前不是最重要的，除非它很简单
+ 请开始给出编码
+ 1，编码尽量添加注释，但也不要太臃肿。
+ 2，给出的代码尽量是完整的，就是整个文件的完整代码，如果不能给出完整代码，请尽量标注需要在哪里修改
+ 3，逐步操作，不要一次性给好多，我希望一步一步来
+
+
+销售日报的录入不是一次性录入的，分三次录入
+第一次录入：店内收银机小票录入，只录入：
+cash_sales (C)现金收入
+cash_difference (A)现金误差
+electronic_sales (P)电子支付收入
+electronic_difference (B)电子支付误差
+收银机记录的外卖收入 (D)
+其中A和B，的前端页面用数量调节器实现
+另外，我发现，数据库model好像少了一个字段存储D
+第二次录入：takeaway_platform_sales (Q2)`：第三方外卖平台收入
+第三次录入：补交的误差。
+说明：
+a.三次录入有可能不是同一时间，同一人员.
+b.每次录入都有单独的页面.
+
+
+
+数量调节器是指允许用户通过点击按钮 (例如 "+" 和 "-") 来调整数值的 UI 元素。--是的，默认为0
+是否需要记录每次录入操作的人员和时间？ 这可以帮助跟踪数据的来源和修改历史。--是的，需要记录时间人员
+actual_sales 字段如果不是自动生成，是不是需要可以手动录入--actual_sales最终实际收入是在财务人员审核通过后的值为最终值，其它流程都是计算算值，不需要手动填写
+actual_sales 是实际收入，如果做了调整，是不是actual_sales也需要做调整--我不太明白你的问题
+voucher_amount 字段是不是需要可以手动填写--代金券也是需要手动录入的与C/P/D/A/B一起录入
+
+
+
+菜单结构
+    登陆后的主页（default）
+        显示各店昨天的营业情况
+        显示各店截止至今的实际销售额
+        显示我的待办--暂缓开发
+    营业信息上报
+        step1
+    外卖平台上报
+        step2
+    误差补交
+        step3
+    核对销售额
+    经营分析
+        各种图表
+        月报
+        日报
+
+
+        -- DROP DATABASE IF EXISTS StoreDB_A;
+CREATE DATABASE StoreDB_A DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+-- -- 
+-- 
+USE StoreDB_A;
+SHOW TABLES;
+
+
+
+
+โอนเงินออกจากบัญชี:
+โอนเงินเข้าบัญชี:
+รวมรายรับ(ยอดขายรวม+ โอนเงินออกบัญชี+ โอนเงินเข้าบัญชี):
+ทางในร้านฝ่ายขาย:
+ยอดรวมของการขาย(จำนวนรวมของสินค้า+ค่ากล่องอาหาร+ ค่าจัดส่งเอง+ จำนวนเงินที่ไม่ทอน+ ค่าแพลตฟอร์ม+ ยอดรวมของการใช้จ่ายขั้นต่ำ):
+ยอดเงินรวมของสินค้า:
+ราคาคำสั่งซื้อของลูกค้า(ยอดขายรวม/จำนวนคำสั่งซื้อของลูกค้า):
+รวมรายละเอียดส่วนลด:
+ยอดเงินรวม(ไม่รวมภาษี):
+ภาษี:
+(ยอดขายรวม= รายละเอียดการรับเงินรวม-รายละเอียดของข้อเสนอการขายในร้านค้า)
+รวมรายละเอียดของข้อเสนอการขายในร้านค้า:
+ยอดเงินต้องรับ:
+รายละเอียดการรับเงิน
+1 . Cash:
+2 .PromptPay:
+3 .Delivery:
+
+
+
+
+INSERT INTO `stores` (`store_id`, `store_name`, `store_address`) VALUES
+('76', 'Sunny Electronics', 'https://maps.google.com/?q=123+Main+St,+Springfield'),
+('83', 'Green Valley Grocers', 'https://maps.google.com/?q=456+Oak+Ave,+Riverside'),
+('91', 'Metro Fashion Outlet', 'https://maps.google.com/?q=789+Broadway,+Metroville'),
+('92', 'Tech Haven', 'https://maps.google.com/?q=321+Innovation+Dr,+TechCity'),
+('190', 'Cozy Book Nook', 'https://maps.google.com/?q=654+Library+Lane,+Booktown'),
+('191', 'Fresh & Fast Market', 'https://maps.google.com/?q=987+Market+St,+Foodville');
+
+
+SELECT * FROM StoreDB_B.stores
+
+
+
+
+
+

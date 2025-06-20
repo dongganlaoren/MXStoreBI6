@@ -1,0 +1,11 @@
+{# app/templates/errors/400.html #}
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h1>400 Bad Request</h1>
+    <p>The server could not understand the request due to invalid syntax.</p>
+    <p>{{ error }}</p>  {# 显示错误信息 #}
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary">Go Home</a>
+    <a href="mailto:admin@example.com" class="btn btn-secondary">Contact Administrator</a>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+server {
+    listen 80;
+    server_name <YOUR_DOMAIN_OR_IP>; # 例如: example.com 或您的 EC2 IP
+
+    access_log /var/log/nginx/mixuebi_access.log;
+    error_log /var/log/nginx/mixuebi_error.log;
+
+    location /static {
+        alias <PROJECT_ROOT_PATH>/app/static; # 例如: /var/www/mixue_bi/app/static
+    }
+
+    location / {
+        proxy_pass http://unix:<PROJECT_ROOT_PATH>/mixue_bi.sock; # 或 http://127.0.0.1:8000 如果用TCP
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 80;
+    server_name 44.210.118.87;  # 替换为你的服务器 IP 地址或域名
+
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /static {
+        root /home/ubuntu/MiXueBI5.0/MiXueBI4.1/app/static;  # 替换为你的静态文件目录
+    }
+}
+
+sudo ln -s /etc/nginx/sites-available/mixuebi /etc/nginx/sites-enabled
