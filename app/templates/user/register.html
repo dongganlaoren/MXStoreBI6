@@ -1,64 +1,69 @@
 {# app/templates/user/register.html #}
 {% extends "base.html" %}
+
+{% block title %}新用户注册{% endblock %}
+
 {% block content %}
-<div class="container">
-    <h1>Register</h1>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-    <form method="post">
-        {{ form.hidden_tag() }}
-        <div class="form-group">
-            {{ form.username.label }}
-            {{ form.username(class="form-control") }}
-             {% if form.username.errors %}
-                <ul class="errors">
-                    {% for error in form.username.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">新用户注册</h3>
+                </div>
+                <div class="card-body">
+                    {# novalidate 会禁用浏览器的默认验证，完全交由我们后端的WTForms来处理 #}
+                    <form method="POST" action="{{ url_for('user.register') }}" novalidate>
+                        {{ form.hidden_tag() }} {# CSRF Token，必须保留 #}
+
+                        {# --- 用户名 --- #}
+                        <div class="form-group mb-3">
+                            <label for="username" class="form-label">{{ form.username.label }}</label>
+                            {{ form.username(class="form-control", placeholder="请输入用户名") }}
+                            {% for error in form.username.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        {# --- 密码 --- #}
+                        <div class="form-group mb-3">
+                            <label for="password" class="form-label">{{ form.password.label }}</label>
+                            {{ form.password(class="form-control", placeholder="请输入密码") }}
+                            {% for error in form.password.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        {# --- 确认密码 --- #}
+                        <div class="form-group mb-3">
+                            <label for="confirm_password" class="form-label">{{ form.confirm_password.label }}</label>
+                            {{ form.confirm_password(class="form-control", placeholder="请再次输入密码") }}
+                            {% for error in form.confirm_password.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        {# --- 角色选择 --- #}
+                        <div class="form-group mb-3">
+                            <label for="role" class="form-label">{{ form.role.label }}</label>
+                            {{ form.role(class="form-select") }}
+                            {% for error in form.role.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        {# --- 注册按钮 --- #}
+                        <div class="d-grid">
+                            {# 您的原始代码中没有 form.submit，所以我们直接写一个 button #}
+                             <button type="submit" class="btn btn-primary">Register</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    <p class="mb-0">已经有账户了？ <a href="{{ url_for('user.login') }}">立即登录</a></p>
+                </div>
+            </div>
         </div>
-        <div class="form-group">
-            {{ form.password.label }}
-            {{ form.password(class="form-control") }}
-             {% if form.password.errors %}
-                <ul class="errors">
-                    {% for error in form.password.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        </div>
-         <div class="form-group">
-            {{ form.confirm_password.label }}
-            {{ form.confirm_password(class="form-control") }}
-             {% if form.confirm_password.errors %}
-                <ul class="errors">
-                    {% for error in form.confirm_password.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        </div>
-        <!-- 添加角色选择字段 -->
-        <div class="form-group">
-            {{ form.role.label }}
-            {{ form.role(class="form-control") }}
-            {% if form.role.errors %}
-                <ul class="errors">
-                    {% for error in form.role.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        </div>
-        <button type="submit" class="btn btn-primary">Register</button>
-    </form>
-    <p>Already have an account? <a href="{{ url_for('user.login') }}">Login</a></p>
+    </div>
 </div>
 {% endblock %}

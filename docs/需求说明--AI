@@ -121,7 +121,22 @@ INSERT INTO `stores` (`store_id`, `store_name`, `store_address`) VALUES
 SELECT * FROM StoreDB_B.stores
 
 
+step1需求：
+1，页面所有需要手输入的数值，增加0.00作为默认值
+2，增加页面前端js验证，录入的T/C/P/D值是否满足T = C + P + D ，T != C + P + D，则显示错误消息，提示用户检T/C/P/D的输入，并且不允许继续进行后续操作例如，无法填写现金误差和电子支付误差）。 这一步主要是防止C/P/D录入错误。
+3,js验证误差总额 A + B > -100:
+只有在 T = C + P + D 验证通过后，才允许用户填写 cash_difference (A) 和 electronic_difference (B)。
+在用户填写完 A 和 B 后，计算 A + B。compensation=A+B;
+如果 A + B <= -100，弹出提示框，告知用户需要补交误差金额，compensation红色字体显示。
+如果 A + B > -100，不需要补交compensation，compensation绿色字体显示。
+compensation字段在step1不可录入，只读显示在页面上。
 
 
+find . -type d -name "__pycache__" -exec rm -rf {} +
 
-
+1，对于我们之前的沟通语音，我希望永远是中文优先，除非迫不得已。
+2，我希望所有问题都是逐步完成，我完成之后给你回复，然后进行下一步，在此之前不需要把所有代码一股脑都给我。
+3，代码要适当地增加中文注释，因为我是个小白
+4，代码首行要有代码的相对路径，并且每次给出完整代码（而不是代码片段）方便我拷贝。
+5，请在编码的时候尽量尽量app.logger记录日志
+6，前端页面验证尽量使用bootstrap或pristine的最佳实践来实现。

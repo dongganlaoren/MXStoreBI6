@@ -1,10 +1,96 @@
 {# app/templates/user/profile.html #}
 {% extends "base.html" %}
+
+{% block title %}个人资料{% endblock %}
+
 {% block content %}
-<div class="container">
-    <h1>User Profile</h1>
-    <p>Username: {{ user.username }}</p>
-    <p>User ID: {{ user.user_id }}</p>
-    <a href="{{ url_for('user.logout') }}">Logout</a>
+<div class="container mt-4">
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        {# 页面标题 #}
+        <h1>{{ user.username }} 的个人资料</h1>
+        {# "编辑/完善资料" 的按钮 #}
+        <a href="{{ url_for('user.edit_staff_info') }}" class="btn btn-primary">
+            {% if staff_info %}
+                编辑员工档案
+            {% else %}
+                完善员工档案
+            {% endif %}
+        </a>
+    </div>
+
+    {# --- 第一部分：基础账户信息 --- #}
+    {# 【核心修正】: 将这部分信息用一个 card 来包裹，使其风格统一 #}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>账户信息</h4>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">用户名:</dt>
+                <dd class="col-sm-9">{{ user.username }}</dd>
+
+                <dt class="col-sm-3">系统角色:</dt>
+                <dd class="col-sm-9">
+                    <span class="badge bg-info">{{ user.role.name }}</span>
+                </dd>
+
+                <dt class="col-sm-3">账户状态:</dt>
+                <dd class="col-sm-9">
+                    {% if user.user_status == 1 %}
+                        <span class="badge bg-success">活跃</span>
+                    {% else %}
+                        <span class="badge bg-danger">禁用</span>
+                    {% endif %}
+                </dd>
+
+                <dt class="col-sm-3">注册时间:</dt>
+                <dd class="col-sm-9">{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'N/A' }}</dd>
+
+                <dt class="col-sm-3">最近登录:</dt>
+                <dd class="col-sm-9">{{ user.last_login_time.strftime('%Y-%m-%d %H:%M') if user.last_login_time else 'N/A' }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    {# --- 第二部分：员工详细档案 --- #}
+    {# 【核心逻辑】: 我们在这里判断从视图传来的 staff_info 对象是否存在 #}
+    {% if staff_info %}
+        {# 如果存在，就用另一个 card 来显示员工档案 #}
+        <div class="card">
+            <div class="card-header">
+                <h4>员工档案</h4>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-3">关联店铺ID:</dt>
+                    <dd class="col-sm-9">{{ staff_info.store_id }}</dd>
+
+                    <dt class="col-sm-3">联系电话:</dt>
+                    <dd class="col-sm-9">{{ staff_info.phone or '未填写' }}</dd>
+
+                    <dt class="col-sm-3">电子邮箱:</dt>
+                    <dd class="col-sm-9">{{ staff_info.email or '未填写' }}</dd>
+
+                    <dt class="col-sm-3">LINE ID:</dt>
+                    <dd class="col-sm-9">{{ staff_info.line_id or '未填写' }}</dd>
+
+                    <dt class="col-sm-3">银行账户名:</dt>
+                    <dd class="col-sm-9">{{ staff_info.bank_account_name or '未填写' }}</dd>
+
+                    <dt class="col-sm-3">银行账号:</dt>
+                    <dd class="col-sm-9">{{ staff_info.bank_account_number or '未填写' }}</dd>
+
+                    <dt class="col-sm-3">入职日期:</dt>
+                    <dd class="col-sm-9">{{ staff_info.start_date.strftime('%Y-%m-%d') if staff_info.start_date else '未填写' }}</dd>
+                </dl>
+            </div>
+        </div>
+    {% else %}
+        {# 如果 staff_info 对象不存在，就显示一个提示信息 #}
+        <div class="alert alert-warning" role="alert">
+            您还没有关联的员工档案信息。请点击右上角的“完善员工档案”按钮进行填写。
+        </div>
+    {% endif %}
+
 </div>
 {% endblock %}

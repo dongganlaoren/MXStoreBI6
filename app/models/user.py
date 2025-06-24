@@ -1,29 +1,20 @@
 # app/models/user.py
-import enum
+
 from datetime import datetime
 
-from app.extensions import db  # 导入数据库实例
-from flask_login import UserMixin  # 导入 Flask-Login 的 UserMixin
-from werkzeug.security import check_password_hash, generate_password_hash  # 导入密码哈希函数
+from app.extensions import db
+from flask_login import UserMixin
+from werkzeug.security import check_password_hash, generate_password_hash
 
-
-class RoleType(enum.Enum):
-    """
-    用户角色枚举
-    """
-    ADMIN = "admin"  # 管理员
-    HEAD_MANAGER = "head_manager"  # 总店长
-    FINANCE = "finance"  # 财务
-    BRANCH_MANAGER = "branch_manager"  # 分店长
-    EMPLOYEE = "employee"  # 店员
+# 从我们统一的 enums.py 文件中导入 RoleType
+from .enums import RoleType
 
 
 class User(UserMixin, db.Model):
     """
     系统用户模型
     """
-
-    __tablename__ = "users"  # 表名
+    __tablename__ = "users"
 
     user_id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment="用户主键，自增 ID")
     username = db.Column(db.String(64), unique=True, nullable=False, comment="登录用户名")
@@ -32,40 +23,32 @@ class User(UserMixin, db.Model):
     last_login_time = db.Column(db.DateTime, default=datetime.now, comment="最近一次登录时间")
     created_at = db.Column(db.DateTime, default=datetime.now, comment="创建时间")
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment="更新时间")
-    role = db.Column(db.Enum(RoleType), default=RoleType.EMPLOYEE, comment="用户角色 (admin, head_manager, finance, branch_manager, employee)")
-    # 使用枚举类型
+    role = db.Column(db.Enum(RoleType), default=RoleType.EMPLOYEE, comment="用户角色")
+
+    # 【核心修正】：在这里建立从 User 到 StoreStaff 的“一对一”关系
+    # uselist=False 告诉 SQLAlchemy，一个 User 最多只会对应一个 StoreStaff 记录
+    # cascade="all, delete-orphan" 确保了当我们删除一个用户时，他关联的员工档案也会被自动删除
+    # backref="user" 会在 StoreStaff 对象上创建一个 .user 属性，方便反向查询
+    staff_info = db.relationship("StoreStaff", uselist=False, backref="user", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<User {self.username}>"  # 返回对象的字符串表示形式
+        return f"<User {self.username}>"
 
     def to_dict(self):
-        """
-        将对象转换为字典
-        """
+        # 我们在 to_dict 中也加入了 staff_info，方便未来API的使用
         return {
             "user_id": self.user_id,
             "username": self.username,
             "user_status": self.user_status,
-            "last_login_time": self.last_login_time,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
-            "role": self.role.value,  # 返回枚举的值
+            "role": self.role.value,
+            "staff_info": self.staff_info.to_dict() if self.staff_info else None
         }
 
     def set_password(self, password):
-        """
-        设置密码，对密码进行哈希处理
-        """
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        """
-        检查密码是否正确
-        """
         return check_password_hash(self.password_hash, password)
 
     def get_id(self):
-        """
-        Flask-Login 需要的 get_id 方法
-        """
         return str(self.user_id)

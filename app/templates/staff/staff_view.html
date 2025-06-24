@@ -1,0 +1,18 @@
+{# app/templates/staff/staff_view.html #}
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h1>Staff Information</h1>
+     {% if staff_info %}
+            <dl>
+                {% for key, value in staff_info.items() %}
+                    <dt>{{ key }}</dt>
+                    <dd>{{ value }}</dd>
+                {% endfor %}
+            </dl>
+         <a href="{{ url_for('staff.staff_edit') }}">编辑员工信息</a>
+        {% else %}
+            <p>您还没有填写员工信息，请点击<a href="{{ url_for('staff.staff_info') }}">这里</a>填写员工信息</p>
+        {% endif %}
+</div>
+{% endblock %}

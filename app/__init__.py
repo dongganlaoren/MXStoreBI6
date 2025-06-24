@@ -1,16 +1,17 @@
 # app/__init__.py
+
 import logging
 import re
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 
-from config import config_by_name
 from flask import Flask, render_template
-from flask_login import LoginManager
 from markupsafe import Markup, escape
 
 from app import commands, utils
-from app.extensions import csrf, db, login_manager, migrate  # 导入扩展
+
+# 【核心修正】: 移除了对 bootstrap_flask 的导入
+from app.extensions import csrf, db, login_manager, migrate
 
 
 def nl2br_filter(value: Optional[str]) -> Markup:
@@ -39,10 +40,13 @@ def create_app(config: object) -> Flask:
     db.init_app(app)
     csrf.init_app(app)
     migrate.init_app(app, db)
-    # 注册初始化插入测试数据的命令
-    commands.init_app(app)
-    # 配置用户登录
     login_manager.init_app(app)
+    # 【核心修正】: Bootstrap(app) 这一行已被彻底删除
+
+    # 注册生成测试数据的命令
+    commands.init_app(app)
+
+    # 配置用户登录
     login_manager.login_view = "user.login"
 
     # 注册Jinja2过滤器
@@ -56,9 +60,7 @@ def create_app(config: object) -> Flask:
 
     # 在应用上下文中进行数据库操作和蓝图注册
     with app.app_context():
-        # utils.fake_data.generate_fake_data() #初始化数据
         register_blueprints(app)
-        # initialize_default_user(app)#创建admin
 
     @login_manager.user_loader
     def load_user(user_id: int) -> Optional["User"]:
@@ -92,31 +94,10 @@ def register_blueprints(app: Flask):
     """注册所有蓝图"""
     from app.views.main_views import main_bp
     from app.views.root_views import root_bp
-
-    # from app.views.sales_views import sales_bp
-    # from app.views.store_views import store_bp
+    from app.views.sales_views import sales_bp
     from app.views.user_views import user_bp
 
-    # app.register_blueprint(store_bp, url_prefix="/store")
     app.register_blueprint(root_bp)
     app.register_blueprint(user_bp, url_prefix="/user")
     app.register_blueprint(main_bp, url_prefix="/main")
-    # app.register_blueprint(sales_bp, url_prefix="/sales")
-
-
-def initialize_default_user(app: Flask):
-    """初始化默认用户"""
-    from werkzeug.security import generate_password_hash
-
-    from app.models import User
-
-    default_username = app.config.get("DEFAULT_ADMIN_USERNAME", "admin")
-    default_password = app.config.get("DEFAULT_ADMIN_PASSWORD", "admin")
-
-    if not User.query.filter_by(username=default_username).first():
-        app.logger.info(f"正在创建默认用户: {default_username}")
-        hashed_password = generate_password_hash(default_password)
-        admin_user = User(username=default_username, password_hash=hashed_password, user_status=1)
-        db.session.add(admin_user)
-        db.session.commit()
-        app.logger.info(f"创建默认用户成功: {default_username}")
+    app.register_blueprint(sales_bp, url_prefix="/sales")

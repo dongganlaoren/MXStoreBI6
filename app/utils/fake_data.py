@@ -3,168 +3,137 @@ import random
 from datetime import date, datetime, timedelta
 
 from app.extensions import db
-from app.models.attachment import AttachmentType, DailySalesAttachments
-from app.models.daily_sales import DailySales, FinancialCheckStatus, ReportStatus
-from app.models.store import Store
-from app.models.store_staff import StoreStaff
-from app.models.user import RoleType, User
+
+# 确保从 __init__ 中导入所有需要的模型和枚举
+from app.models import (
+    AttachmentType,
+    DailySales,
+    DailySalesAttachments,
+    FinancialCheckStatus,
+    RoleType,
+    Store,
+    StoreStaff,
+    User,
+)
 from faker import Faker
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash
 
-fake = Faker("zh_CN")
+fake = Faker("en_US")  # 使用英文地址
 
-def create_default_admin():
-    """生成默认管理员用户，用户名admin，密码admin"""
-    admin_username = "admin"
-    admin_password = "admin"
-    admin = User.query.filter_by(username=admin_username).first()
-    if not admin:
-        hashed_password = generate_password_hash(admin_password)
-        admin_user = User(
-            username=admin_username,
-            password_hash=hashed_password,
-            user_status=1,
-            role=RoleType.ADMIN,
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-        db.session.add(admin_user)
-        db.session.commit()
+
+def create_daily_sales_attachment(sales_record, fake):
+    """创建并返回 DailySalesAttachments 对象"""
+    attachment = DailySalesAttachments(
+        report_id=sales_record.report_id,
+        file_path=fake.file_path(depth=2),
+        attachment_type=random.choice(list(AttachmentType)),
+        created_at=datetime.now()
+    )
+    return attachment
+
 
 def generate_fake_data():
+    """
+    生成测试数据。
+    返回:
+        bool: 如果所有操作都成功，则返回 True, 否则返回 False.
+    """
     try:
-        # 先清空表，顺序遵循外键依赖，SQL语句必须用text()包裹
-        db.session.execute(text('DELETE FROM daily_sales_attachments'))
-        db.session.execute(text('DELETE FROM daily_sales'))
-        db.session.execute(text('DELETE FROM store_staff'))
-        db.session.execute(text('DELETE FROM users'))
-        db.session.execute(text('DELETE FROM stores'))
-        db.session.commit()
+        # --- 阶段一：清空并创建基础数据 (门店、用户) ---
+        with db.session.begin_nested():  # 使用嵌套事务，更安全
+            print("开始清空旧数据...")
+            db.session.execute(text('DELETE FROM daily_sales_attachments'))
+            db.session.execute(text('DELETE FROM daily_sales'))
+            db.session.execute(text('DELETE FROM store_staff'))
+            db.session.execute(text('DELETE FROM users'))
+            db.session.execute(text('DELETE FROM stores'))
+            print("旧数据已清空，开始生成基础数据...")
 
-        # 1. 生成门店数据
-        store_list = []
-        store_ids = ["76", "83", "91", "92", "190", "191"] # 预定义的 store_id 列表
+            # 1. 生成固定门店数据
+            store_data = [
+                {"store_id": "190", "store_name": "Central WestGate",
+                 "store_address": "Central WestGate, 190, 191 Moo 6 Tambon Sao Thong Hin, Amphoe Bang Yai, Nonthaburi 11140, Thailand",
+                 "third_party_platform": True},
+                {"store_id": "191", "store_name": "Central Rama 2",
+                 "store_address": "Central Rama 2, 128 ถนน พระรามที่ 2 Bang Mot, Chom Thong, Bangkok 10150, Thailand",
+                 "third_party_platform": False},
+                {"store_id": "76", "store_name": "Lasalle 32 Alley",
+                 "store_address": "Lasalle's 32 Alley Ice cream, 28 Soi Lasalle 32 Bang Na Tai, Bang Na, Bangkok 10260, Thailand",
+                 "third_party_platform": False},
+                {"store_id": "83", "store_name": "Gateway at Bang Sue",
+                 "store_address": "Gateway at Bangsue, 28 Pracharat Sai 2 Rd, Khwaeng Bang Sue, Khet Bang Sue, Krung Thep Maha Nakhon 10800, Thailand",
+                 "third_party_platform": True},
+                {"store_id": "91", "store_name": "Terminal 21 Pattaya",
+                 "store_address": "Terminal 21 Pattaya, 456, 777, 777/1 Moo 6 Bang Lamung District, Chon Buri 20150, Thailand",
+                 "third_party_platform": True},
+                {"store_id": "92", "store_name": "The Mail Life Store Ngamwongwan",
+                 "store_address": "The Mall Life Store Ngamwongwan, 6/188-189 Moo 2,Thanon Ngamwongwan, Bang Khen, Nonthaburi 11000, Thailand",
+                 "third_party_platform": False},
+            ]
+            for data in store_data:
+                db.session.add(Store(**data))
+            print("✅ 门店数据生成完成")
 
-        for i in range(len(store_ids)): # 循环6次
-            store_id = store_ids[i]
-            store = Store(
-                store_id=store_id,
-                store_name=f"蜜雪门店_{i+1}",
-                store_address=f"https://www.google.com/maps/place/{fake.address().replace(' ', '+')}", # 谷歌地图链接
-                third_party_platform=random.choice([True, False])
-            )
-            store_list.append(store)
-        db.session.add_all(store_list)
-        db.session.commit()
+            # 2. 生成用户
+            admin_user = User(username="admin", role=RoleType.ADMIN, user_status=1)
+            admin_user.set_password("admin")
+            db.session.add(admin_user)
 
-        # 2. 生成用户，含多角色
-        role_choices = [RoleType.ADMIN, RoleType.FINANCE, RoleType.HEAD_MANAGER,
-                        RoleType.BRANCH_MANAGER, RoleType.EMPLOYEE]
-        user_list = []
-        for i in range(10):
-            role = random.choice(role_choices)
-            user = User(
-                username=f"user_{i}",
-                password_hash="pbkdf2:sha256:600000$dummy$hash",  # 假密码哈希，生产环境替换
-                user_status=1,
-                last_login_time=fake.date_time_between(start_date='-30d', end_date='now'),
-                created_at=fake.date_time_between(start_date='-365d', end_date='-30d'),
-                updated_at=datetime.now(),
-                role=role
-            )
-            user_list.append(user)
-        db.session.add_all(user_list)
-        db.session.commit()
+            employee_user = User(username="employee_0", role=RoleType.EMPLOYEE, user_status=1)
+            employee_user.set_password("123456")
+            db.session.add(employee_user)
+            print("✅ 用户数据生成完成")
 
-        # 3. 生成店铺员工，关联门店和普通用户
-        staff_list = []
-        normal_users = [u for u in user_list if u.role == RoleType.EMPLOYEE]
-        for user in normal_users:
-            store = random.choice(store_list)
-            staff = StoreStaff(
-                store_id=store.store_id,
-                user_id=user.user_id,
-                bank_account_name=fake.name(),
-                bank_account_number=fake.bban(),
-                staff_position=fake.job(),
-                is_primary_contact=random.choice([True, False]),
-                phone=fake.phone_number(),
-                line_id=fake.user_name(),
-                email=fake.email(),
-                start_date=fake.date_between(start_date='-1y', end_date='today'),
-                end_date=None,
-                created_at=datetime.now()
-            )
-            staff_list.append(staff)
-        db.session.add_all(staff_list)
-        db.session.commit()
+        db.session.commit()  # 提交第一阶段
 
-        # 4. 生成每日营业额日报，近30天，所有门店
-        sales_list = []
-        today = date.today()
-        for store in store_list:
-            for i in range(30):
-                report_date = today - timedelta(days=i)
-                total_income = round(random.uniform(2000, 8000), 2)
-                cash_sales = round(total_income * random.uniform(0.2, 0.4), 2)
-                electronic_sales = round(total_income * random.uniform(0.3, 0.5), 2)
-                system_takeaway_sales = round(total_income * random.uniform(0.05, 0.15), 2)
-                takeaway_platform_sales = round(total_income * random.uniform(0.05, 0.15), 2)
-                cash_difference = round(random.uniform(-20, 20), 2)
-                electronic_difference = round(random.uniform(-10, 10), 2)
-                voucher_amount = round(random.uniform(0, 100), 2)
-                bank_fee = round(random.uniform(0, 10), 2)
-                bank_deposit = total_income - voucher_amount - bank_fee + cash_difference + electronic_difference
-                actual_sales = bank_deposit + voucher_amount
+        # --- 阶段二：创建依赖数据 ---
+        with db.session.begin_nested():
+            print("开始生成依赖数据...")
+            store_list = Store.query.all()
+            user_list = User.query.all()
+            attachment_list = []
 
-                sales = DailySales(
-                    store_id=store.store_id,
-                    report_date=report_date,
-                    total_income=total_income,
-                    cash_sales=cash_sales,
-                    electronic_sales=electronic_sales,
-                    system_takeaway_sales=system_takeaway_sales,
-                    takeaway_platform_sales=takeaway_platform_sales,
-                    cash_difference=cash_difference,
-                    electronic_difference=electronic_difference,
-                    voucher_amount=voucher_amount,
-                    bank_fee=bank_fee,
-                    bank_deposit=bank_deposit,
-                    actual_sales=actual_sales,
-                    report_status=random.choice(list(ReportStatus)),
-                    financial_check_status=random.choice(list(FinancialCheckStatus)),
-                    archived=False,
-                    created_by=random.choice(user_list).user_id,
-                    created_at=datetime.now(),
-                    modified_by=random.choice(user_list).user_id,
-                    modified_at=datetime.now()
-                )
-                sales_list.append(sales)
-        db.session.add_all(sales_list)
-        db.session.commit()
+            if store_list and user_list:
+                for store in store_list:
+                    for i in range(10):
+                        report_date = date.today() - timedelta(days=i)
+                        sales = DailySales(
+                            store_id=store.store_id,
+                            user_id=random.choice(user_list).user_id,
+                            report_date=report_date,
+                            total_income=round(random.uniform(2000, 8000), 2),
+                            cash_income=round(random.uniform(500, 2000), 2),
+                            pos_income=round(random.uniform(1000, 4000), 2),
+                            day_pass_income=round(random.uniform(500, 2000), 2),
+                            bank_receipt_amount=round(random.uniform(500, 2000), 2),
+                            voucher_amount=round(random.uniform(0, 100), 2),
+                            bank_deposit=round(random.uniform(2000, 8000), 2),
+                            pos_info_completed=True,
+                            takeaway_info_completed=random.choice([True, False]),
+                            bank_info_completed=random.choice([True, False]),
+                            is_submitted=random.choice([True, False]),
+                            financial_check_status=random.choice(list(FinancialCheckStatus)),
+                            archived=False,
+                        )
+                        db.session.add(sales)
+                        db.session.flush()
+                        attachment_list.extend(
+                            [create_daily_sales_attachment(sales, fake) for _ in range(random.randint(0, 2))])
 
-        # 5. 生成日报附件，随机1~3个附件
-        attachment_list = []
-        for sales_record in sales_list:
-            for _ in range(random.randint(1, 3)):
-                attachment = DailySalesAttachments(
-                    report_id=sales_record.report_id,
-                    file_path=fake.file_path(depth=2),
-                    attachment_type=random.choice(list(AttachmentType)),
-                    created_at=datetime.now()
-                )
-                attachment_list.append(attachment)
-        db.session.add_all(attachment_list)
-        db.session.commit()
+            db.session.add_all(attachment_list)
+            print("✅ 日报和附件数据准备完成")
 
-        print("✅ 测试数据生成成功！")
+        db.session.commit()  # 提交第二阶段
 
-    except IntegrityError as e:
-        db.session.rollback()
-        print(f"❌ 生成测试数据失败: {e}")
+        # 【核心修改 1】: 在所有操作成功完成后，明确返回 True
+        return True
 
     except Exception as e:
+        # 【核心修改 2】: 在任何异常发生时，打印错误并明确返回 False
         db.session.rollback()
-        print(f"❌ 生成测试数据异常: {e}")
+        print(f"❌ 生成测试数据时发生异常: {e}")
+        return False
+
+    # 【核心修改 3】: 移除了 finally 块，确保不再打印不准确的成功信息
