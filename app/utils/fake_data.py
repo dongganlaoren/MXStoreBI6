@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 
 from app.extensions import db
 
-# 确保从 __init__ 中导入所有需要的模型和枚举
+# 不再导入 StoreStaff
 from app.models import (
     AttachmentType,
     DailySales,
@@ -12,46 +12,42 @@ from app.models import (
     FinancialCheckStatus,
     RoleType,
     Store,
-    StoreStaff,
     User,
 )
 from faker import Faker
 from sqlalchemy import text
-from sqlalchemy.exc import IntegrityError
-from werkzeug.security import generate_password_hash
 
-fake = Faker("en_US")  # 使用英文地址
+# 初始化 Faker
+fake = Faker("zh_CN")  # 使用中文数据，可以生成更逼真的中文名等
 
 
-def create_daily_sales_attachment(sales_record, fake):
-    """创建并返回 DailySalesAttachments 对象"""
-    attachment = DailySalesAttachments(
+def create_daily_sales_attachment(sales_record, faker_instance):
+    """为日报创建并返回一个附件对象"""
+    return DailySalesAttachments(
         report_id=sales_record.report_id,
-        file_path=fake.file_path(depth=2),
+        file_path=faker_instance.file_path(depth=2),
         attachment_type=random.choice(list(AttachmentType)),
         created_at=datetime.now()
     )
-    return attachment
 
 
 def generate_fake_data():
     """
-    生成测试数据。
-    返回:
-        bool: 如果所有操作都成功，则返回 True, 否则返回 False.
+    生成所有模块的测试数据。
+    这个版本已适配合并后的 User 模型。
     """
     try:
-        # --- 阶段一：清空并创建基础数据 (门店、用户) ---
-        with db.session.begin_nested():  # 使用嵌套事务，更安全
+        # --- 阶段一：清空并创建基础数据 (门店、管理组用户) ---
+        with db.session.begin_nested():
             print("开始清空旧数据...")
             db.session.execute(text('DELETE FROM daily_sales_attachments'))
             db.session.execute(text('DELETE FROM daily_sales'))
-            db.session.execute(text('DELETE FROM store_staff'))
             db.session.execute(text('DELETE FROM users'))
             db.session.execute(text('DELETE FROM stores'))
-            print("旧数据已清空，开始生成基础数据...")
+            print("旧数据已清空。")
 
-            # 1. 生成固定门店数据
+            print("开始生成基础数据 (门店和管理组)...")
+            # 1. 【核心修正】：恢复您原始的、详细的固定门店数据
             store_data = [
                 {"store_id": "190", "store_name": "Central WestGate",
                  "store_address": "Central WestGate, 190, 191 Moo 6 Tambon Sao Thong Hin, Amphoe Bang Yai, Nonthaburi 11140, Thailand",
@@ -76,64 +72,100 @@ def generate_fake_data():
                 db.session.add(Store(**data))
             print("✅ 门店数据生成完成")
 
-            # 2. 生成用户
-            admin_user = User(username="admin", role=RoleType.ADMIN, user_status=1)
-            admin_user.set_password("admin")
-            db.session.add(admin_user)
+            # 2. 生成管理组用户 (他们不关联任何 store_id)
+            # 【核心修正】：按您的要求统一密码
+            management_users_data = [
+                {'username': 'admin', 'password': 'admin', 'role': RoleType.ADMIN},
+                {'username': 'head_manager', 'password': '123456', 'role': RoleType.HEAD_MANAGER},
+                {'username': 'finance', 'password': '123456', 'role': RoleType.FINANCE},
+            ]
+            for user_data in management_users_data:
+                user = User(
+                    username=user_data['username'],
+                    role=user_data['role'],
+                    real_name=fake.name(),
+                    email=fake.email(),
+                    phone=fake.phone_number()
+                )
+                user.set_password(user_data['password'])
+                db.session.add(user)
+            print("✅ 管理组用户生成完成")
 
-            employee_user = User(username="employee_0", role=RoleType.EMPLOYEE, user_status=1)
-            employee_user.set_password("123456")
-            db.session.add(employee_user)
-            print("✅ 用户数据生成完成")
+        db.session.commit()
 
-        db.session.commit()  # 提交第一阶段
-
-        # --- 阶段二：创建依赖数据 ---
+        # --- 阶段二：为每个门店创建门店组用户 ---
         with db.session.begin_nested():
-            print("开始生成依赖数据...")
-            store_list = Store.query.all()
-            user_list = User.query.all()
-            attachment_list = []
+            print("开始为每个门店生成店长和店员...")
+            stores = Store.query.all()
+            for store in stores:
+                # 为每个店创建一个店长
+                manager_username = f"manager_{store.store_id.lower()}"
+                manager = User(
+                    username=manager_username,
+                    role=RoleType.BRANCH_MANAGER,
+                    store_id=store.store_id, # 关键：关联到当前店铺
+                    real_name=fake.name(),
+                    email=fake.email(),
+                    phone=fake.phone_number(),
+                    start_date=fake.date_between(start_date='-2y', end_date='-1y'),
+                    profile_completed=False
+                )
+                manager.set_password('123456')
+                db.session.add(manager)
 
-            if store_list and user_list:
-                for store in store_list:
-                    for i in range(10):
-                        report_date = date.today() - timedelta(days=i)
-                        sales = DailySales(
-                            store_id=store.store_id,
-                            user_id=random.choice(user_list).user_id,
-                            report_date=report_date,
-                            total_income=round(random.uniform(2000, 8000), 2),
-                            cash_income=round(random.uniform(500, 2000), 2),
-                            pos_income=round(random.uniform(1000, 4000), 2),
-                            day_pass_income=round(random.uniform(500, 2000), 2),
-                            bank_receipt_amount=round(random.uniform(500, 2000), 2),
-                            voucher_amount=round(random.uniform(0, 100), 2),
-                            bank_deposit=round(random.uniform(2000, 8000), 2),
-                            pos_info_completed=True,
-                            takeaway_info_completed=random.choice([True, False]),
-                            bank_info_completed=random.choice([True, False]),
-                            is_submitted=random.choice([True, False]),
-                            financial_check_status=random.choice(list(FinancialCheckStatus)),
-                            archived=False,
-                        )
-                        db.session.add(sales)
-                        db.session.flush()
-                        attachment_list.extend(
-                            [create_daily_sales_attachment(sales, fake) for _ in range(random.randint(0, 2))])
+                # 为每个店创建2个店员
+                for i in range(2):
+                    employee_username = f"employee_{store.store_id.lower()}_{i+1}"
+                    employee = User(
+                        username=employee_username,
+                        role=RoleType.EMPLOYEE,
+                        store_id=store.store_id, # 关键：关联到当前店铺
+                        real_name=fake.name(),
+                        email=fake.email(),
+                        phone=fake.phone_number(),
+                        start_date=fake.date_between(start_date='-1y', end_date='today'),
+                        profile_completed=False
+                    )
+                    employee.set_password('123456')
+                    db.session.add(employee)
+            print("✅ 门店组用户生成完成")
+
+        db.session.commit()
+
+        # --- 阶段三：创建依赖数据 (日报) ---
+        with db.session.begin_nested():
+            print("开始生成日报和附件数据...")
+            store_users = User.query.filter(User.store_id.isnot(None)).all()
+            if not store_users:
+                 print("⚠️ 警告: 没有找到任何门店用户，无法生成日报数据。")
+                 return True
+
+            attachment_list = []
+            for user in store_users:
+                # 为每个门店用户生成最近5天的日报
+                for i in range(5):
+                    report_date = date.today() - timedelta(days=i)
+                    sales = DailySales(
+                        store_id=user.store_id,
+                        user_id=user.user_id,
+                        report_date=report_date,
+                        total_income=round(random.uniform(2000, 8000), 2),
+                        cash_income=round(random.uniform(500, 2000), 2),
+                        financial_check_status=random.choice(list(FinancialCheckStatus)),
+                    )
+                    db.session.add(sales)
+                    db.session.flush()
+                    attachment_list.extend(
+                        [create_daily_sales_attachment(sales, fake) for _ in range(random.randint(0, 2))])
 
             db.session.add_all(attachment_list)
-            print("✅ 日报和附件数据准备完成")
+            print("✅ 日报和附件数据生成完成")
 
-        db.session.commit()  # 提交第二阶段
-
-        # 【核心修改 1】: 在所有操作成功完成后，明确返回 True
+        db.session.commit()
+        print("🎉🎉🎉 所有测试数据生成成功！ 🎉🎉🎉")
         return True
 
     except Exception as e:
-        # 【核心修改 2】: 在任何异常发生时，打印错误并明确返回 False
         db.session.rollback()
-        print(f"❌ 生成测试数据时发生异常: {e}")
-        return False
-
-    # 【核心修改 3】: 移除了 finally 块，确保不再打印不准确的成功信息
+        print(f"❌ 生成测试数据时发生严重错误: {e}")
+        raise e

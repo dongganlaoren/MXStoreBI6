@@ -6,57 +6,89 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+
+    // --- 功能1：通用功能 ---
+
     /**
-     * 功能1：让所有的 "alert" 提示框在3秒后自动消失。
-     * (此功能为您已有的代码，我们予以保留)
+     * 让所有的 "alert" 提示框在5秒后自动平滑地消失。
      */
     const alerts = document.querySelectorAll('.alert-dismissible');
-    if (alerts) {
-        alerts.forEach(function(alert) {
-            setTimeout(function() {
-                // 使用Bootstrap的JS API来平滑地关闭提示框，体验更好
-                const bootstrapAlert = new bootstrap.Alert(alert);
-                bootstrapAlert.close();
-            }, 5000); // 5 秒后关闭
-        });
-    }
+    alerts.forEach(function(alert) {
+        setTimeout(function() {
+            // 使用Bootstrap的JS API来平滑地关闭提示框
+            const bootstrapAlert = new bootstrap.Alert(alert);
+            bootstrapAlert.close();
+        }, 5000);
+    });
 
+    // --- 功能2：Pristine.js 前端表单验证 ---
+
+    // 定义一个通用的 Pristine 配置对象，使其样式能完美融入 Bootstrap 5
+    const pristineConfig = {
+        classTo: 'form-group',      // 将 'has-success/error' 类应用到这个元素上
+        errorTextParent: 'form-group', // 将错误信息插入到这个元素内部
+        errorTextClass: 'text-danger small mt-1', // 使用 Bootstrap 的红色小字样式
+        errorTextTag: 'div',         // 用 div 标签包裹错误信息
+    };
 
     /**
-     * 【核心新增功能】: 使用 Pristine.js 来处理员工档案表单验证
+     * 为“编辑个人资料”表单 (#profile-edit-form) 添加验证
      */
-    // 1. 找到我们在HTML中定义好ID的表单
-    const staffForm = document.getElementById('staff-edit-form');
-
-    // 2. 确认页面上存在这个表单，才执行后续操作
-    if (staffForm) {
-
-        // 3. 定义Pristine的配置对象，让它的样式完美融入Bootstrap 5
-        const pristineConfig = {
-            // Pristine应该将 'has-success' 或 'has-error' 这些状态类，添加到哪个元素的class上
-            classTo: 'form-group',
-            // Pristine应该将错误提示文本，插入到哪个元素的内部
-            errorTextParent: 'form-group',
-            // Pristine生成的错误提示文本，应该是什么样式
-            errorTextClass: 'text-danger', // 使用Bootstrap的红色文字样式
-            // Pristine生成的错误提示文本，应该用什么HTML标签包裹
-            errorTextTag: 'div',
-        };
-
-        // 4. 创建Pristine的实例！
-        //    我们把表单元素和配置传给它
-        const pristine = new Pristine(staffForm, pristineConfig);
-
-        // 5. 监听表单的提交事件 (实现“提交时拦截”)
-        staffForm.addEventListener('submit', function(event) {
-            // 调用pristine.validate()来检查整个表单，它会返回一个布尔值
-            const isValid = pristine.validate();
-
-            // 如果验证失败
+    const profileEditForm = document.getElementById('profile-edit-form');
+    if (profileEditForm) {
+        const pristineProfile = new Pristine(profileEditForm, pristineConfig);
+        profileEditForm.addEventListener('submit', function(e) {
+            // 在表单提交前进行验证
+            const isValid = pristineProfile.validate();
             if (!isValid) {
-                // 就调用 event.preventDefault()，强制阻止表单的默认提交行为
-                event.preventDefault();
+                e.preventDefault(); // 如果验证失败，阻止表单提交
             }
         });
     }
+
+    /**
+     * 为“用户注册”表单 (#register-form) 添加验证
+     */
+    const registerForm = document.getElementById('register-form');
+    if (registerForm) {
+        const pristineRegister = new Pristine(registerForm, pristineConfig);
+        registerForm.addEventListener('submit', function(e) {
+            const isValid = pristineRegister.validate();
+            if (!isValid) {
+                e.preventDefault(); // 如果验证失败，阻止表单提交
+            }
+        });
+    }
+
+    // --- 功能3：注册页面的动态字段显示 ---
+
+    /**
+     * 根据选择的角色，动态显示或隐藏“所属店铺”字段。
+     */
+    const roleSelect = document.getElementById('role');
+    const storeIdField = document.getElementById('store-id-field');
+
+    if (roleSelect && storeIdField) {
+
+        function toggleStoreFieldVisibility() {
+            const selectedRole = roleSelect.value;
+            // 定义需要选择店铺的角色值 (必须与后端 RoleType 枚举的 .value 一致)
+            const storeRequiredRoles = ['employee', 'branch_manager'];
+            const storeIdSelect = storeIdField.querySelector('select'); // 获取店铺的select元素
+
+            if (storeRequiredRoles.includes(selectedRole)) {
+                storeIdField.style.display = 'block'; // 显示字段
+                storeIdSelect.required = true;        // 同时将其设为必填项 (配合Pristine)
+            } else {
+                storeIdField.style.display = 'none';  // 隐藏字段
+                storeIdSelect.required = false;       // 同时取消其必填属性
+            }
+        }
+
+        // 当角色下拉框的值改变时，调用切换函数
+        roleSelect.addEventListener('change', toggleStoreFieldVisibility);
+        // 在页面加载时，也立即执行一次，以确保刷新后状态正确
+        toggleStoreFieldVisibility();
+    }
+
 });

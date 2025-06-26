@@ -1,46 +1,51 @@
 {# app/templates/base.html #}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %} {% endblock %}</title>
+    <title>{% block title %}{% endblock %} - BI 系统</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    {# 【核心新增】: 为 Pristine.js 的错误提示信息，添加一点自定义样式 #}
     <style>
-        .form-group .pristine-error {
-            color: #dc3545; /* 使用 Bootstrap 的危险颜色 */
+        .form-group .text-danger {
             font-size: 0.875em;
             margin-top: 0.25rem;
         }
     </style>
 </head>
 <body>
-    {# ... 您的 navbar 部分保持不变 ... #}
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="#">BI System</a>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">BI System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
+                <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.index') }}">Home</a>
+                            <a class="nav-link" href="{{ url_for('main.index') }}">首页</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('sales.report') }}">营业信息上报</a>
+                            <a class="nav-link" href="{{ url_for('sales.report_sales') }}">营业信息上报</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('user.profile') }}">Profile</a>
+                            <a class="nav-link" href="{{ url_for('user.profile') }}">{{ current_user.username }}</a>
                         </li>
+                        {% if current_user.role.name in ['ADMIN', 'HEAD_MANAGER', 'FINANCE'] %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('user.logout') }}">Logout</a>
+                            <a class="nav-link" href="{{ url_for('admin_user.user_list') }}">用户管理</a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('user.logout') }}" onclick="return confirm('确定要退出登录吗？');">登出</a>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('user.login') }}">Login</a>
+                            <a class="nav-link" href="{{ url_for('user.login') }}">登录</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('user.register') }}">Register</a>
+                            <a class="nav-link" href="{{ url_for('user.register') }}">注册</a>
                         </li>
                     {% endif %}
                 </ul>
@@ -48,7 +53,7 @@
         </div>
     </nav>
 
-    <div class="container">
+    <main class="container py-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -60,16 +65,20 @@
             {% endif %}
         {% endwith %}
 
-        {% block content %} {% endblock %}
-    </div>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© {{ "now"|date("Y") }} BI System. All rights reserved.</span>
+        </div>
+    </footer>
 
     {# --- JS 脚本引入区 --- #}
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
-
-    {# 【核心新增】: 在我们自己的脚本之前，引入 Pristine.js 的库文件 #}
     <script src="https://cdn.jsdelivr.net/npm/pristinejs@0.1.9/dist/pristine.min.js"></script>
-
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

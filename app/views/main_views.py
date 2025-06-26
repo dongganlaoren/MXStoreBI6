@@ -1,13 +1,8 @@
 # app/views/main_views.py
 
 from datetime import date
-
-# 【核心修正】: 我们将导入语句拆分，从正确的地方导入各自的模块
-# 1. 从 app.extensions 导入 db 数据库实例
 from app.extensions import db
-
-# 2. 从 app.models (也就是 __init__.py) 统一导入所有需要的模型和枚举
-from app.models import DailySales, RoleType, Store, StoreStaff
+from app.models import DailySales, RoleType, Store, user
 from flask import Blueprint, current_app, flash, render_template
 from flask_login import current_user, login_required
 from sqlalchemy import func, literal
@@ -25,9 +20,10 @@ def index():
         stores = []
 
         if user_role in (RoleType.EMPLOYEE, RoleType.BRANCH_MANAGER):
-            staff = StoreStaff.query.filter_by(user_id=current_user.user_id).first()
-            if staff:
-                stores = [Store.query.get(staff.store_id)]
+            if hasattr(current_user, 'store_id') and current_user.store_id:
+                stores = [Store.query.get(current_user.store_id)]
+            else:
+                stores = []
         else:
             stores = Store.query.all()
 

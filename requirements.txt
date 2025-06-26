@@ -4,14 +4,12 @@ Flask-Migrate
 WTForms
 SQLAlchemy
 MarkupSafe
-alembic                  # 数据库迁移引擎（Flask-Migrate的底层依赖）
-PyMySQL~=1.1.1
-Flask-WTF~=1.2.2
+alembic
+PyMySQL
+Flask-WTF
 flask-login
-isort~=6.0.1
-#black~=25.1.0
+isort
 Faker
 Werkzeug
 click
-bootstrap-flask==2.3.0
 email_validator

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}用户管理{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>用户管理</h2>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>ID</th><th>用户名</th><th>角色</th><th>门店</th><th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for user in users %}
+            <tr>
+                <td>{{ user.user_id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.role.name }}</td>
+                <td>{{ user.store_id or '-' }}</td>
+                <td>
+                    <a href="{{ url_for('admin_user.user_detail', user_id=user.user_id) }}" class="btn btn-sm btn-info">详情</a>
+                    <a href="{{ url_for('admin_user.user_edit', user_id=user.user_id) }}" class="btn btn-sm btn-primary">编辑</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

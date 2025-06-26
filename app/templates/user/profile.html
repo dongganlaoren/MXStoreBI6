@@ -8,14 +8,16 @@
     <div class="page-header d-flex justify-content-between align-items-center mb-4">
         {# 页面标题 #}
         <h1>{{ user.username }} 的个人资料</h1>
-        {# "编辑/完善资料" 的按钮 #}
-        <a href="{{ url_for('user.edit_staff_info') }}" class="btn btn-primary">
+        {# 仅当门店组用户未完善档案时显示编辑按钮 #}
+        {% if not (user.role.name in ["EMPLOYEE", "BRANCH_MANAGER"] and user.profile_completed) %}
+        <a href="{{ url_for('user.edit_profile') }}" class="btn btn-primary">
             {% if staff_info %}
                 编辑员工档案
             {% else %}
                 完善员工档案
             {% endif %}
         </a>
+        {% endif %}
     </div>
 
     {# --- 第一部分：基础账户信息 --- #}
@@ -74,8 +76,8 @@
                     <dt class="col-sm-3">LINE ID:</dt>
                     <dd class="col-sm-9">{{ staff_info.line_id or '未填写' }}</dd>
 
-                    <dt class="col-sm-3">银行账户名:</dt>
-                    <dd class="col-sm-9">{{ staff_info.bank_account_name or '未填写' }}</dd>
+                    <dt class="col-sm-3">银行名称:</dt>
+                    <dd class="col-sm-9">{{ staff_info.bank_name or '未填写' }}</dd>
 
                     <dt class="col-sm-3">银行账号:</dt>
                     <dd class="col-sm-9">{{ staff_info.bank_account_number or '未填写' }}</dd>

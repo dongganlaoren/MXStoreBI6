@@ -7,63 +7,68 @@
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="text-center">新用户注册</h3>
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h3 class="card-title mb-0 text-center">新用户注册</h3>
                 </div>
                 <div class="card-body">
-                    {# novalidate 会禁用浏览器的默认验证，完全交由我们后端的WTForms来处理 #}
-                    <form method="POST" action="{{ url_for('user.register') }}" novalidate>
-                        {{ form.hidden_tag() }} {# CSRF Token，必须保留 #}
+                    <form id="register-form" method="POST" action="{{ url_for('user.register') }}" novalidate>
+                        {{ form.hidden_tag() }} {# CSRF Token #}
 
-                        {# --- 用户名 --- #}
                         <div class="form-group mb-3">
-                            <label for="username" class="form-label">{{ form.username.label }}</label>
+                            {{ form.username.label(class="form-label") }}
                             {{ form.username(class="form-control", placeholder="请输入用户名") }}
                             {% for error in form.username.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
-                        {# --- 密码 --- #}
                         <div class="form-group mb-3">
-                            <label for="password" class="form-label">{{ form.password.label }}</label>
+                            {{ form.password.label(class="form-label") }}
                             {{ form.password(class="form-control", placeholder="请输入密码") }}
                             {% for error in form.password.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
-                        {# --- 确认密码 --- #}
                         <div class="form-group mb-3">
-                            <label for="confirm_password" class="form-label">{{ form.confirm_password.label }}</label>
+                            {{ form.confirm_password.label(class="form-label") }}
                             {{ form.confirm_password(class="form-control", placeholder="请再次输入密码") }}
                             {% for error in form.confirm_password.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
-                        {# --- 角色选择 --- #}
                         <div class="form-group mb-3">
-                            <label for="role" class="form-label">{{ form.role.label }}</label>
+                            {{ form.role.label(class="form-label") }}
                             {{ form.role(class="form-select") }}
                             {% for error in form.role.errors %}
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
-                        {# --- 注册按钮 --- #}
-                        <div class="d-grid">
-                            {# 您的原始代码中没有 form.submit，所以我们直接写一个 button #}
-                             <button type="submit" class="btn btn-primary">Register</button>
+                        {# 【核心新增】: 添加了所属店铺的选择字段 #}
+                        {# 这个字段会根据选择的角色，通过JS动态显示或隐藏 #}
+                        <div class="form-group mb-3" id="store-id-field" style="display: none;">
+                            {{ form.store_id.label(class="form-label") }}
+                            {{ form.store_id(class="form-select") }}
+                            {% for error in form.store_id.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            {# 使用在表单中定义的提交按钮 #}
+                            {{ form.submit(class="btn btn-primary btn-block") }}
                         </div>
                     </form>
                 </div>
-                <div class="card-footer text-center">
-                    <p class="mb-0">已经有账户了？ <a href="{{ url_for('user.login') }}">立即登录</a></p>
+                <div class="card-footer text-center bg-light">
+                    <small>已经有账户了？ <a href="{{ url_for('user.login') }}">立即登录</a></small>
                 </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
+
