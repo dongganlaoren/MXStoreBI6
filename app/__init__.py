@@ -33,6 +33,12 @@ def date_filter(value, fmt="%Y"):
             return value
     return dt.strftime(fmt)
 
+def strftime_filter(value, format='%Y-%m-%d %H:%M:%S'):
+    """Jinja2 filter to format datetime objects using strftime."""
+    if isinstance(value, datetime):
+        return value.strftime(format)
+    return value  # 如果不是 datetime 对象，则原样返回
+
 # -------------------- Flask 应用工厂 --------------------
 def create_app(config: object) -> Flask:
     """Flask应用工厂函数"""
@@ -53,6 +59,7 @@ def create_app(config: object) -> Flask:
     # 注册自定义 Jinja2 过滤器
     app.jinja_env.filters["date"] = date_filter
     app.jinja_env.filters["nl2br"] = nl2br_filter
+    app.jinja_env.filters["strftime"] = strftime_filter # 注册 strftime 过滤器
 
     # 注入当前时间到模板
     @app.context_processor

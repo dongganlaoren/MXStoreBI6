@@ -1,8 +1,8 @@
 """初始化数据库
 
-Revision ID: e7f55ab95abe
+Revision ID: c65a30e50a36
 Revises: 
-Create Date: 2025-06-26 13:13:46.256086
+Create Date: 2025-06-28 18:09:48.479561
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'e7f55ab95abe'
+revision = 'c65a30e50a36'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -51,27 +51,31 @@ def upgrade():
     sa.UniqueConstraint('username')
     )
     op.create_table('daily_sales',
-    sa.Column('report_id', sa.Integer(), nullable=False),
-    sa.Column('store_id', sa.String(length=32), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('report_date', sa.Date(), nullable=False),
-    sa.Column('total_income', sa.Float(), nullable=True, comment='POS机小票总收入(T)'),
-    sa.Column('cash_income', sa.Float(), nullable=True, comment='现金收入(C)'),
-    sa.Column('pos_income', sa.Float(), nullable=True, comment='电子支付收入(P)'),
+    sa.Column('report_id', sa.Integer(), nullable=False, comment='日报主键'),
+    sa.Column('store_id', sa.String(length=32), nullable=False, comment='门店ID'),
+    sa.Column('user_id', sa.Integer(), nullable=False, comment='上报人ID'),
+    sa.Column('report_date', sa.Date(), nullable=False, comment='营业日期'),
+    sa.Column('cash_income', sa.Float(), nullable=True, comment='POS现金收入(C)'),
+    sa.Column('pos_income', sa.Float(), nullable=True, comment='POS电子支付收入(P)'),
     sa.Column('day_pass_income', sa.Float(), nullable=True, comment='POS系统中记录的外卖收入(D)'),
-    sa.Column('meituan_takeaway', sa.Float(), nullable=True, comment='第三方外卖收入(美团)'),
-    sa.Column('eleme_takeaway', sa.Float(), nullable=True, comment='第三方外卖收入(饿了么)'),
+    sa.Column('pos_total', sa.Float(), nullable=True, comment='POS机小票总收入(T)，=现金+电子支付+POS外卖'),
+    sa.Column('cash_difference', sa.Float(), nullable=True, comment='POS现金收入误差(A)'),
+    sa.Column('electronic_difference', sa.Float(), nullable=True, comment='POS电子支付误差(B)'),
+    sa.Column('takeaway_amount', sa.Float(), nullable=True, comment='第三方外卖平台收入'),
     sa.Column('bank_receipt_amount', sa.Float(), nullable=True, comment='银行存入的现金金额'),
+    sa.Column('bank_fee', sa.Float(), nullable=True, comment='银行存款手续费'),
+    sa.Column('bank_deposit', sa.Float(), nullable=True, comment='财务填写的实际到账金额'),
+    sa.Column('voucher_amount', sa.Float(), nullable=True, comment='财务填写的代金券金额'),
+    sa.Column('actual_sales', sa.Float(), nullable=True, comment='店铺实际营业额（财务核对后）'),
+    sa.Column('remark', sa.String(length=255), nullable=True, comment='备注'),
     sa.Column('pos_info_completed', sa.Boolean(), nullable=False, comment='第一步(POS)是否完成'),
     sa.Column('takeaway_info_completed', sa.Boolean(), nullable=False, comment='第二步(外卖)是否完成'),
     sa.Column('bank_info_completed', sa.Boolean(), nullable=False, comment='第三步(银行)是否完成'),
     sa.Column('is_submitted', sa.Boolean(), nullable=False, comment='是否已最终提交给财务'),
     sa.Column('financial_check_status', sa.Enum('PENDING', 'BANK_RECEIVED', 'TAKEEAWAY_RECEIVED', 'AMOUNT_VERIFIED', 'REQUIRES_REMEDIATION', 'CHECKED', name='financialcheckstatus'), nullable=False, comment='财务核对状态'),
     sa.Column('archived', sa.Boolean(), nullable=False, comment='是否已归档'),
-    sa.Column('bank_deposit', sa.Float(), nullable=True, comment='财务填写的实际到账金额'),
-    sa.Column('voucher_amount', sa.Float(), nullable=True, comment='财务填写的代金券金额'),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True, comment='创建时间'),
+    sa.Column('updated_at', sa.DateTime(), nullable=True, comment='更新时间'),
     sa.ForeignKeyConstraint(['store_id'], ['stores.store_id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
     sa.PrimaryKeyConstraint('report_id')
@@ -84,8 +88,8 @@ def upgrade():
     op.create_table('daily_sales_attachments',
     sa.Column('attachment_id', sa.Integer(), autoincrement=True, nullable=False, comment='凭证ID'),
     sa.Column('report_id', sa.Integer(), nullable=False, comment='日报ID'),
-    sa.Column('file_path', sa.String(length=255), nullable=True, comment='文件路径'),
-    sa.Column('attachment_type', sa.Enum('sales_slip', 'bank_receipt', 'takeaway_screenshot', 'image', 'pdf', name='attachmenttype'), nullable=False, comment='附件类型'),
+    sa.Column('file_path', sa.String(length=255), nullable=True, comment='文件路径（本地磁盘，含user_id/store_id/report_date）'),
+    sa.Column('attachment_type', sa.Enum('sales_slip', 'bank_receipt', 'takeaway_screenshot', 'image', 'pdf', name='attachmenttype'), nullable=False, comment='附件类型（小票/银行/外卖/图片/PDF等）'),
     sa.Column('created_at', sa.DateTime(), nullable=True, comment='创建时间'),
     sa.ForeignKeyConstraint(['report_id'], ['daily_sales.report_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('attachment_id')

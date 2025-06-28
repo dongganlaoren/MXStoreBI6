@@ -1,134 +1,85 @@
-2025-06-26 13:14:53,195 - app - INFO - 用户 admin 登录成功。
-2025-06-26 13:14:53,226 - app - INFO - 用户 admin 成功加载首页。
-2025-06-26 13:14:57,030 - app - INFO - 用户 admin 正在查看个人资料页面。
-2025-06-26 13:15:06,352 - app - INFO - 用户 admin 成功加载首页。
-2025-06-26 13:16:11,319 - app - INFO - 用户 admin 已登出。
-2025-06-26 13:16:29,692 - app - INFO - 新用户 admin1 (角色: ADMIN) 注册成功。
-2025-06-26 13:16:35,718 - app - INFO - 用户 admin1 登录成功。
-2025-06-26 13:16:35,739 - app - INFO - 用户 admin1 成功加载首页。
-2025-06-26 13:18:07,914 - app - INFO - 用户 admin1 成功加载首页。
-2025-06-26 13:18:07,924 - app - ERROR - 加载首页时发生错误: Could not build url for endpoint 'admin_user.user_list'. Did you mean 'user.register' instead?
-Traceback (most recent call last):
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/app/views/main_views.py", line 64, in index
-    return render_template(
-        "main/index.html",
-    ...<2 lines>...
-        cumulative_sales=cumulative_sales
-    )
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
-    return _render(app, template, context)
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
-    rv = template.render(context)
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
-    self.environment.handle_exception()
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
-    raise rewrite_traceback_stack(source=source)
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/app/templates/main/index.html", line 2, in top-level template code
-    {% extends "base.html" %}
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/app/templates/base.html", line 37, in top-level template code
-    <a class="nav-link" href="{{ url_for('admin_user.user_list') }}">用户管理</a>
-    
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/app.py", line 1121, in url_for
-    return self.handle_url_build_error(error, endpoint, values)
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/app.py", line 1110, in url_for
-    rv = url_adapter.build(  # type: ignore[union-attr]
-        endpoint,
-    ...<3 lines>...
-        force_external=_external,
-    )
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/werkzeug/routing/map.py", line 924, in build
-    raise BuildError(endpoint, values, method, self)
-werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'admin_user.user_list'. Did you mean 'user.register' instead?
-2025-06-26 13:18:14,706 - app - INFO - 用户 admin1 成功加载首页。
-2025-06-26 13:18:14,707 - app - ERROR - 加载首页时发生错误: Could not build url for endpoint 'admin_user.user_list'. Did you mean 'user.register' instead?
-Traceback (most recent call last):
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/app/views/main_views.py", line 64, in index
-    return render_template(
-        "main/index.html",
-    ...<2 lines>...
-        cumulative_sales=cumulative_sales
-    )
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
-    return _render(app, template, context)
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
-    rv = template.render(context)
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
-    self.environment.handle_exception()
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
-    raise rewrite_traceback_stack(source=source)
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/app/templates/main/index.html", line 2, in top-level template code
-    {% extends "base.html" %}
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/app/templates/base.html", line 37, in top-level template code
-    <a class="nav-link" href="{{ url_for('admin_user.user_list') }}">用户管理</a>
-    
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/app.py", line 1121, in url_for
-    return self.handle_url_build_error(error, endpoint, values)
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/app.py", line 1110, in url_for
-    rv = url_adapter.build(  # type: ignore[union-attr]
-        endpoint,
-    ...<3 lines>...
-        force_external=_external,
-    )
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/werkzeug/routing/map.py", line 924, in build
-    raise BuildError(endpoint, values, method, self)
-werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'admin_user.user_list'. Did you mean 'user.register' instead?
-2025-06-26 13:18:14,961 - app - INFO - 用户 admin1 成功加载首页。
-2025-06-26 13:18:14,962 - app - ERROR - 加载首页时发生错误: Could not build url for endpoint 'admin_user.user_list'. Did you mean 'user.register' instead?
-Traceback (most recent call last):
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/app/views/main_views.py", line 64, in index
-    return render_template(
-        "main/index.html",
-    ...<2 lines>...
-        cumulative_sales=cumulative_sales
-    )
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
-    return _render(app, template, context)
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
-    rv = template.render(context)
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
-    self.environment.handle_exception()
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
-    raise rewrite_traceback_stack(source=source)
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/app/templates/main/index.html", line 2, in top-level template code
-    {% extends "base.html" %}
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/app/templates/base.html", line 37, in top-level template code
-    <a class="nav-link" href="{{ url_for('admin_user.user_list') }}">用户管理</a>
-    
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/app.py", line 1121, in url_for
-    return self.handle_url_build_error(error, endpoint, values)
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/flask/app.py", line 1110, in url_for
-    rv = url_adapter.build(  # type: ignore[union-attr]
-        endpoint,
-    ...<3 lines>...
-        force_external=_external,
-    )
-  File "/Users/renweimin/PycharmProjects/FlaskProject/MXStoreBI/.venv/lib/python3.13/site-packages/werkzeug/routing/map.py", line 924, in build
-    raise BuildError(endpoint, values, method, self)
-werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'admin_user.user_list'. Did you mean 'user.register' instead?
-2025-06-26 13:19:16,919 - app - INFO - 用户 admin1 成功加载首页。
-2025-06-26 13:20:35,835 - app - INFO - 用户 admin1 正在查看个人资料页面。
-2025-06-26 13:20:41,294 - app - INFO - 用户 admin1 正在查看个人资料页面。
-2025-06-26 13:20:43,199 - app - INFO - 用户 admin1 正在查看个人资料页面。
-2025-06-26 13:23:59,761 - app - INFO - 用户 admin1 成功加载首页。
-2025-06-26 13:24:03,161 - app - INFO - 用户 admin1 已登出。
-2025-06-26 13:24:15,933 - app - INFO - 新用户 admin2 (角色: ADMIN) 注册成功。
-2025-06-26 13:24:15,953 - app - INFO - 用户 admin2 成功加载首页。
-2025-06-26 13:27:04,778 - app - INFO - 用户 admin2 成功加载首页。
-2025-06-26 13:29:53,328 - app - INFO - 用户 admin2 正在查看个人资料页面。
-2025-06-26 13:30:04,161 - app - INFO - 用户 admin2 正在查看个人资料页面。
-2025-06-26 13:30:48,311 - app - INFO - 用户 admin2 正在查看个人资料页面。
-2025-06-26 13:30:49,829 - app - INFO - 用户 admin2 正在查看个人资料页面。
-2025-06-26 13:30:51,480 - app - INFO - 用户 admin2 正在查看个人资料页面。
-2025-06-26 13:30:52,244 - app - INFO - 用户 admin2 正在查看个人资料页面。
-2025-06-26 13:35:26,855 - app - INFO - 用户 admin2 成功加载首页。
-2025-06-26 13:36:38,844 - app - INFO - 用户 admin2 成功加载首页。
-2025-06-26 13:37:53,132 - app - INFO - 用户 admin2 已登出。
-2025-06-26 13:37:58,334 - app - INFO - 用户 employee_92_2 登录成功。
-2025-06-26 13:37:58,348 - app - INFO - 用户 employee_92_2 成功加载首页。
-2025-06-26 13:38:02,848 - app - INFO - 用户 employee_92_2 正在查看个人资料页面。
+2025-06-28 18:12:56,009 - app - INFO - 新用户 76test1 (角色: BRANCH_MANAGER) 注册成功。
+2025-06-28 18:12:56,036 - app - INFO - 用户 76test1 成功加载首页。
+2025-06-28 18:12:58,874 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:13:07,452 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:13:07,452 - app - INFO - 预填充之前的 selected_date_str: 2025-06-04
+2025-06-28 18:13:07,452 - app - INFO - 预填充之前的 form.report_date.data: None
+2025-06-28 18:13:07,456 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-04
+2025-06-28 18:13:13,286 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:13:13,286 - app - INFO - 预填充之前的 selected_date_str: 2025-06-01
+2025-06-28 18:13:13,286 - app - INFO - 预填充之前的 form.report_date.data: None
+2025-06-28 18:13:13,286 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-01
+2025-06-28 18:16:35,685 - app - INFO - 用户 76test1 成功加载首页。
+2025-06-28 18:16:37,001 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:17:06,956 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:17:06,957 - app - INFO - 预填充之前的 selected_date_str: 2025-06-04
+2025-06-28 18:17:06,957 - app - INFO - 预填充之前的 form.report_date.data: None
+2025-06-28 18:17:06,958 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-04
+2025-06-28 18:19:37,293 - app - INFO - 用户 76test1 成功加载首页。
+2025-06-28 18:19:38,166 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:19:41,645 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:19:41,646 - app - INFO - 预填充之前的 selected_date_str: 2025-06-04
+2025-06-28 18:19:41,646 - app - INFO - 预填充之前的 form.report_date.data: None
+2025-06-28 18:19:41,646 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-04
+2025-06-28 18:20:40,546 - app - INFO - 用户 76test1 正在查看个人资料页面。
+2025-06-28 18:20:41,495 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:20:45,619 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:20:45,620 - app - INFO - 预填充之前的 selected_date_str: 2025-06-28
+2025-06-28 18:20:45,620 - app - INFO - 预填充之前的 form.report_date.data: 2025-06-28
+2025-06-28 18:20:45,625 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-28
+2025-06-28 18:20:48,223 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:20:51,486 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:20:51,487 - app - INFO - 预填充之前的 selected_date_str: 2025-06-12
+2025-06-28 18:20:51,487 - app - INFO - 预填充之前的 form.report_date.data: 2025-06-28
+2025-06-28 18:20:51,487 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-12
+2025-06-28 18:20:53,107 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:29:56,168 - app - INFO - 用户 76test1 成功加载首页。
+2025-06-28 18:29:57,764 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:30:02,067 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:30:02,069 - app - INFO - 预填充之前的 selected_date_str: 2025-06-01
+2025-06-28 18:30:02,069 - app - INFO - 预填充之前的 form.report_date.data: 2025-06-28
+2025-06-28 18:30:02,069 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-01
+2025-06-28 18:30:28,272 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:30:28,273 - app - INFO - 表单提交数据: {'store_id': '76', 'report_date': datetime.date(2025, 6, 1), 'report_id': '', 'cash_sales': Decimal('100'), 'electronic_sales': Decimal('121'), 'system_takeaway_sales': Decimal('121'), 'voucher_amount': Decimal('10121212'), 'cash_difference': Decimal('121'), 'electronic_difference': Decimal('121'), 'sales_slip_image': <FileStorage: 'IMG_7298.PNG' ('image/png')>, 'takeaway_platform_sales': None, 'takeaway_platform_receipt': None, 'bank_deposit': None, 'bank_fee': None, 'bank_receipt_image': None, 'initial_load': '', 'csrf_token': 'IjcwOWE5MDE2MGFiM2IxYTU2MDBhZTI0OTBjMWFlMzI3MzQxZDQ5MTki.aF_EKg.XWiUEsip6tJ6_jF6No_np1D24SI'}
+2025-06-28 18:30:28,273 - app - INFO - 表单中的日期对象: 2025-06-01
+2025-06-28 18:30:28,276 - app - INFO - 即将保存到数据库的日期: 2025-06-01
+2025-06-28 18:30:28,311 - app - INFO - 日报保存后主要字段: store_id=76, report_date=2025-06-01, pos_info_completed=True, takeaway_info_completed=False, bank_info_completed=False, is_submitted=False
+2025-06-28 18:30:28,329 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:31:26,648 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:31:26,649 - app - INFO - 预填充之前的 selected_date_str: 2025-06-01
+2025-06-28 18:31:26,649 - app - INFO - 预填充之前的 form.report_date.data: 2025-06-28
+2025-06-28 18:31:26,649 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-01
+2025-06-28 18:31:49,870 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:31:49,880 - app - INFO - 表单提交数据: {'store_id': '76', 'report_date': datetime.date(2025, 6, 1), 'report_id': '', 'cash_sales': None, 'electronic_sales': None, 'system_takeaway_sales': None, 'voucher_amount': None, 'cash_difference': None, 'electronic_difference': None, 'sales_slip_image': None, 'takeaway_platform_sales': Decimal('1212'), 'takeaway_platform_receipt': <FileStorage: 'IMG_7298.PNG' ('image/png')>, 'bank_deposit': None, 'bank_fee': None, 'bank_receipt_image': None, 'initial_load': '', 'csrf_token': 'IjcwOWE5MDE2MGFiM2IxYTU2MDBhZTI0OTBjMWFlMzI3MzQxZDQ5MTki.aF_Efg.ZzfnyTgMIEwvPg3W8mLrxoqPiY4'}
+2025-06-28 18:31:49,884 - app - INFO - 表单中的日期对象: 2025-06-01
+2025-06-28 18:31:49,902 - app - INFO - 日报保存后主要字段: store_id=76, report_date=2025-06-01, pos_info_completed=True, takeaway_info_completed=True, bank_info_completed=False, is_submitted=False
+2025-06-28 18:31:49,917 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:31:58,196 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:31:58,197 - app - INFO - 预填充之前的 selected_date_str: 2025-06-28
+2025-06-28 18:31:58,197 - app - INFO - 预填充之前的 form.report_date.data: 2025-06-28
+2025-06-28 18:31:58,197 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-28
+2025-06-28 18:32:00,330 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:32:04,344 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:32:04,346 - app - INFO - 预填充之前的 selected_date_str: 2025-06-01
+2025-06-28 18:32:04,347 - app - INFO - 预填充之前的 form.report_date.data: 2025-06-28
+2025-06-28 18:32:04,347 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-01
+2025-06-28 18:34:16,387 - app - INFO - 用户 76test1 正在查看个人资料页面。
+2025-06-28 18:34:17,542 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:34:21,290 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:34:21,290 - app - INFO - 预填充之前的 selected_date_str: 2025-06-01
+2025-06-28 18:34:21,291 - app - INFO - 预填充之前的 form.report_date.data: 2025-06-28
+2025-06-28 18:34:21,291 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-01
+2025-06-28 18:34:48,424 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:34:48,433 - app - INFO - 表单提交数据: {'store_id': '76', 'report_date': datetime.date(2025, 6, 1), 'report_id': '', 'cash_sales': None, 'electronic_sales': None, 'system_takeaway_sales': None, 'voucher_amount': None, 'cash_difference': None, 'electronic_difference': None, 'sales_slip_image': None, 'takeaway_platform_sales': None, 'takeaway_platform_receipt': None, 'bank_deposit': Decimal('34234'), 'bank_fee': Decimal('23'), 'bank_receipt_image': <FileStorage: 'IMG_7300.PNG' ('image/png')>, 'initial_load': '', 'csrf_token': 'IjcwOWE5MDE2MGFiM2IxYTU2MDBhZTI0OTBjMWFlMzI3MzQxZDQ5MTki.aF_FLQ.evDlseVD_Z35cSP0h6uXIv5B4Mw'}
+2025-06-28 18:34:48,433 - app - INFO - 表单中的日期对象: 2025-06-01
+2025-06-28 18:34:48,473 - app - INFO - 日报保存后主要字段: store_id=76, report_date=2025-06-01, pos_info_completed=True, takeaway_info_completed=True, bank_info_completed=True, is_submitted=False
+2025-06-28 18:34:48,504 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:34:54,696 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:34:54,698 - app - INFO - 预填充之前的 selected_date_str: 2025-06-01
+2025-06-28 18:34:54,698 - app - INFO - 预填充之前的 form.report_date.data: 2025-06-28
+2025-06-28 18:34:54,699 - app - INFO - 预填充之后的 form.report_date.data: 2025-06-01
+2025-06-28 18:35:34,258 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db
+2025-06-28 18:35:34,261 - app - INFO - 表单提交数据: {'store_id': '76', 'report_date': datetime.date(2025, 6, 1), 'report_id': '', 'cash_sales': None, 'electronic_sales': None, 'system_takeaway_sales': None, 'voucher_amount': None, 'cash_difference': None, 'electronic_difference': None, 'sales_slip_image': None, 'takeaway_platform_sales': None, 'takeaway_platform_receipt': None, 'bank_deposit': None, 'bank_fee': None, 'bank_receipt_image': None, 'initial_load': '', 'csrf_token': 'IjcwOWE5MDE2MGFiM2IxYTU2MDBhZTI0OTBjMWFlMzI3MzQxZDQ5MTki.aF_FTg.S4E22E4-964v61uGlTkLzXKFIxw'}
+2025-06-28 18:35:34,262 - app - INFO - 表单中的日期对象: 2025-06-01
+2025-06-28 18:35:34,278 - app - INFO - 日报保存后主要字段: store_id=76, report_date=2025-06-01, pos_info_completed=True, takeaway_info_completed=True, bank_info_completed=True, is_submitted=True
+2025-06-28 18:35:34,301 - app - INFO - 当前数据库 URI: sqlite:///dev_local.db

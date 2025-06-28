@@ -1,4 +1,4 @@
-{# app/templates/sales/report.html #}
+<!-- 相对路径: app/templates/sales/report.html -->
 {% extends "base.html" %}
 
 {% block title %}营业信息上报{% endblock %}
@@ -10,47 +10,221 @@
         <p>请选择店铺和日期以加载或创建日报，然后分步完成信息提交。</p>
     </div>
 
-    {# --- 日期和店铺选择器，用于加载数据 --- #}
-    <form method="get" action="{{ url_for('sales.report') }}" class="mb-4 p-3 border rounded bg-light">
+    {# --- 日期和店铺选择器 --- #}
+    <form class="mb-4 p-3 border rounded bg-light" method="GET" action="{{ url_for('sales.report_sales') }}">
         <div class="row g-3 align-items-end">
             <div class="col-md-4">
-                {# 手动渲染下拉选择框的 Label #}
                 <label for="store_id" class="form-label">{{ form.store_id.label }}</label>
-                {# 手动渲染下拉选择框，并应用 Bootstrap 样式 #}
-                {{ form.store_id(class="form-select") }}
+                {{ form.store_id(class="form-select", required=true) }}
+                {% for error in form.store_id.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
             <div class="col-md-4">
-                {# 手动渲染日期选择框的 Label #}
                 <label for="report_date" class="form-label">{{ form.report_date.label }}</label>
-                {# 手动渲染日期选择框，并应用 Bootstrap 样式 #}
-                {{ form.report_date(class="form-control") }}
+                {{ form.report_date(class="form-control", required=true) }}
+                 {% for error in form.report_date.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             </div>
-            <div class="col-md-4">
-                <button type="submit" class="btn btn-primary w-100">加载数据</button>
+             <div class="col-md-4">
+                <button type="submit" class="btn btn-primary">查询</button>
             </div>
         </div>
+         {{ form.initial_load(value='true') }} {# 隐藏字段 #}
     </form>
 
+    {# --- 查询前隐藏其它内容 --- #}
+    {% if not form.store_id.data or not form.report_date.data %}
+        <div class="alert alert-info mt-4">请先选择店铺和日期，点击“查询”后再进行后续操作。</div>
+    {% elif form.store_id.data and form.report_date.data and not daily_sales %}
+        <div class="alert alert-warning mt-4" id="no-data-tip">
+          目前没有查询到{{ form.store_id.choices|selectattr('0', 'equalto', form.store_id.data)|map(attribute='1')|first }}店铺，在{{ form.report_date.data }}的营业数据，是否要上传营业信息？
+          <div class="mt-3">
+            <button type="button" class="btn btn-success me-2" id="create-new-btn">是</button>
+            <button type="button" class="btn btn-secondary" id="cancel-create-btn">否</button>
+          </div>
+        </div>
+        <div id="new-entry-section" style="display:none;">
+          {# --- Tab 导航及内容区 --- #}
+          <ul class="nav nav-tabs" id="reportTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="pos-tab" data-bs-toggle="tab" data-bs-target="#pos-content" type="button" role="tab">
+                    店内营业信息
+                    {% if daily_sales and daily_sales.pos_info_completed %}<span class="badge bg-success ms-2">已完成</span>{% endif %}
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="takeaway-tab" data-bs-toggle="tab" data-bs-target="#takeaway-content" type="button" role="tab" {% if not daily_sales or not daily_sales.pos_info_completed %}disabled{% endif %}>
+                    外卖平台
+                    {% if daily_sales and daily_sales.takeaway_info_completed %}<span class="badge bg-success ms-2">已完成</span>{% endif %}
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="bank-tab" data-bs-toggle="tab" data-bs-target="#bank-content" type="button" role="tab" {% if not daily_sales or not daily_sales.pos_info_completed %}disabled{% endif %}>
+                    银行存款
+                    {% if daily_sales and daily_sales.bank_info_completed %}<span class="badge bg-success ms-2">已完成</span>{% endif %}
+                </button>
+            </li>
+          </ul>
+
+          {# --- Tab 内容区 --- #}
+          <div class="tab-content p-3 border border-top-0 rounded-bottom" id="reportTabContent">
+
+              {# --- Tab 1: POS机信息 --- #}
+              <div class="tab-pane fade show active" id="pos-content" role="tabpanel">
+                  <form method="POST" action="{{ url_for('sales.report_sales') }}" enctype="multipart/form-data" class="mt-2">
+                      {{ form.hidden_tag() }}
+                      <input type="hidden" name="store_id" value="{{ form.store_id.data }}">
+                      <input type="hidden" name="report_date" value="{{ form.report_date.data|strftime('%Y-%m-%d') }}">
+                      {{ form.initial_load(class="d-none") }}
+                      <input type="hidden" name="step" value="pos">
+
+                      <div class="mb-3">
+                          <label for="cash_sales" class="form-label">{{ form.cash_sales.label | replace('POS', '') | trim }}</label>
+                          {{ form.cash_sales(class="form-control", placeholder="请输入现金收入", required=true) }}
+                          {% for error in form.cash_sales.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                      </div>
+
+                      <div class="mb-3">
+                          <label for="electronic_sales" class="form-label">{{ form.electronic_sales.label | replace('POS', '') | trim }}</label>
+                          {{ form.electronic_sales(class="form-control", required=true) }}
+                           {% for error in form.electronic_sales.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                      </div>
+
+                      <div class="mb-3">
+                          <label for="system_takeaway_sales" class="form-label">{{ form.system_takeaway_sales.label | replace('POS', '') | trim }}</label>
+                          {{ form.system_takeaway_sales(class="form-control", required=true) }}
+                           {% for error in form.system_takeaway_sales.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                      </div>
+
+                      <div class="mb-3">
+                          <label for="voucher_amount" class="form-label">{{ form.voucher_amount.label }}</label>
+                          {{ form.voucher_amount(class="form-control", value=form.voucher_amount.data if form.voucher_amount.data is not none else 0) }}
+                      </div>
+
+                      <div class="mb-3">
+                          <label for="cash_difference" class="form-label">现金误差A（正数为多收，负数为少收）</label>
+                          {{ form.cash_difference(class="form-control", placeholder="允许负数，正数为多收，负数为少收") }}
+                      </div>
+
+                      <div class="mb-3">
+                          <label for="electronic_difference" class="form-label">电子支付误差B（正数为多收，负数为少收）</label>
+                          {{ form.electronic_difference(class="form-control", placeholder="允许负数，正数为多收，负数为少收") }}
+                      </div>
+
+                      <div class="mb-3">
+                          <label for="sales_slip_image" class="form-label">{{ form.sales_slip_image.label }}</label>
+                          {{ form.sales_slip_image(class="form-control", required=true) }}
+                           {% for error in form.sales_slip_image.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                      </div>
+                      <div class="mb-3">
+                          <label class="form-label fw-bold">POS机小票总收入 T = 现金 + 电子支付 + POS外卖</label>
+                          <input type="text" id="pos_total_display" class="form-control bg-light" value="{{ daily_sales.pos_total if daily_sales else '' }}" readonly>
+                      </div>
+                      {# 如果已完成则禁用所有字段和按钮 #}
+                      {% if daily_sales and daily_sales.pos_info_completed %}
+                      <script>setTimeout(function(){
+                          document.querySelectorAll('#pos-content input, #pos-content select, #pos-content textarea, #pos-content button').forEach(function(el){el.disabled = true;});
+                      }, 0);</script>
+                      {% else %}
+                      <button type="submit" class="btn btn-primary">保存</button>
+                      {% endif %}
+                  </form>
+              </div>
+
+              <div class="tab-pane fade" id="takeaway-content" role="tabpanel">
+                  <form method="POST" action="{{ url_for('sales.report_sales') }}" enctype="multipart/form-data" class="mt-2">
+                      {{ form.hidden_tag() }}
+                       <input type="hidden" name="store_id" value="{{ form.store_id.data }}">
+                      <input type="hidden" name="report_date" value="{{ form.report_date.data|strftime('%Y-%m-%d') }}">
+                      {{ form.initial_load(class="d-none") }}
+                      <input type="hidden" name="step" value="takeaway">
+
+                      <div class="mb-3">
+                          <label for="takeaway_platform_sales" class="form-label">{{ form.takeaway_platform_sales.label }}</label>
+                          {{ form.takeaway_platform_sales(class="form-control") }}
+                      </div>
+
+                      <div class="mb-3">
+                          <label for="takeaway_platform_receipt" class="form-label">{{ form.takeaway_platform_receipt.label }}</label>
+                          {{ form.takeaway_platform_receipt(class="form-control") }}
+                      </div>
+                      {# 如果已完成则禁用所有字段和按钮 #}
+                      {% if daily_sales and daily_sales.takeaway_info_completed %}
+                      <script>setTimeout(function(){
+                          document.querySelectorAll('#takeaway-content input, #takeaway-content select, #takeaway-content textarea, #pos-content button').forEach(function(el){el.disabled = true;});
+                      }, 0);</script>
+                      {% else %}
+                      <button type="submit" class="btn btn-primary">保存</button>
+                      {% endif %}
+                  </form>
+              </div>
+
+              <div class="tab-pane fade" id="bank-content" role="tabpanel">
+                  <form method="POST" action="{{ url_for('sales.report_sales') }}" enctype="multipart/form-data" class="mt-2">
+                      {{ form.hidden_tag() }}
+                       <input type="hidden" name="store_id" value="{{ form.store_id.data }}">
+                      <input type="hidden" name="report_date" value="{{ form.report_date.data|strftime('%Y-%m-%d') }}">
+                      {{ form.initial_load(class="d-none") }}
+                      <input type="hidden" name="step" value="bank">
+
+                      <div class="mb-3">
+                          <label for="bank_deposit" class="form-label">{{ form.bank_deposit.label }}</label>
+                          {{ form.bank_deposit(class="form-control") }}
+                      </div>
+
+                      <div class="mb-3">
+                          <label for="bank_fee" class="form-label">{{ form.bank_fee.label }}</label>
+                          {{ form.bank_fee(class="form-control") }}
+                      </div>
+
+                      <div class="mb-3">
+                          <label for="bank_receipt_image" class="form-label">{{ form.bank_receipt_image.label }}</label>
+                          {{ form.bank_receipt_image(class="form-control") }}
+                      </div>
+                      {# 如果已完成则禁用所有字段和按钮 #}
+                      {% if daily_sales and daily_sales.bank_info_completed %}
+                      <script>setTimeout(function(){
+                          document.querySelectorAll('#bank-content input, #bank-content select, #pos-content textarea, #pos-content button').forEach(function(el){el.disabled = true;});
+                      }, 0);</script>
+                      {% else %}
+                      <button type="submit" class="btn btn-primary">保存</button>
+                      {% endif %}
+                  </form>
+              </div>
+          </div>
+        </div>
+        <script>
+          document.getElementById('create-new-btn').onclick = function() {
+            document.getElementById('no-data-tip').style.display = 'none';
+            document.getElementById('new-entry-section').style.display = '';
+          };
+          document.getElementById('cancel-create-btn').onclick = function() {
+            window.location.href = window.location.pathname;
+          };
+        </script>
+    {% else %}
     {# --- Tab 导航 --- #}
-    {# 我们将根据从视图传来的 daily_sales 对象及其状态，来决定Tab的显示效果 #}
     <ul class="nav nav-tabs" id="reportTab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="pos-tab" data-bs-toggle="tab" data-bs-target="#pos-content" type="button" role="tab">
-                1. POS机信息
-                {% if daily_sales and daily_sales.pos_info_completed %}<span class="badge bg-success ms-2">已完成</span>{% endif %}
+                店内营业信息
+                {% if daily_sales %}
+                    {% if daily_sales.pos_info_completed %}<span class="badge bg-success ms-2">已填报</span>{% else %}<span class="badge bg-secondary ms-2">未填报</span>{% endif %}
+                {% endif %}
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            {# 根据第一步是否完成，来决定是否禁用此Tab页 #}
             <button class="nav-link" id="takeaway-tab" data-bs-toggle="tab" data-bs-target="#takeaway-content" type="button" role="tab" {% if not daily_sales or not daily_sales.pos_info_completed %}disabled{% endif %}>
-                2. 外卖平台
-                {% if daily_sales and daily_sales.takeaway_info_completed %}<span class="badge bg-success ms-2">已完成</span>{% endif %}
+                外卖平台
+                {% if daily_sales %}
+                    {% if daily_sales.takeaway_info_completed %}<span class="badge bg-success ms-2">已填报</span>{% else %}<span class="badge bg-secondary ms-2">未填报</span>{% endif %}
+                {% endif %}
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="bank-tab" data-bs-toggle="tab" data-bs-target="#bank-content" type="button" role="tab" {% if not daily_sales or not daily_sales.pos_info_completed %}disabled{% endif %}>
-                3. 银行存款
-                {% if daily_sales and daily_sales.bank_info_completed %}<span class="badge bg-success ms-2">已完成</span>{% endif %}
+                银行存款
+                {% if daily_sales %}
+                    {% if daily_sales.bank_info_completed %}<span class="badge bg-success ms-2">已填报</span>{% else %}<span class="badge bg-secondary ms-2">未填报</span>{% endif %}
+                {% endif %}
             </button>
         </li>
     </ul>
@@ -60,100 +234,138 @@
 
         {# --- Tab 1: POS机信息 --- #}
         <div class="tab-pane fade show active" id="pos-content" role="tabpanel">
-            {# 我们为每个步骤创建一个独立的表单，逻辑更清晰 #}
-            <form method="POST" action="{{ url_for('sales.report') }}" enctype="multipart/form-data" class="mt-2">
-                {{ form.hidden_tag() }} {{ form.store_id(class="d-none") }} {{ form.report_date(class="d-none") }} {# --- 手动渲染每一个表单字段 --- #}
+            <form method="POST" action="{{ url_for('sales.report_sales') }}" enctype="multipart/form-data" class="mt-2">
+                {{ form.hidden_tag() }}
+                <input type="hidden" name="store_id" value="{{ form.store_id.data }}">
+                <input type="hidden" name="report_date" value="{{ form.report_date.data|strftime('%Y-%m-%d') }}">
+                {{ form.initial_load(class="d-none") }}
+                <input type="hidden" name="step" value="pos">
+
                 <div class="mb-3">
-                    <label for="cash_sales" class="form-label">{{ form.cash_sales.label }}</label>
-                    {{ form.cash_sales(class="form-control", placeholder="请输入POS现金收入") }}
-                    {# 手动渲染该字段的错误信息 #}
+                    <label for="cash_sales" class="form-label">{{ form.cash_sales.label | replace('POS', '') | trim }}</label>
+                    {{ form.cash_sales(class="form-control", placeholder="请输入现金收入", required=true) }}
                     {% for error in form.cash_sales.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
 
                 <div class="mb-3">
-                    <label for="electronic_sales" class="form-label">{{ form.electronic_sales.label }}</label>
-                    {{ form.electronic_sales(class="form-control") }}
+                    <label for="electronic_sales" class="form-label">{{ form.electronic_sales.label | replace('POS', '') | trim }}</label>
+                    {{ form.electronic_sales(class="form-control", required=true) }}
+                     {% for error in form.electronic_sales.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
 
                 <div class="mb-3">
-                    <label for="system_takeaway_sales" class="form-label">{{ form.system_takeaway_sales.label }}</label>
-                    {{ form.system_takeaway_sales(class="form-control") }}
+                    <label for="system_takeaway_sales" class="form-label">{{ form.system_takeaway_sales.label | replace('POS', '') | trim }}</label>
+                    {{ form.system_takeaway_sales(class="form-control", required=true) }}
+                     {% for error in form.system_takeaway_sales.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
 
                 <div class="mb-3">
                     <label for="voucher_amount" class="form-label">{{ form.voucher_amount.label }}</label>
-                    {{ form.voucher_amount(class="form-control") }}
+                    {{ form.voucher_amount(class="form-control", value=form.voucher_amount.data if form.voucher_amount.data is not none else 0) }}
                 </div>
 
                 <div class="mb-3">
-                    <label for="cash_difference" class="form-label">{{ form.cash_difference.label }}</label>
-                    {{ form.cash_difference(class="form-control") }}
+                    <label for="cash_difference" class="form-label">现金误差A（正数为多收，负数为少收）</label>
+                    {{ form.cash_difference(class="form-control", placeholder="允许负数，正数为多收，负数为少收") }}
                 </div>
 
                 <div class="mb-3">
-                    <label for="electronic_difference" class="form-label">{{ form.electronic_difference.label }}</label>
-                    {{ form.electronic_difference(class="form-control") }}
+                    <label for="electronic_difference" class="form-label">电子支付误差B（正数为多收，负数为少收）</label>
+                    {{ form.electronic_difference(class="form-control", placeholder="允许负数，正数为多收，负数为少收") }}
                 </div>
 
                 <div class="mb-3">
                     <label for="sales_slip_image" class="form-label">{{ form.sales_slip_image.label }}</label>
-                    {{ form.sales_slip_image(class="form-control") }}
-                    {% for error in form.sales_slip_image.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    {{ form.sales_slip_image(class="form-control", required=true) }}
+                     {% for error in form.sales_slip_image.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
-                {{ form.pos_submit(class="btn btn-primary") }}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">POS机小票总收入 T = 现金 + 电子支付 + POS外卖</label>
+                    <input type="text" id="pos_total_display" class="form-control bg-light" value="{{ daily_sales.pos_total if daily_sales else '' }}" readonly>
+                </div>
+                {# 如果已完成则禁用所有字段和按钮 #}
+                {% if daily_sales and daily_sales.pos_info_completed %}
+                <script>setTimeout(function(){
+                    document.querySelectorAll('#pos-content input, #pos-content select, #pos-content textarea, #pos-content button').forEach(function(el){el.disabled = true;});
+                }, 0);</script>
+                {% else %}
+                <button type="submit" class="btn btn-primary">保存</button>
+                {% endif %}
             </form>
         </div>
 
-        {# --- Tab 2: 外卖平台 --- #}
         <div class="tab-pane fade" id="takeaway-content" role="tabpanel">
-            <form method="POST" action="{{ url_for('sales.report') }}" enctype="multipart/form-data" class="mt-2">
+            <form method="POST" action="{{ url_for('sales.report_sales') }}" enctype="multipart/form-data" class="mt-2">
                 {{ form.hidden_tag() }}
-                {{ form.store_id(class="d-none") }}
-                {{ form.report_date(class="d-none") }}
+                 <input type="hidden" name="store_id" value="{{ form.store_id.data }}">
+                <input type="hidden" name="report_date" value="{{ form.report_date.data|strftime('%Y-%m-%d') }}">
+                {{ form.initial_load(class="d-none") }}
+                <input type="hidden" name="step" value="takeaway">
+
                 <div class="mb-3">
                     <label for="takeaway_platform_sales" class="form-label">{{ form.takeaway_platform_sales.label }}</label>
                     {{ form.takeaway_platform_sales(class="form-control") }}
                 </div>
+
                 <div class="mb-3">
                     <label for="takeaway_platform_receipt" class="form-label">{{ form.takeaway_platform_receipt.label }}</label>
                     {{ form.takeaway_platform_receipt(class="form-control") }}
                 </div>
-                {{ form.takeaway_submit(class="btn btn-primary") }}
+                {# 如果已完成则禁用所有字段和按钮 #}
+                {% if daily_sales and daily_sales.takeaway_info_completed %}
+                <script>setTimeout(function(){
+                    document.querySelectorAll('#takeaway-content input, #takeaway-content select, #takeaway-content textarea, #pos-content button').forEach(function(el){el.disabled = true;});
+                }, 0);</script>
+                {% else %}
+                <button type="submit" class="btn btn-primary">保存</button>
+                {% endif %}
             </form>
         </div>
 
-        {# --- Tab 3: 银行存款 --- #}
         <div class="tab-pane fade" id="bank-content" role="tabpanel">
-            <form method="POST" action="{{ url_for('sales.report') }}" enctype="multipart/form-data" class="mt-2">
+            <form method="POST" action="{{ url_for('sales.report_sales') }}" enctype="multipart/form-data" class="mt-2">
                 {{ form.hidden_tag() }}
-                {{ form.store_id(class="d-none") }}
-                {{ form.report_date(class="d-none") }}
+                 <input type="hidden" name="store_id" value="{{ form.store_id.data }}">
+                <input type="hidden" name="report_date" value="{{ form.report_date.data|strftime('%Y-%m-%d') }}">
+                {{ form.initial_load(class="d-none") }}
+                <input type="hidden" name="step" value="bank">
+
                 <div class="mb-3">
                     <label for="bank_deposit" class="form-label">{{ form.bank_deposit.label }}</label>
                     {{ form.bank_deposit(class="form-control") }}
                 </div>
+
                 <div class="mb-3">
                     <label for="bank_fee" class="form-label">{{ form.bank_fee.label }}</label>
                     {{ form.bank_fee(class="form-control") }}
                 </div>
+
                 <div class="mb-3">
                     <label for="bank_receipt_image" class="form-label">{{ form.bank_receipt_image.label }}</label>
                     {{ form.bank_receipt_image(class="form-control") }}
                 </div>
-                {{ form.bank_submit(class="btn btn-primary") }}
+                {# 如果已完成则禁用所有字段和按钮 #}
+                {% if daily_sales and daily_sales.bank_info_completed %}
+                <script>setTimeout(function(){
+                    document.querySelectorAll('#bank-content input, #bank-content select, #pos-content textarea, #pos-content button').forEach(function(el){el.disabled = true;});
+                }, 0);</script>
+                {% else %}
+                <button type="submit" class="btn btn-primary">保存</button>
+                {% endif %}
             </form>
         </div>
     </div>
 
     {# --- 最终提交区域 --- #}
-    {% if daily_sales and daily_sales.pos_info_completed and not daily_sales.is_submitted %}
+    {% if daily_sales and daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.bank_info_completed and not daily_sales.is_submitted %}
     <div class="mt-4 p-3 border rounded bg-light text-center">
         <h4>最终提交</h4>
         <p>请确保所有步骤都已完成并保存。一旦最终提交，数据将无法修改。</p>
-        <form method="POST" action="{{ url_for('sales.report') }}">
+        <form method="POST" action="{{ url_for('sales.report_sales') }}">
             {{ form.hidden_tag() }}
-            {{ form.store_id(class="d-none", value=form.store_id.data) }}
-            {{ form.report_date(class="d-none", value=form.report_date.data.strftime('%Y-%m-%d')) }}
+            <input type="hidden" name="store_id" value="{{ form.store_id.data }}">
+            <input type="hidden" name="report_date" value="{{ form.report_date.data|strftime('%Y-%m-%d') }}">
+             {{ form.initial_load(class="d-none", value='false') }}
             <button type="submit" name="submit_final" value="final_submit" class="btn btn-success btn-lg">我已确认，最终提交所有信息</button>
         </form>
     </div>
@@ -161,6 +373,7 @@
     <div class="alert alert-info mt-4 text-center" role="alert">
       该日报已于 {{ daily_sales.updated_at.strftime('%Y-%m-%d %H:%M') }} 最终提交，正在等待财务审核。
     </div>
+    {% endif %}
     {% endif %}
 </div>
 {% endblock %}

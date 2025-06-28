@@ -34,7 +34,7 @@ def create_daily_sales_attachment(sales_record, faker_instance):
 def generate_fake_data():
     """
     生成所有模块的测试数据。
-    这个版本已适配合并后的 User 模型。
+    只保留门店数据和admin用户，其它全部注释掉。
     """
     try:
         # --- 阶段一：清空并创建基础数据 (门店、管理组用户) ---
@@ -46,8 +46,8 @@ def generate_fake_data():
             db.session.execute(text('DELETE FROM stores'))
             print("旧数据已清空。")
 
-            print("开始生成基础数据 (门店和管理组)...")
-            # 1. 【核心修正】：恢复您原始的、详细的固定门店数据
+            print("开始生成基础数据 (门店和admin用户)...")
+            # 1. 门店数据
             store_data = [
                 {"store_id": "190", "store_name": "Central WestGate",
                  "store_address": "Central WestGate, 190, 191 Moo 6 Tambon Sao Thong Hin, Amphoe Bang Yai, Nonthaburi 11140, Thailand",
@@ -72,100 +72,120 @@ def generate_fake_data():
                 db.session.add(Store(**data))
             print("✅ 门店数据生成完成")
 
-            # 2. 生成管理组用户 (他们不关联任何 store_id)
-            # 【核心修正】：按您的要求统一密码
-            management_users_data = [
-                {'username': 'admin', 'password': 'admin', 'role': RoleType.ADMIN},
-                {'username': 'head_manager', 'password': '123456', 'role': RoleType.HEAD_MANAGER},
-                {'username': 'finance', 'password': '123456', 'role': RoleType.FINANCE},
-            ]
-            for user_data in management_users_data:
-                user = User(
-                    username=user_data['username'],
-                    role=user_data['role'],
-                    real_name=fake.name(),
-                    email=fake.email(),
-                    phone=fake.phone_number()
-                )
-                user.set_password(user_data['password'])
-                db.session.add(user)
-            print("✅ 管理组用户生成完成")
+            # 2. 只生成admin用户
+            admin_user = User(
+                username='admin',
+                role=RoleType.ADMIN,
+                real_name=fake.name(),
+                email=fake.email(),
+                phone=fake.phone_number()
+            )
+            admin_user.set_password('admin')
+            db.session.add(admin_user)
+            print("✅ admin用户生成完成")
 
         db.session.commit()
 
-        # --- 阶段二：为每个门店创建门店组用户 ---
+        # --- 其它用户和日报数据全部注释掉 ---
+        # 示例：如需生成日报数据，需补充误差字段
+        # with db.session.begin_nested():
+        #     sales = DailySales(
+        #         store_id='190',
+        #         user_id=admin_user.user_id,
+        #         report_date=datetime.today().date(),
+        #         cash_income=1000,
+        #         pos_income=500,
+        #         day_pass_income=200,
+        #         pos_total=1700,
+        #         cash_difference=10,  # 新增字段
+        #         electronic_difference=-5,  # 新增字段
+        #         voucher_amount=50,
+        #         takeaway_amount=100,
+        #         bank_deposit=1600,
+        #         bank_fee=10,
+        #         actual_sales=1650,
+        #         pos_info_completed=True,
+        #         takeaway_info_completed=True,
+        #         bank_info_completed=True,
+        #         is_submitted=False
+        #     )
+        #     db.session.add(sales)
+        # db.session.commit()
+        # print("🎉🎉🎉 仅门店数据和admin用户生成成功！ 🎉🎉🎉")
+        # return True
+
+        # --- 示例：生成测试日报数据（含误差字段和附件），如需可取消注释 ---
         with db.session.begin_nested():
-            print("开始为每个门店生成店长和店员...")
+            print("开始生成测试日报数据（含 cash_difference、electronic_difference 字段）...")
             stores = Store.query.all()
+            admin = User.query.filter_by(username='admin').first()
             for store in stores:
-                # 为每个店创建一个店长
-                manager_username = f"manager_{store.store_id.lower()}"
-                manager = User(
-                    username=manager_username,
-                    role=RoleType.BRANCH_MANAGER,
-                    store_id=store.store_id, # 关键：关联到当前店铺
-                    real_name=fake.name(),
-                    email=fake.email(),
-                    phone=fake.phone_number(),
-                    start_date=fake.date_between(start_date='-2y', end_date='-1y'),
-                    profile_completed=False
-                )
-                manager.set_password('123456')
-                db.session.add(manager)
-
-                # 为每个店创建2个店员
-                for i in range(2):
-                    employee_username = f"employee_{store.store_id.lower()}_{i+1}"
-                    employee = User(
-                        username=employee_username,
-                        role=RoleType.EMPLOYEE,
-                        store_id=store.store_id, # 关键：关联到当前店铺
-                        real_name=fake.name(),
-                        email=fake.email(),
-                        phone=fake.phone_number(),
-                        start_date=fake.date_between(start_date='-1y', end_date='today'),
-                        profile_completed=False
-                    )
-                    employee.set_password('123456')
-                    db.session.add(employee)
-            print("✅ 门店组用户生成完成")
-
-        db.session.commit()
-
-        # --- 阶段三：创建依赖数据 (日报) ---
-        with db.session.begin_nested():
-            print("开始生成日报和附件数据...")
-            store_users = User.query.filter(User.store_id.isnot(None)).all()
-            if not store_users:
-                 print("⚠️ 警告: 没有找到任何门店用户，无法生成日报数据。")
-                 return True
-
-            attachment_list = []
-            for user in store_users:
-                # 为每个门店用户生成最近5天的日报
-                for i in range(5):
+                for i in range(3):  # 生成3天的日报
                     report_date = date.today() - timedelta(days=i)
+                    cash_income = round(random.uniform(500, 2000), 2)
+                    pos_income = round(random.uniform(500, 3000), 2)
+                    day_pass_income = round(random.uniform(100, 800), 2)
+                    pos_total = cash_income + pos_income + day_pass_income
                     sales = DailySales(
-                        store_id=user.store_id,
-                        user_id=user.user_id,
+                        store_id=store.store_id,
+                        user_id=admin.user_id,
                         report_date=report_date,
-                        total_income=round(random.uniform(2000, 8000), 2),
-                        cash_income=round(random.uniform(500, 2000), 2),
-                        financial_check_status=random.choice(list(FinancialCheckStatus)),
+                        cash_income=cash_income,
+                        pos_income=pos_income,
+                        day_pass_income=day_pass_income,
+                        pos_total=pos_total,
+                        cash_difference=round(random.uniform(-10, 10), 2),
+                        electronic_difference=round(random.uniform(-10, 10), 2),
+                        takeaway_amount=round(random.uniform(100, 800), 2),
+                        bank_receipt_amount=round(random.uniform(500, 2000), 2),
+                        bank_fee=round(random.uniform(0, 20), 2),
+                        bank_deposit=round(random.uniform(500, 2000), 2),
+                        voucher_amount=round(random.uniform(0, 100), 2),
+                        actual_sales=round(random.uniform(1000, 5000), 2),
+                        remark=fake.sentence(),
+                        pos_info_completed=True,
+                        takeaway_info_completed=True,
+                        bank_info_completed=True,
+                        is_submitted=True,
+                        financial_check_status=FinancialCheckStatus.PENDING,
+                        archived=True,
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
                     )
                     db.session.add(sales)
-                    db.session.flush()
-                    attachment_list.extend(
-                        [create_daily_sales_attachment(sales, fake) for _ in range(random.randint(0, 2))])
-
-            db.session.add_all(attachment_list)
-            print("✅ 日报和附件数据生成完成")
-
+                    db.session.flush()  # 生成ID
+                    # 附件示例
+                    for _ in range(random.randint(1, 2)):
+                        db.session.add(create_daily_sales_attachment(sales, fake))
+            print("✅ 测试日报数据生成完成")
         db.session.commit()
-        print("🎉🎉🎉 所有测试数据生成成功！ 🎉🎉🎉")
+        print("🎉🎉🎉 测试日报数据（含误差字段和附件）生成成功！ 🎉🎉🎉")
         return True
 
     except Exception as e:
         db.session.rollback()
         print(f"❌ 生成测试数据时发生严重错误: {e}")
         raise e
+
+
+def clean_daily_sales_duplicates():
+    """
+    清理每个门店每天归档数>1的销售日报，只保留最新一条，其余全部删除。
+    """
+    from app.models import DailySales
+    from sqlalchemy import func
+    # 查询所有归档日报分组
+    subq = db.session.query(
+        DailySales.store_id,
+        DailySales.report_date,
+        func.count(DailySales.report_id).label('cnt')
+    ).filter(DailySales.archived==True).group_by(DailySales.store_id, DailySales.report_date).having(func.count(DailySales.report_id)>1).all()
+    total_deleted = 0
+    for store_id, report_date, cnt in subq:
+        # 找出该组所有归档日报，按创建时间倒序，保留最新一条
+        dups = DailySales.query.filter_by(store_id=store_id, report_date=report_date, archived=True).order_by(DailySales.created_at.desc()).all()
+        for dup in dups[1:]:
+            db.session.delete(dup)
+            total_deleted += 1
+    db.session.commit()
+    print(f"已清理重复归档日报 {total_deleted} 条")

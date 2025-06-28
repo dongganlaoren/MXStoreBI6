@@ -10,7 +10,6 @@ class Config:
     基础配置类，包含所有环境通用的配置。
     """
     SECRET_KEY = os.environ.get('SECRET_KEY')
-    # +++ 添加 ENV 属性 +++
     ENV = 'default'  # 默认环境
 
     if not SECRET_KEY:
@@ -20,6 +19,8 @@ class Config:
             print("警告：SECRET_KEY 未通过环境变量设置，将使用开发默认值。请勿在生产中使用此默认值！")
             SECRET_KEY = 'dev_secret_key_do_not_use_in_prod'
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    if not SQLALCHEMY_DATABASE_URI:
+        raise RuntimeError("未检测到数据库连接字符串(DATABASE_URL)，请在.env中正确配置！")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
     RECORDS_PER_PAGE = int(os.environ.get('RECORDS_PER_PAGE', 10))
@@ -29,10 +30,7 @@ class DevelopmentConfig(Config):
     DEBUG = True
     ENV = 'development'  #  开发环境
     SQLALCHEMY_ECHO = True
-    #  开发时需要一个明确的SQLite后备
-    if not Config.SQLALCHEMY_DATABASE_URI:
-        print("开发环境警告：DATABASE_URL 未设置，将尝试使用默认的开发数据库。")
-        SQLALCHEMY_DATABASE_URI =  'sqlite:///./dev_app.db'
+    # 不再提供sqlite后备，强制要求DATABASE_URL
 
 class ProductionConfig(Config):
     """生产环境的特定配置"""

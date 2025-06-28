@@ -1,0 +1,37 @@
+{# app/templates/sales/report_detail.html #}
+{% extends "base.html" %}
+{% block title %}日报详情{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>日报详情</h2>
+    <table class="table table-bordered">
+        <tr><th>日期</th><td>{{ report.report_date }}</td></tr>
+        <tr><th>门店</th><td>{{ report.store_id }}</td></tr>
+        <tr><th>上报人</th><td>{{ report.user_id }}</td></tr>
+        <tr><th>POS现金</th><td>{{ report.cash_income }}</td></tr>
+        <tr><th>POS电子支付</th><td>{{ report.pos_income }}</td></tr>
+        <tr><th>POS外卖</th><td>{{ report.day_pass_income }}</td></tr>
+        <tr><th>POS合计</th><td>{{ report.pos_total }}</td></tr>
+        <tr><th>外卖平台收入</th><td>{{ report.takeaway_amount }}</td></tr>
+        <tr><th>银行存入</th><td>{{ report.bank_receipt_amount }}</td></tr>
+        <tr><th>银行手续费</th><td>{{ report.bank_fee }}</td></tr>
+        <tr><th>银行到账</th><td>{{ report.bank_deposit }}</td></tr>
+        <tr><th>代金券</th><td>{{ report.voucher_amount }}</td></tr>
+        <tr><th>实际营业额</th><td>{{ report.actual_sales }}</td></tr>
+        <tr><th>备注</th><td>{{ report.remark }}</td></tr>
+        <tr><th>状态</th><td>
+            {% if report.archived %}<span class="badge bg-secondary">已归档</span>
+            {% elif report.is_submitted %}<span class="badge bg-success">已提交</span>
+            {% else %}<span class="badge bg-warning text-dark">草稿</span>{% endif %}
+        </td></tr>
+    </table>
+    <div class="mt-3">
+        <a href="{{ url_for('sales.sales_report_list') }}" class="btn btn-secondary">返回列表</a>
+        {% if current_user.role in ['admin', 'finance', 'head_manager'] and not report.archived %}
+        <form method="post" action="{{ url_for('sales.archive_report', report_id=report.report_id) }}" style="display:inline;">
+            <button type="submit" class="btn btn-danger">归档</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

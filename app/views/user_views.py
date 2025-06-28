@@ -46,23 +46,47 @@ def edit_profile():
         return redirect(url_for('user.profile'))
 
     # 1. 使用我们全新的 EditProfileForm
-    #    用 obj=current_user 来自动从当前用户对象中预填充表单数据
-    form = EditProfileForm(obj=current_user)
+    role_choices = [(role.value, role.name.replace('_', ' ').title()) for role in RoleType]
+    form = EditProfileForm(data={
+        'role': current_user.role.value if current_user.role else '',
+        'real_name': current_user.real_name or '',
+        'id_card_number': current_user.id_card_number or '',
+        'bank_name': current_user.bank_name or '',
+        'bank_account_number': current_user.bank_account_number or '',
+        'phone': current_user.phone or '',
+        'line_id': current_user.line_id or '',
+        'email': current_user.email or '',
+        'start_date': current_user.start_date,
+        'is_primary_contact': current_user.is_primary_contact,
+        'store_id': current_user.store_id or ''
+    })
+    form.role.choices = role_choices
 
     # 2. 处理表单提交
     if form.validate_on_submit():
         try:
-            # 3. 使用 form.populate_obj(current_user) 将表单中的所有数据，
-            #    一次性地填充回 current_user 对象上。
             form.populate_obj(current_user)
-
-            # 门店组用户完善后，标记为已完善
+            if hasattr(form, 'store_id'):
+                store_id_val = form.store_id.data
+                if store_id_val == '' or store_id_val is None:
+                    current_user.store_id = None
+                else:
+                    current_user.store_id = str(store_id_val)
+            if hasattr(form, 'role'):
+                role_val = form.role.data
+                if role_val == '' or role_val is None:
+                    current_user.role = None
+                else:
+                    try:
+                        current_user.role = RoleType(role_val)
+                    except Exception as err:
+                        current_app.logger.error(f"非法role值: {role_val}, 错误: {err}")
+                        current_user.role = None
+            # 保存前输出所有字段调试
+            current_app.logger.info(f"保存前用户数据: {current_user.to_dict()}")
             if current_user.role in [RoleType.EMPLOYEE, RoleType.BRANCH_MANAGER]:
                 current_user.profile_completed = True
-
-            # 4. 提交数据库会话，将所有更改保存
             db.session.commit()
-
             current_app.logger.info(f"用户 {current_user.username} 成功更新了自己的个人资料。")
             flash('您的个人资料已成功更新！', 'success')
 
@@ -70,11 +94,14 @@ def edit_profile():
             return redirect(url_for('user.profile'))
 
         except Exception as e:
+            import traceback
             db.session.rollback()
-            current_app.logger.error(f"保存用户 {current_user.username} 的个人资料时发生错误: {e}", exc_info=True)
+            current_app.logger.error(f"保存用户 {current_user.username} 的个人资料时发生错误: {e}\n{traceback.format_exc()}")
             flash('保存资料时发生未知错误，请联系管理员。', 'danger')
 
     # 如果是GET请求或表单验证失败，渲染编辑页面
+    if form.errors:
+        current_app.logger.warning(f"员工档案表单校验失败: {form.errors}")
     return render_template('user/edit_profile.html', form=form, title="编辑我的资料")
 
 

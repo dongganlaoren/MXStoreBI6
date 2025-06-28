@@ -1,9 +1,6 @@
 # app/forms/sales_forms.py
-
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed
-
-# 导入我们需要的字段类型和验证器
 from wtforms import (
     DateField,
     DecimalField,
@@ -12,8 +9,8 @@ from wtforms import (
     SelectField,
     SubmitField,
 )
-from wtforms.validators import NumberRange, Optional
-
+from wtforms.validators import NumberRange, Optional, DataRequired
+from datetime import date
 
 class SalesForm(FlaskForm):
     """
@@ -21,9 +18,10 @@ class SalesForm(FlaskForm):
     这个文件只包含与 "营业信息上报" 相关的表单。
     """
     # --- 核心字段，用于选择和传递上下文 ---
-    store_id = SelectField("选择店铺", validators=[Optional()])
-    report_date = DateField("上报日期", validators=[Optional()], format='%Y-%m-%d')
+    store_id = SelectField("选择店铺", validators=[DataRequired()]) # 设置为 DataRequired
+    report_date = DateField("上报日期", validators=[DataRequired()], format='%Y-%m-%d', default=date.today) # 设置为 DataRequired
     report_id = HiddenField()
+    #report_date_sync = HiddenField() # 移除 report_date_sync 字段
 
     # --- 第一步: POS机信息字段 ---
     cash_sales = DecimalField("POS现金收入 (C)", validators=[Optional(), NumberRange(min=0)])
@@ -46,5 +44,5 @@ class SalesForm(FlaskForm):
     bank_receipt_image = FileField("银行存款凭证", validators=[
         FileAllowed(['jpg', 'png', 'jpeg', 'gif', 'pdf'], '只允许上传图片和PDF文件')])
 
-    # 我们将不再在表单类中定义提交按钮，而是直接在模板中编写 <button> 标签
-    # 这样可以更灵活地处理分步提交
+    # --- 隐藏字段：用于前端判断是否为初次加载，防止模板渲染报错 ---
+    initial_load = HiddenField()
