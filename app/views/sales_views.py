@@ -1,4 +1,5 @@
 # app/views/sales_views.py
+# 修订内容：1. 上传文件保存路径调整为 static/uploads；2. 自动创建 static/uploads 目录；3. 增加中文注释说明
 from datetime import datetime
 import os
 import traceback
@@ -25,19 +26,29 @@ from wtforms.validators import DataRequired, Optional
 sales_bp = Blueprint('sales', __name__)
 
 # Helper function for file uploads
+# 修订：上传文件保存到 static/uploads，并自动创建该目录
+# ---------------------------------------------
 def save_attachment(form_field, report_id, attachment_type):
-    """Helper function to save uploaded file and create DailySalesAttachments record.
+    """
     辅助函数：保存上传的文件并创建 DailySalesAttachments 记录。
+    本次修订：
+    1. 上传文件保存到 static/uploads 目录下
+    2. 若 static/uploads 不存在则自动创建
+    3. 数据库存储相对路径，便于前端展示
     """
     if form_field.data and hasattr(form_field.data, 'filename') and form_field.data.filename:
         file = form_field.data
         filename = secure_filename(file.filename)
-        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        # 获取 static/uploads 绝对路径
+        upload_folder = os.path.join(current_app.static_folder, 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)  # 自动创建目录
         save_path = os.path.join(upload_folder, filename)
         file.save(save_path)
+        # 数据库存储相对路径（static/uploads/xxx）
+        relative_path = os.path.join('uploads', filename)
         attachment = DailySalesAttachments(
             report_id=report_id,
-            file_path=save_path,
+            file_path=relative_path,
             attachment_type=attachment_type
         )
         db.session.add(attachment)

@@ -52,8 +52,8 @@ class DailySales(db.Model):
                                        nullable=False, comment='财务核对状态')
     archived = db.Column(db.Boolean, default=False, nullable=False, comment='是否已归档')
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, comment='创建时间')
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment='更新时间')
+    created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')  # 修订：本地时间
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')  # 修订：本地时间
 
     # 附件关联
     attachments = db.relationship('DailySalesAttachments', backref='daily_sale', lazy='dynamic',
