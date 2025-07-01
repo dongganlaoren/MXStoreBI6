@@ -96,22 +96,22 @@
 
                       <div class="mb-3">
                           <label for="voucher_amount" class="form-label">{{ form.voucher_amount.label }}</label>
-                          {{ form.voucher_amount(class="form-control", value=form.voucher_amount.data if form.voucher_amount.data is not none else 0) }}
+                          {{ form.voucher_amount(class="form-control") }}
                       </div>
 
                       <div class="mb-3">
                           <label for="cash_difference" class="form-label">现金误差A（正数为多收，负数为少收）</label>
-                          {{ form.cash_difference(class="form-control", placeholder="允许负数，正数为多收，负数为少收") }}
+                          {{ form.cash_difference(class="form-control") }}
                       </div>
 
                       <div class="mb-3">
                           <label for="electronic_difference" class="form-label">电子支付误差B（正数为多收，负数为少收）</label>
-                          {{ form.electronic_difference(class="form-control", placeholder="允许负数，正数为多收，负数为少收") }}
+                          {{ form.electronic_difference(class="form-control") }}
                       </div>
 
                       <div class="mb-3">
                           <label for="sales_slip_image" class="form-label">{{ form.sales_slip_image.label }}</label>
-                          {{ form.sales_slip_image(class="form-control", required=true) }}
+                          {{ form.sales_slip_image(class="form-control", required=true, id="sales_slip_image") }}
                            {% for error in form.sales_slip_image.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                       </div>
                       <div class="mb-3">
@@ -177,7 +177,7 @@
 
                       <div class="mb-3">
                           <label for="bank_receipt_image" class="form-label">{{ form.bank_receipt_image.label }}</label>
-                          {{ form.bank_receipt_image(class="form-control") }}
+                          {{ form.bank_receipt_image(class="form-control", id="bank_receipt_image") }}
                       </div>
                       {# 如果已完成则禁用所有字段和按钮 #}
                       {% if daily_sales and daily_sales.bank_info_completed %}
@@ -261,22 +261,22 @@
 
                 <div class="mb-3">
                     <label for="voucher_amount" class="form-label">{{ form.voucher_amount.label }}</label>
-                    {{ form.voucher_amount(class="form-control", value=form.voucher_amount.data if form.voucher_amount.data is not none else 0) }}
+                    {{ form.voucher_amount(class="form-control") }}
                 </div>
 
                 <div class="mb-3">
                     <label for="cash_difference" class="form-label">现金误差A（正数为多收，负数为少收）</label>
-                    {{ form.cash_difference(class="form-control", placeholder="允许负数，正数为多收，负数为少收") }}
+                    {{ form.cash_difference(class="form-control") }}
                 </div>
 
                 <div class="mb-3">
                     <label for="electronic_difference" class="form-label">电子支付误差B（正数为多收，负数为少收）</label>
-                    {{ form.electronic_difference(class="form-control", placeholder="允许负数，正数为多收，负数为少收") }}
+                    {{ form.electronic_difference(class="form-control") }}
                 </div>
 
                 <div class="mb-3">
                     <label for="sales_slip_image" class="form-label">{{ form.sales_slip_image.label }}</label>
-                    {{ form.sales_slip_image(class="form-control", required=true) }}
+                    {{ form.sales_slip_image(class="form-control", required=true, id="sales_slip_image") }}
                      {% for error in form.sales_slip_image.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
                 <div class="mb-3">
@@ -342,7 +342,7 @@
 
                 <div class="mb-3">
                     <label for="bank_receipt_image" class="form-label">{{ form.bank_receipt_image.label }}</label>
-                    {{ form.bank_receipt_image(class="form-control") }}
+                    {{ form.bank_receipt_image(class="form-control", id="bank_receipt_image") }}
                 </div>
                 {# 如果已完成则禁用所有字段和按钮 #}
                 {% if daily_sales and daily_sales.bank_info_completed %}

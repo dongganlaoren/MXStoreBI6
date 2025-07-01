@@ -91,4 +91,32 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleStoreFieldVisibility();
     }
 
+    // --- 功能4：FilePond 文件上传美化（同步上传模式）---
+    if (window.FilePond) {
+        const pondSales = document.getElementById('sales_slip_image');
+        if (pondSales) {
+            FilePond.create(pondSales, {
+                labelIdle: '拖拽或 <span class="filepond--label-action">点击上传小票图片</span>',
+                acceptedFileTypes: ['image/*', 'application/pdf'],
+                allowMultiple: false,
+                allowImagePreview: true,
+                imagePreviewHeight: 120,
+                fileValidateTypeLabelExpectedTypes: '仅支持图片或PDF',
+                storeAsFile: true // 关键：保证文件随表单同步上传
+            });
+        }
+        const pondBank = document.getElementById('bank_receipt_image');
+        if (pondBank) {
+            FilePond.create(pondBank, {
+                labelIdle: '拖拽或 <span class="filepond--label-action">点击上传银行回单</span>',
+                acceptedFileTypes: ['image/*', 'application/pdf'],
+                allowMultiple: false,
+                allowImagePreview: true,
+                imagePreviewHeight: 120,
+                fileValidateTypeLabelExpectedTypes: '仅支持图片或PDF',
+                storeAsFile: true
+            });
+        }
+    }
+
 });

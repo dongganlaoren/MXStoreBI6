@@ -115,52 +115,52 @@ def generate_fake_data():
         # return True
 
         # --- 示例：生成测试日报数据（含误差字段和附件），如需可取消注释 ---
-        with db.session.begin_nested():
-            print("开始生成测试日报数据（含 cash_difference、electronic_difference 字段）...")
-            stores = Store.query.all()
-            admin = User.query.filter_by(username='admin').first()
-            for store in stores:
-                for i in range(3):  # 生成3天的日报
-                    report_date = date.today() - timedelta(days=i)
-                    cash_income = round(random.uniform(500, 2000), 2)
-                    pos_income = round(random.uniform(500, 3000), 2)
-                    day_pass_income = round(random.uniform(100, 800), 2)
-                    pos_total = cash_income + pos_income + day_pass_income
-                    sales = DailySales(
-                        store_id=store.store_id,
-                        user_id=admin.user_id,
-                        report_date=report_date,
-                        cash_income=cash_income,
-                        pos_income=pos_income,
-                        day_pass_income=day_pass_income,
-                        pos_total=pos_total,
-                        cash_difference=round(random.uniform(-10, 10), 2),
-                        electronic_difference=round(random.uniform(-10, 10), 2),
-                        takeaway_amount=round(random.uniform(100, 800), 2),
-                        bank_receipt_amount=round(random.uniform(500, 2000), 2),
-                        bank_fee=round(random.uniform(0, 20), 2),
-                        bank_deposit=round(random.uniform(500, 2000), 2),
-                        voucher_amount=round(random.uniform(0, 100), 2),
-                        actual_sales=round(random.uniform(1000, 5000), 2),
-                        remark=fake.sentence(),
-                        pos_info_completed=True,
-                        takeaway_info_completed=True,
-                        bank_info_completed=True,
-                        is_submitted=True,
-                        financial_check_status=FinancialCheckStatus.PENDING,
-                        archived=True,
-                        created_at=datetime.now(),
-                        updated_at=datetime.now()
-                    )
-                    db.session.add(sales)
-                    db.session.flush()  # 生成ID
-                    # 附件示例
-                    for _ in range(random.randint(1, 2)):
-                        db.session.add(create_daily_sales_attachment(sales, fake))
-            print("✅ 测试日报数据生成完成")
-        db.session.commit()
-        print("🎉🎉🎉 测试日报数据（含误差字段和附件）生成成功！ 🎉🎉🎉")
-        return True
+        # with db.session.begin_nested():
+        #     print("开始生成测试日报数据（含 cash_difference、electronic_difference 字段）...")
+        #     stores = Store.query.all()
+        #     admin = User.query.filter_by(username='admin').first()
+        #     for store in stores:
+        #         for i in range(3):  # 生成3天的日报
+        #             report_date = date.today() - timedelta(days=i)
+        #             cash_income = round(random.uniform(500, 2000), 2)
+        #             pos_income = round(random.uniform(500, 3000), 2)
+        #             day_pass_income = round(random.uniform(100, 800), 2)
+        #             pos_total = cash_income + pos_income + day_pass_income
+        #             sales = DailySales(
+        #                 store_id=store.store_id,
+        #                 user_id=admin.user_id,
+        #                 report_date=report_date,
+        #                 cash_income=cash_income,
+        #                 pos_income=pos_income,
+        #                 day_pass_income=day_pass_income,
+        #                 pos_total=pos_total,
+        #                 cash_difference=round(random.uniform(-10, 10), 2),
+        #                 electronic_difference=round(random.uniform(-10, 10), 2),
+        #                 takeaway_amount=round(random.uniform(100, 800), 2),
+        #                 bank_receipt_amount=round(random.uniform(500, 2000), 2),
+        #                 bank_fee=round(random.uniform(0, 20), 2),
+        #                 bank_deposit=round(random.uniform(500, 2000), 2),
+        #                 voucher_amount=round(random.uniform(0, 100), 2),
+        #                 actual_sales=round(random.uniform(1000, 5000), 2),
+        #                 remark=fake.sentence(),
+        #                 pos_info_completed=True,
+        #                 takeaway_info_completed=True,
+        #                 bank_info_completed=True,
+        #                 is_submitted=True,
+        #                 financial_check_status=FinancialCheckStatus.PENDING,
+        #                 archived=True,
+        #                 created_at=datetime.now(),
+        #                 updated_at=datetime.now()
+        #             )
+        #             db.session.add(sales)
+        #             db.session.flush()  # 生成ID
+        #             # 附件示例
+        #             for _ in range(random.randint(1, 2)):
+        #                 db.session.add(create_daily_sales_attachment(sales, fake))
+        #     print("✅ 测试日报数据生成完成")
+        # db.session.commit()
+        # print("🎉🎉🎉 测试日报数据（含误差字段和附件）生成成功！ 🎉🎉🎉")
+        # return True
 
     except Exception as e:
         db.session.rollback()

@@ -42,3 +42,6 @@ build/
 *.bak
 *.swp
 *.swo
+
+# 用户上传文件目录
+uploads/
