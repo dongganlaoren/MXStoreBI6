@@ -91,18 +91,21 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleStoreFieldVisibility();
     }
 
-    // --- 功能4：FilePond 文件上传美化（同步上传模式）---
+    // --- 功能4：FilePond 文件上传美化（多文件+图片预览）---
     if (window.FilePond) {
+        if (window.FilePondPluginImagePreview) {
+            FilePond.registerPlugin(FilePondPluginImagePreview);
+        }
         const pondSales = document.getElementById('sales_slip_image');
         if (pondSales) {
             FilePond.create(pondSales, {
                 labelIdle: '拖拽或 <span class="filepond--label-action">点击上传小票图片</span>',
                 acceptedFileTypes: ['image/*', 'application/pdf'],
-                allowMultiple: false,
+                allowMultiple: true,
                 allowImagePreview: true,
                 imagePreviewHeight: 120,
                 fileValidateTypeLabelExpectedTypes: '仅支持图片或PDF',
-                storeAsFile: true // 关键：保证文件随表单同步上传
+                storeAsFile: true
             });
         }
         const pondBank = document.getElementById('bank_receipt_image');
@@ -118,5 +121,49 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+
+    // --- 全局 FilePond 自动适配（多文件+图片预览）---
+    if (window.FilePond) {
+        if (window.FilePondPluginImagePreview) {
+            FilePond.registerPlugin(FilePondPluginImagePreview);
+        }
+        document.querySelectorAll('input[type="file"]').forEach(function(input) {
+            // 避免重复初始化
+            if (input.classList.contains('filepond--root')) return;
+            // 全局强制支持多文件
+            input.setAttribute('multiple', 'multiple');
+            const allowMultiple = true;
+            const accept = input.getAttribute('accept') || '';
+            FilePond.create(input, {
+                allowMultiple: allowMultiple,
+                allowImagePreview: true,
+                imagePreviewHeight: 120,
+                storeAsFile: true,
+                acceptedFileTypes: accept ? accept.split(',').map(s => s.trim()) : ['image/*', 'application/pdf'],
+                fileValidateTypeLabelExpectedTypes: '仅支持图片或PDF',
+                labelIdle: '拖拽或 <span class="filepond--label-action">点击上传</span>'
+            });
+        });
+    }
+
+    // --- 全局图片预览 viewer.js 初始化 ---
+    // 只要页面上有 .js-image-viewer 区块，自动启用 viewer.js
+    document.querySelectorAll('.js-image-viewer').forEach(function(container) {
+        // 避免重复初始化
+        if (!container._viewer) {
+            container._viewer = new Viewer(container, {
+                navbar: false,
+                toolbar: true,
+                title: false,
+                tooltip: true,
+                movable: false,
+                zoomable: true,
+                scalable: false,
+                transition: true,
+                fullscreen: true,
+                // 可根据需要自定义其它参数
+            });
+        }
+    });
 
 });

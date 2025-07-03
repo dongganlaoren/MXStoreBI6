@@ -35,23 +35,28 @@ def save_attachment(form_field, report_id, attachment_type):
     1. 上传文件保存到 static/uploads 目录下
     2. 若 static/uploads 不存在则自动创建
     3. 数据库存储相对路径，便于前端展示
+
+    支持多文件上传：form_field.data 可能为 FileStorage 或 list[FileStorage]
     """
-    if form_field.data and hasattr(form_field.data, 'filename') and form_field.data.filename:
-        file = form_field.data
-        filename = secure_filename(file.filename)
-        # 获取 static/uploads 绝对路径
-        upload_folder = os.path.join(current_app.static_folder, 'uploads')
-        os.makedirs(upload_folder, exist_ok=True)  # 自动创建目录
-        save_path = os.path.join(upload_folder, filename)
-        file.save(save_path)
-        # 数据库存储相对路径（static/uploads/xxx）
-        relative_path = os.path.join('uploads', filename)
-        attachment = DailySalesAttachments(
-            report_id=report_id,
-            file_path=relative_path,
-            attachment_type=attachment_type
-        )
-        db.session.add(attachment)
+    files = form_field.data
+    if not files:
+        return
+    if not isinstance(files, list):
+        files = [files]
+    upload_folder = os.path.join(current_app.static_folder, 'uploads')
+    os.makedirs(upload_folder, exist_ok=True)
+    for file in files:
+        if file and hasattr(file, 'filename') and file.filename:
+            filename = secure_filename(file.filename)
+            save_path = os.path.join(upload_folder, filename)
+            file.save(save_path)
+            relative_path = os.path.join('uploads', filename)
+            attachment = DailySalesAttachments(
+                report_id=report_id,
+                file_path=relative_path,
+                attachment_type=attachment_type
+            )
+            db.session.add(attachment)
 
 
 def apply_dynamic_validation(form, step):
@@ -138,8 +143,14 @@ def report_sales():
                 daily_sales.cash_difference = float(form.cash_difference.data) if form.cash_difference.data is not None else 0.0
                 daily_sales.electronic_difference = float(form.electronic_difference.data) if form.electronic_difference.data is not None else 0.0
 
-                # Save attachment
-                save_attachment(form.sales_slip_image, daily_sales.report_id, AttachmentType.sales_slip)
+                # 多文件保存：支持所有相关字段
+                for field, atype in [
+                    ('sales_slip_image', AttachmentType.sales_slip),
+                ]:
+                    files = request.files.getlist(field)
+                    for file in files:
+                        if file and file.filename:
+                            save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
                 # 校验POS总收入
                 pos_total = daily_sales.cash_income + daily_sales.pos_income + daily_sales.day_pass_income
                 daily_sales.pos_total = pos_total
@@ -151,13 +162,26 @@ def report_sales():
                 daily_sales.pos_info_completed = True
             elif step == 'takeaway':
                 daily_sales.takeaway_amount = float(form.takeaway_platform_sales.data) if form.takeaway_platform_sales.data is not None else 0.0
-                save_attachment(form.takeaway_platform_receipt, daily_sales.report_id, AttachmentType.takeaway_screenshot)
+                # 多文件保存 takeaway_screenshot
+                for field, atype in [
+                    ('takeaway_platform_receipt', AttachmentType.takeaway_screenshot),
+                ]:
+                    files = request.files.getlist(field)
+                    for file in files:
+                        if file and file.filename:
+                            save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
                 daily_sales.takeaway_info_completed = True
-
             elif step == 'bank':
                 daily_sales.bank_deposit = float(form.bank_deposit.data) if form.bank_deposit.data is not None else 0.0
                 daily_sales.bank_fee = float(form.bank_fee.data) if form.bank_fee.data is not None else 0.0
-                save_attachment(form.bank_receipt_image, daily_sales.report_id, AttachmentType.bank_receipt)
+                # 多文件保存 bank_receipt
+                for field, atype in [
+                    ('bank_receipt_image', AttachmentType.bank_receipt),
+                ]:
+                    files = request.files.getlist(field)
+                    for file in files:
+                        if file and file.filename:
+                            save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
                 daily_sales.bank_info_completed = True
 
             elif request.form.get('submit_final') == 'final_submit':

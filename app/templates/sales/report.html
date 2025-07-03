@@ -111,7 +111,7 @@
 
                       <div class="mb-3">
                           <label for="sales_slip_image" class="form-label">{{ form.sales_slip_image.label }}</label>
-                          {{ form.sales_slip_image(class="form-control", required=true, id="sales_slip_image") }}
+                          {{ form.sales_slip_image(class="form-control", required=true, id="sales_slip_image", multiple=true) }}
                            {% for error in form.sales_slip_image.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                       </div>
                       <div class="mb-3">
@@ -177,7 +177,7 @@
 
                       <div class="mb-3">
                           <label for="bank_receipt_image" class="form-label">{{ form.bank_receipt_image.label }}</label>
-                          {{ form.bank_receipt_image(class="form-control", id="bank_receipt_image") }}
+                          {{ form.bank_receipt_image(class="form-control", id="bank_receipt_image", multiple=true) }}
                       </div>
                       {# 如果已完成则禁用所有字段和按钮 #}
                       {% if daily_sales and daily_sales.bank_info_completed %}
@@ -276,7 +276,7 @@
 
                 <div class="mb-3">
                     <label for="sales_slip_image" class="form-label">{{ form.sales_slip_image.label }}</label>
-                    {{ form.sales_slip_image(class="form-control", required=true, id="sales_slip_image") }}
+                    {{ form.sales_slip_image(class="form-control", required=true, id="sales_slip_image", multiple=true) }}
                      {% for error in form.sales_slip_image.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
                 <div class="mb-3">
@@ -342,7 +342,7 @@
 
                 <div class="mb-3">
                     <label for="bank_receipt_image" class="form-label">{{ form.bank_receipt_image.label }}</label>
-                    {{ form.bank_receipt_image(class="form-control", id="bank_receipt_image") }}
+                    {{ form.bank_receipt_image(class="form-control", id="bank_receipt_image", multiple=true) }}
                 </div>
                 {# 如果已完成则禁用所有字段和按钮 #}
                 {% if daily_sales and daily_sales.bank_info_completed %}
@@ -356,7 +356,33 @@
         </div>
     </div>
 
-    {# --- 最终提交区域 --- #}
+    {% if daily_sales and daily_sales.attachments.count() > 0 %}
+    <div class="mb-4">
+      <h5 class="mb-2">历史凭证图片预览</h5>
+      {% for type, label in [
+        ('sales_slip', '小票凭证'),
+        ('bank_receipt', '银行回单'),
+        ('takeaway_screenshot', '外卖截图'),
+        ('image', '其它图片')
+      ] %}
+        {% set imgs = daily_sales.attachments.filter_by(attachment_type=type).all() %}
+        {% if imgs|length > 0 %}
+          <div class="mb-2">
+            <div class="fw-bold small text-secondary mb-1">{{ label }}</div>
+            <div class="js-image-viewer d-flex flex-wrap gap-2 border rounded p-2 bg-light">
+              {% for att in imgs %}
+                {% if att.file_path and att.file_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')) %}
+                  <img src="{{ url_for('static', filename=att.file_path.replace('static/', '')) }}" alt="凭证图片" style="height:80px;object-fit:cover;cursor:pointer;border-radius:4px;" loading="lazy">
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# --- 最终提交区域（放在最底部） --- #}
     {% if daily_sales and daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.bank_info_completed and not daily_sales.is_submitted %}
     <div class="mt-4 p-3 border rounded bg-light text-center">
         <h4>最终提交</h4>
