@@ -1,8 +1,8 @@
-"""初始化数据库
+"""init
 
-Revision ID: c65a30e50a36
+Revision ID: 1ca6cb5383fc
 Revises: 
-Create Date: 2025-06-28 18:09:48.479561
+Create Date: 2025-07-09 19:31:47.707297
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'c65a30e50a36'
+revision = '1ca6cb5383fc'
 down_revision = None
 branch_labels = None
 depends_on = None

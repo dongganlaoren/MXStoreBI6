@@ -372,7 +372,7 @@
             <div class="js-image-viewer d-flex flex-wrap gap-2 border rounded p-2 bg-light">
               {% for att in imgs %}
                 {% if att.file_path and att.file_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')) %}
-                  <img src="{{ url_for('static', filename=att.file_path.replace('static/', '')) }}" alt="凭证图片" style="height:80px;object-fit:cover;cursor:pointer;border-radius:4px;" loading="lazy">
+                  <img src="{{ url_for('static', filename=att.file_path|replace('\\', '/')|replace('\\\\', '/') ) }}" alt="凭证图片" style="height:80px;object-fit:cover;cursor:pointer;border-radius:4px;" loading="lazy">
                 {% endif %}
               {% endfor %}
             </div>
