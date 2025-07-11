@@ -1,0 +1,79 @@
+{# app/templates/sales/list.html #}
+{% extends "base.html" %}
+{% block title %}销售核对列表{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>销售核对列表</h2>
+    <form class="row g-3 mb-3" method="get">
+        <div class="col-auto">
+            <label for="store_id" class="form-label">门店编号</label>
+            <select class="form-select" id="store_id" name="store_id">
+                <option value="">全部门店</option>
+                {% for s in stores %}
+                <option value="{{ s.store_id }}" {% if store_id==s.store_id|string %}selected{% endif %}>{{ s.store_id }} - {{ s.store_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <label for="report_date" class="form-label">日期</label>
+            <input type="date" class="form-control" id="report_date" name="report_date" value="{{ report_date }}">
+        </div>
+        <div class="col-auto align-self-end">
+            <button type="submit" class="btn btn-primary">筛选</button>
+        </div>
+    </form>
+    <table class="table table-bordered table-hover">
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>门店编号</th>
+                <th>门店名称</th>
+                <th>POS收入</th>
+                <th>外卖收入</th>
+                <th>银行存入</th>
+                <th>实际到账</th>
+                <th>审核状态</th>
+                <th>财务备注</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in pagination.items %}
+            <tr>
+                <td>{{ r.report_date }}</td>
+                <td>{{ r.store_id }}</td>
+                <td>{{ r.store.store_name if r.store else '-' }}</td>
+                <td>{{ r.pos_total or '-' }}</td>
+                <td>{{ r.takeaway_amount or '-' }}</td>
+                <td>{{ r.bank_receipt_amount or '-' }}</td>
+                <td>{{ r.bank_deposit or '-' }}</td>
+                <td>
+                    {% if r.financial_check_status == 1 %}<span class="badge bg-success">通过</span>
+                    {% elif r.financial_check_status == 2 %}<span class="badge bg-danger">驳回</span>
+                    {% else %}<span class="badge bg-secondary">待审核</span>{% endif %}
+                </td>
+                <td>{{ r.remark or '' }}</td>
+                <td>
+                    <a href="{{ url_for('sales.sales_check_edit', report_id=r.report_id) }}" class="btn btn-sm btn-primary">审核</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <nav>
+        <ul class="pagination">
+            {% if pagination.has_prev %}
+            <li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}&store_id={{ store_id }}&report_date={{ report_date }}">上一页</a></li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">上一页</span></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">第 {{ pagination.page }}/{{ pagination.pages }} 页</span></li>
+            {% if pagination.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}&store_id={{ store_id }}&report_date={{ report_date }}">下一页</a></li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">下一页</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endblock %}

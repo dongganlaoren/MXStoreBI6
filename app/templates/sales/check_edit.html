@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>{{ title or '销售审核' }}</h3>
+    <form method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            <label class="form-label">门店编号</label>
+            <input type="text" class="form-control" value="{{ daily_sales.store_id }}" readonly>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">门店名称</label>
+            <input type="text" class="form-control" value="{{ daily_sales.store.store_name if daily_sales.store else '' }}" readonly>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">上报日期</label>
+            <input type="text" class="form-control" value="{{ daily_sales.report_date }}" readonly>
+        </div>
+        <div class="mb-3">
+            {{ form.bank_deposit.label(class="form-label") }}
+            {{ form.bank_deposit(class="form-control", placeholder="请输入实际到账金额") }}
+            {% for error in form.bank_deposit.errors %}
+                <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                {{ form.cash_difference.label(class="form-label") }}
+                {{ form.cash_difference(class="form-control", value=daily_sales.cash_difference, readonly=true) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form.electronic_difference.label(class="form-label") }}
+                {{ form.electronic_difference(class="form-control", value=daily_sales.electronic_difference, readonly=true) }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                {{ form.electronic_actual_arrival.label(class="form-label") }}
+                {{ form.electronic_actual_arrival(class="form-control", value=daily_sales.electronic_actual_arrival, readonly=true) }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form.actual_sales.label(class="form-label") }}
+                {{ form.actual_sales(class="form-control", value=daily_sales.actual_sales, readonly=true) }}
+            </div>
+        </div>
+        <div class="mb-3">
+            {{ form.financial_check_status.label(class="form-label") }}
+            {{ form.financial_check_status(class="form-select") }}
+            {% for error in form.financial_check_status.errors %}
+                <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="mb-3">
+            {{ form.remark.label(class="form-label") }}
+            {{ form.remark(class="form-control", rows=3, placeholder="可填写财务审核备注") }}
+            {% for error in form.remark.errors %}
+                <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+        </div>
+        <div class="mb-3">
+            <button type="submit" class="btn btn-primary">保存审核</button>
+            <a href="{{ url_for('sales.sales_check_list', store_id=daily_sales.store_id, report_date=daily_sales.report_date.strftime('%Y-%m-%d')) }}" class="btn btn-secondary ms-2">返回列表</a>
+        </div>
+    </form>
+    <hr>
+    <h5>历史凭证图片</h5>
+    <div class="row">
+        {% for att in daily_sales.attachments %}
+            <div class="col-md-3 mb-3">
+                <div class="card">
+                    <img src="{{ url_for('static', filename=att.file_path.replace('\\', '/')) }}" class="card-img-top" alt="凭证图片">
+                    <div class="card-body p-2">
+                        <span class="badge bg-info">{{ att.attachment_type.label if att.attachment_type else '' }}</span>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="col-12 text-muted">暂无凭证图片</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

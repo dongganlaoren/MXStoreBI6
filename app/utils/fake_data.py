@@ -22,7 +22,9 @@ fake = Faker("zh_CN")  # 使用中文数据，可以生成更逼真的中文名�
 
 
 def create_daily_sales_attachment(sales_record, faker_instance):
-    """为日报创建并返回一个附件对象"""
+    """
+    为日报创建并返回一个附件对象（仅用于测试数据生成）。
+    """
     return DailySalesAttachments(
         report_id=sales_record.report_id,
         file_path=faker_instance.file_path(depth=2),
@@ -33,8 +35,8 @@ def create_daily_sales_attachment(sales_record, faker_instance):
 
 def generate_fake_data():
     """
-    生成所有模块的测试数据。
-    只保留门店数据和admin用户，其它全部注释掉。
+    生成基础测试数据：门店信息和admin用户。
+    如需生成日报等业务数据，请参考注释示例，自行扩展。
     """
     try:
         # --- 阶段一：清空并创建基础数据 (门店、管理组用户) ---
@@ -86,81 +88,7 @@ def generate_fake_data():
 
         db.session.commit()
 
-        # --- 其它用户和日报数据全部注释掉 ---
-        # 示例：如需生成日报数据，需补充误差字段
-        # with db.session.begin_nested():
-        #     sales = DailySales(
-        #         store_id='190',
-        #         user_id=admin_user.user_id,
-        #         report_date=datetime.today().date(),
-        #         cash_income=1000,
-        #         pos_income=500,
-        #         day_pass_income=200,
-        #         pos_total=1700,
-        #         cash_difference=10,  # 新增字段
-        #         electronic_difference=-5,  # 新增字段
-        #         voucher_amount=50,
-        #         takeaway_amount=100,
-        #         bank_deposit=1600,
-        #         bank_fee=10,
-        #         actual_sales=1650,
-        #         pos_info_completed=True,
-        #         takeaway_info_completed=True,
-        #         bank_info_completed=True,
-        #         is_submitted=False
-        #     )
-        #     db.session.add(sales)
-        # db.session.commit()
-        # print("🎉🎉🎉 仅门店数据和admin用户生成成功！ 🎉🎉🎉")
-        # return True
 
-        # --- 示例：生成测试日报数据（含误差字段和附件），如需可取消注释 ---
-        # with db.session.begin_nested():
-        #     print("开始生成测试日报数据（含 cash_difference、electronic_difference 字段）...")
-        #     stores = Store.query.all()
-        #     admin = User.query.filter_by(username='admin').first()
-        #     for store in stores:
-        #         for i in range(3):  # 生成3天的日报
-        #             report_date = date.today() - timedelta(days=i)
-        #             cash_income = round(random.uniform(500, 2000), 2)
-        #             pos_income = round(random.uniform(500, 3000), 2)
-        #             day_pass_income = round(random.uniform(100, 800), 2)
-        #             pos_total = cash_income + pos_income + day_pass_income
-        #             sales = DailySales(
-        #                 store_id=store.store_id,
-        #                 user_id=admin.user_id,
-        #                 report_date=report_date,
-        #                 cash_income=cash_income,
-        #                 pos_income=pos_income,
-        #                 day_pass_income=day_pass_income,
-        #                 pos_total=pos_total,
-        #                 cash_difference=round(random.uniform(-10, 10), 2),
-        #                 electronic_difference=round(random.uniform(-10, 10), 2),
-        #                 takeaway_amount=round(random.uniform(100, 800), 2),
-        #                 bank_receipt_amount=round(random.uniform(500, 2000), 2),
-        #                 bank_fee=round(random.uniform(0, 20), 2),
-        #                 bank_deposit=round(random.uniform(500, 2000), 2),
-        #                 voucher_amount=round(random.uniform(0, 100), 2),
-        #                 actual_sales=round(random.uniform(1000, 5000), 2),
-        #                 remark=fake.sentence(),
-        #                 pos_info_completed=True,
-        #                 takeaway_info_completed=True,
-        #                 bank_info_completed=True,
-        #                 is_submitted=True,
-        #                 financial_check_status=FinancialCheckStatus.PENDING,
-        #                 archived=True,
-        #                 created_at=datetime.now(),
-        #                 updated_at=datetime.now()
-        #             )
-        #             db.session.add(sales)
-        #             db.session.flush()  # 生成ID
-        #             # 附件示例
-        #             for _ in range(random.randint(1, 2)):
-        #                 db.session.add(create_daily_sales_attachment(sales, fake))
-        #     print("✅ 测试日报数据生成完成")
-        # db.session.commit()
-        # print("🎉🎉🎉 测试日报数据（含误差字段和附件）生成成功！ 🎉🎉🎉")
-        # return True
 
     except Exception as e:
         db.session.rollback()
@@ -170,7 +98,8 @@ def generate_fake_data():
 
 def clean_daily_sales_duplicates():
     """
-    清理每个门店每天归档数>1的销售日报，只保留最新一条，其余全部删除。
+    清理每个门店每天同一天归档数>1的销售日报，只保留最新一条，其余全部删除。
+    用于测试环境数据去重，避免统计异常。
     """
     from app.models import DailySales
     from sqlalchemy import func

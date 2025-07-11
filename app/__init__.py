@@ -85,7 +85,7 @@ def create_app(config: object) -> Flask:
 # -------------------- 日志配置 --------------------
 def configure_logging(app: Flask):
     """配置日志文件滚动"""
-    handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3)
+    handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3, encoding='utf-8')
     handler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)

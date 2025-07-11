@@ -20,16 +20,19 @@ class AttachmentType(enum.Enum):
     sales_slip = "sales_slip"           # 销售小票
     bank_receipt = "bank_receipt"     # 银行凭证
     takeaway_screenshot = "takeaway_screenshot" # 外卖截图
+    electronic_actual_arrival_receipt = "electronic_actual_arrival_receipt" # 电子支付实际入账凭证
     image = "image"                   # 图片
     pdf = "pdf"                       # PDF文件
 
 class FinancialCheckStatus(enum.Enum):
     """
-    财务核对状态的枚举 (新业务逻辑需要)
+    财务核对状态的枚举（MVP极简模式，仅保留两个状态）
     """
-    PENDING = 'PENDING'                 # 待核对
-    BANK_RECEIVED = 'BANK_RECEIVED'     # 现金存款已到账
-    TAKEEAWAY_RECEIVED = 'TAKEEAWAY_RECEIVED' # 外卖收入已到账
-    AMOUNT_VERIFIED = 'AMOUNT_VERIFIED' # 金额已核实
-    REQUIRES_REMEDIATION = 'REQUIRES_REMEDIATION' # 需要补交
-    CHECKED = 'CHECKED'                 # 审核通过
+    PENDING = 'PENDING'     # 待审核
+    APPROVED = 'APPROVED'   # 已审核
+
+
+# 新增：实际到账金额修改历史记录类型
+class BankDepositHistoryAction(enum.Enum):
+    CREATE = 'CREATE'   # 首次填写
+    MODIFY = 'MODIFY'   # 财务或店员修改

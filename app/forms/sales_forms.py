@@ -38,9 +38,12 @@ class SalesForm(FlaskForm):
     takeaway_platform_receipt = FileField("第三方外卖平台收入凭证", validators=[
         FileAllowed(['jpg', 'png', 'jpeg', 'gif', 'pdf'], '只允许上传图片和PDF文件')])
 
-    # --- 第三步: 银行存款信息 ---
-    bank_deposit = DecimalField("银行存入的现金金额", validators=[Optional(), NumberRange(min=0)])
-    bank_fee = DecimalField("存款手续费", validators=[Optional(), NumberRange(min=0)])
+    # --- 第三步: 实际入账信息 ---
+    electronic_actual_arrival = DecimalField("电子支付实际入账金额 (EA)", validators=[Optional(), NumberRange(min=0)])
+    electronic_actual_arrival_receipt = FileField("电子支付实际入账凭证", validators=[
+        FileAllowed(['jpg', 'png', 'jpeg', 'gif', 'pdf'], '只允许上传图片和PDF文件')])
+    bank_deposit = DecimalField("实际入账 (BC)", validators=[Optional(), NumberRange(min=0)])
+    bank_fee = DecimalField("存款手续费 (BF)", validators=[Optional(), NumberRange(min=0)])
     bank_receipt_image = FileField("银行存款凭证", validators=[
         FileAllowed(['jpg', 'png', 'jpeg', 'gif', 'pdf'], '只允许上传图片和PDF文件')])
 

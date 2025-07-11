@@ -1,8 +1,8 @@
 """init
 
-Revision ID: 1ca6cb5383fc
+Revision ID: 8b24426f3866
 Revises: 
-Create Date: 2025-07-09 19:31:47.707297
+Create Date: 2025-07-11 17:34:41.945004
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '1ca6cb5383fc'
+revision = '8b24426f3866'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -51,28 +51,30 @@ def upgrade():
     sa.UniqueConstraint('username')
     )
     op.create_table('daily_sales',
+    sa.Column('theoretical_total', sa.Float(), nullable=True, comment='理论营收(T2)=店铺理论营业额(T0)+第三方外卖平台收入(T1)-POS机小票里显示的代金券总金额-银行存款金额'),
     sa.Column('report_id', sa.Integer(), nullable=False, comment='日报主键'),
     sa.Column('store_id', sa.String(length=32), nullable=False, comment='门店ID'),
     sa.Column('user_id', sa.Integer(), nullable=False, comment='上报人ID'),
     sa.Column('report_date', sa.Date(), nullable=False, comment='营业日期'),
-    sa.Column('cash_income', sa.Float(), nullable=True, comment='POS现金收入(C)'),
-    sa.Column('pos_income', sa.Float(), nullable=True, comment='POS电子支付收入(P)'),
-    sa.Column('day_pass_income', sa.Float(), nullable=True, comment='POS系统中记录的外卖收入(D)'),
-    sa.Column('pos_total', sa.Float(), nullable=True, comment='POS机小票总收入(T)，=现金+电子支付+POS外卖'),
-    sa.Column('cash_difference', sa.Float(), nullable=True, comment='POS现金收入误差(A)'),
-    sa.Column('electronic_difference', sa.Float(), nullable=True, comment='POS电子支付误差(B)'),
-    sa.Column('takeaway_amount', sa.Float(), nullable=True, comment='第三方外卖平台收入'),
-    sa.Column('bank_receipt_amount', sa.Float(), nullable=True, comment='银行存入的现金金额'),
-    sa.Column('bank_fee', sa.Float(), nullable=True, comment='银行存款手续费'),
-    sa.Column('bank_deposit', sa.Float(), nullable=True, comment='财务填写的实际到账金额'),
-    sa.Column('voucher_amount', sa.Float(), nullable=True, comment='财务填写的代金券金额'),
-    sa.Column('actual_sales', sa.Float(), nullable=True, comment='店铺实际营业额（财务核对后）'),
+    sa.Column('cash_income', sa.Float(), nullable=True, comment='现金收入 (C)'),
+    sa.Column('pos_income', sa.Float(), nullable=True, comment='电子支付收入 (P)'),
+    sa.Column('day_pass_income', sa.Float(), nullable=True, comment='外卖收入 (D)'),
+    sa.Column('voucher_amount', sa.Float(), nullable=True, comment='代金券使用金额 (R)'),
+    sa.Column('pos_total', sa.Float(), nullable=True, comment='店铺理论营业额 (T0) = 现金收入 + 电子支付收入 + 外卖收入 + 代金券使用金额'),
+    sa.Column('electronic_actual_arrival', sa.Float(), nullable=True, comment='电子支付实际入账金额 (EA)'),
+    sa.Column('bank_deposit', sa.Float(), nullable=True, comment='银行存款金额 (BC)'),
+    sa.Column('bank_fee', sa.Float(), nullable=True, comment='银行存款手续费 (BF)'),
+    sa.Column('takeaway_amount', sa.Float(), nullable=True, comment='第三方外卖平台收入 (T1)'),
+    sa.Column('actual_sales', sa.Float(), nullable=True, comment='实际总营业额(S)=第三方外卖平台收入(T1)+外卖收入+电子支付实际入账金额+银行存款金额'),
+    sa.Column('total_error', sa.Float(), nullable=True, comment='总误差(E)=电子支付实际入账金额+银行存款金额+银行存款手续费-POS机小票里显示的电子支付总金额-POS机小票里显示的现金总金额'),
+    sa.Column('cash_difference', sa.Float(), nullable=False, comment='POS现金收入误差(A)，仅存储，默认0'),
+    sa.Column('electronic_difference', sa.Float(), nullable=False, comment='POS电子支付误差(B)，仅存储，默认0'),
     sa.Column('remark', sa.String(length=255), nullable=True, comment='备注'),
     sa.Column('pos_info_completed', sa.Boolean(), nullable=False, comment='第一步(POS)是否完成'),
     sa.Column('takeaway_info_completed', sa.Boolean(), nullable=False, comment='第二步(外卖)是否完成'),
-    sa.Column('bank_info_completed', sa.Boolean(), nullable=False, comment='第三步(银行)是否完成'),
+    sa.Column('actual_arrival_info_completed', sa.Boolean(), nullable=False, comment='实际入账金额录入是否完成'),
     sa.Column('is_submitted', sa.Boolean(), nullable=False, comment='是否已最终提交给财务'),
-    sa.Column('financial_check_status', sa.Enum('PENDING', 'BANK_RECEIVED', 'TAKEEAWAY_RECEIVED', 'AMOUNT_VERIFIED', 'REQUIRES_REMEDIATION', 'CHECKED', name='financialcheckstatus'), nullable=False, comment='财务核对状态'),
+    sa.Column('financial_check_status', sa.Enum('PENDING', 'APPROVED', name='financialcheckstatus'), nullable=False, comment='财务核对状态（仅PENDING/APPROVED）'),
     sa.Column('archived', sa.Boolean(), nullable=False, comment='是否已归档'),
     sa.Column('created_at', sa.DateTime(), nullable=True, comment='创建时间'),
     sa.Column('updated_at', sa.DateTime(), nullable=True, comment='更新时间'),
@@ -89,7 +91,7 @@ def upgrade():
     sa.Column('attachment_id', sa.Integer(), autoincrement=True, nullable=False, comment='凭证ID'),
     sa.Column('report_id', sa.Integer(), nullable=False, comment='日报ID'),
     sa.Column('file_path', sa.String(length=255), nullable=True, comment='文件路径（本地磁盘，含user_id/store_id/report_date）'),
-    sa.Column('attachment_type', sa.Enum('sales_slip', 'bank_receipt', 'takeaway_screenshot', 'image', 'pdf', name='attachmenttype'), nullable=False, comment='附件类型（小票/银行/外卖/图片/PDF等）'),
+    sa.Column('attachment_type', sa.Enum('sales_slip', 'bank_receipt', 'takeaway_screenshot', 'electronic_actual_arrival_receipt', 'image', 'pdf', name='attachmenttype'), nullable=False, comment='附件类型（小票/银行/外卖/图片/PDF等）'),
     sa.Column('created_at', sa.DateTime(), nullable=True, comment='创建时间'),
     sa.ForeignKeyConstraint(['report_id'], ['daily_sales.report_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('attachment_id')

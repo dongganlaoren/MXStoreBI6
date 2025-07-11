@@ -58,8 +58,8 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="bank-tab" data-bs-toggle="tab" data-bs-target="#bank-content" type="button" role="tab" {% if not daily_sales or not daily_sales.pos_info_completed %}disabled{% endif %}>
-                    银行存款
-                    {% if daily_sales and daily_sales.bank_info_completed %}<span class="badge bg-success ms-2">已完成</span>{% endif %}
+                实际入账
+                {% if daily_sales and daily_sales.actual_arrival_info_completed %}<span class="badge bg-success ms-2">已完成</span>{% endif %}
                 </button>
             </li>
           </ul>
@@ -166,23 +166,34 @@
                       <input type="hidden" name="step" value="bank">
 
                       <div class="mb-3">
-                          <label for="bank_deposit" class="form-label">{{ form.bank_deposit.label }}</label>
-                          {{ form.bank_deposit(class="form-control") }}
+                          <label for="electronic_actual_arrival" class="form-label">{{ form.electronic_actual_arrival.label }}</label>
+                          {{ form.electronic_actual_arrival(class="form-control") }}
                       </div>
-
+                      <div class="mb-3">
+                          <label for="electronic_actual_arrival_receipt" class="form-label">{{ form.electronic_actual_arrival_receipt.label }}</label>
+                          {{ form.electronic_actual_arrival_receipt(class="form-control", id="electronic_actual_arrival_receipt", multiple=true) }}
+                      </div>
+                      <div class="mb-3">
+                    <label for="bank_deposit" class="form-label">银行存款金额(BC)</label>
+                    {{ form.bank_deposit(class="form-control") }}
+                      </div>
                       <div class="mb-3">
                           <label for="bank_fee" class="form-label">{{ form.bank_fee.label }}</label>
                           {{ form.bank_fee(class="form-control") }}
                       </div>
-
                       <div class="mb-3">
                           <label for="bank_receipt_image" class="form-label">{{ form.bank_receipt_image.label }}</label>
                           {{ form.bank_receipt_image(class="form-control", id="bank_receipt_image", multiple=true) }}
                       </div>
+                      {# 重点：页面显性展示电子支付实际入账金额 #}
+                      <div class="alert alert-info mb-3">
+                        <b>电子支付实际入账金额：</b>
+                        <span>{{ daily_sales.electronic_actual_arrival if daily_sales else '' }}</span>
+                      </div>
                       {# 如果已完成则禁用所有字段和按钮 #}
-                      {% if daily_sales and daily_sales.bank_info_completed %}
+                      {% if daily_sales and daily_sales.actual_arrival_info_completed %}
                       <script>setTimeout(function(){
-                          document.querySelectorAll('#bank-content input, #bank-content select, #pos-content textarea, #pos-content button').forEach(function(el){el.disabled = true;});
+                          document.querySelectorAll('#bank-content input, #bank-content select, #bank-content textarea, #bank-content button').forEach(function(el){el.disabled = true;});
                       }, 0);</script>
                       {% else %}
                       <button type="submit" class="btn btn-primary">保存</button>
@@ -221,9 +232,9 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="bank-tab" data-bs-toggle="tab" data-bs-target="#bank-content" type="button" role="tab" {% if not daily_sales or not daily_sales.pos_info_completed %}disabled{% endif %}>
-                银行存款
+                实际入账
                 {% if daily_sales %}
-                    {% if daily_sales.bank_info_completed %}<span class="badge bg-success ms-2">已填报</span>{% else %}<span class="badge bg-secondary ms-2">未填报</span>{% endif %}
+                    {% if daily_sales.actual_arrival_info_completed %}<span class="badge bg-success ms-2">已填报</span>{% else %}<span class="badge bg-secondary ms-2">未填报</span>{% endif %}
                 {% endif %}
             </button>
         </li>
@@ -279,10 +290,7 @@
                     {{ form.sales_slip_image(class="form-control", required=true, id="sales_slip_image", multiple=true) }}
                      {% for error in form.sales_slip_image.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">POS机小票总收入 T = 现金 + 电子支付 + POS外卖</label>
-                    <input type="text" id="pos_total_display" class="form-control bg-light" value="{{ daily_sales.pos_total if daily_sales else '' }}" readonly>
-                </div>
+                {# 隐藏POS机净收入T字段，后端仍计算但页面不展示 #}
                 {# 如果已完成则禁用所有字段和按钮 #}
                 {% if daily_sales and daily_sales.pos_info_completed %}
                 <script>setTimeout(function(){
@@ -325,29 +333,41 @@
         <div class="tab-pane fade" id="bank-content" role="tabpanel">
             <form method="POST" action="{{ url_for('sales.report_sales') }}" enctype="multipart/form-data" class="mt-2">
                 {{ form.hidden_tag() }}
-                 <input type="hidden" name="store_id" value="{{ form.store_id.data }}">
+                <input type="hidden" name="store_id" value="{{ form.store_id.data }}">
                 <input type="hidden" name="report_date" value="{{ form.report_date.data|strftime('%Y-%m-%d') }}">
                 {{ form.initial_load(class="d-none") }}
                 <input type="hidden" name="step" value="bank">
 
                 <div class="mb-3">
-                    <label for="bank_deposit" class="form-label">{{ form.bank_deposit.label }}</label>
+                    <label for="electronic_actual_arrival" class="form-label">{{ form.electronic_actual_arrival.label }}</label>
+                    {{ form.electronic_actual_arrival(class="form-control") }}
+                </div>
+                <div class="mb-3">
+                    <label for="electronic_actual_arrival_receipt" class="form-label">{{ form.electronic_actual_arrival_receipt.label }}</label>
+                    {{ form.electronic_actual_arrival_receipt(class="form-control", id="electronic_actual_arrival_receipt", multiple=true) }}
+                </div>
+                <div class="mb-3">
+                    <label for="bank_deposit" class="form-label">银行存款金额(BC)</label>
                     {{ form.bank_deposit(class="form-control") }}
                 </div>
-
                 <div class="mb-3">
                     <label for="bank_fee" class="form-label">{{ form.bank_fee.label }}</label>
                     {{ form.bank_fee(class="form-control") }}
                 </div>
-
                 <div class="mb-3">
                     <label for="bank_receipt_image" class="form-label">{{ form.bank_receipt_image.label }}</label>
                     {{ form.bank_receipt_image(class="form-control", id="bank_receipt_image", multiple=true) }}
                 </div>
+                {% if daily_sales and daily_sales.is_submitted %}
+                <div class="mb-3">
+                    <label class="form-label text-info">当前审核状态：</label>
+                    <input type="text" class="form-control bg-light" value="{{ '已审核' if daily_sales.financial_check_status and daily_sales.financial_check_status.value == 'APPROVED' else '待审核' }}" readonly>
+                </div>
+                {% endif %}
                 {# 如果已完成则禁用所有字段和按钮 #}
-                {% if daily_sales and daily_sales.bank_info_completed %}
+                {% if daily_sales and daily_sales.actual_arrival_info_completed %}
                 <script>setTimeout(function(){
-                    document.querySelectorAll('#bank-content input, #bank-content select, #pos-content textarea, #pos-content button').forEach(function(el){el.disabled = true;});
+                    document.querySelectorAll('#bank-content input, #bank-content select, #bank-content textarea, #bank-content button').forEach(function(el){el.disabled = true;});
                 }, 0);</script>
                 {% else %}
                 <button type="submit" class="btn btn-primary">保存</button>
@@ -360,9 +380,10 @@
     <div class="mb-4">
       <h5 class="mb-2">历史凭证图片预览</h5>
       {% for type, label in [
-        ('sales_slip', '小票凭证'),
-        ('bank_receipt', '银行回单'),
-        ('takeaway_screenshot', '外卖截图'),
+        ('sales_slip', 'POS机小票'),
+        ('bank_receipt', '银行存款凭证'),
+        ('electronic_actual_arrival_receipt', '电子支付实际入账凭证'),
+        ('takeaway_screenshot', '外卖销售凭证'),
         ('image', '其它图片')
       ] %}
         {% set imgs = daily_sales.attachments.filter_by(attachment_type=type).all() %}
@@ -383,7 +404,7 @@
     {% endif %}
 
     {# --- 最终提交区域（放在最底部） --- #}
-    {% if daily_sales and daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.bank_info_completed and not daily_sales.is_submitted %}
+    {% if daily_sales and daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.actual_arrival_info_completed and not daily_sales.is_submitted %}
     <div class="mt-4 p-3 border rounded bg-light text-center">
         <h4>最终提交</h4>
         <p>请确保所有步骤都已完成并保存。一旦最终提交，数据将无法修改。</p>

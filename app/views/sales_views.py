@@ -1,3 +1,82 @@
+
+# 销售核对审核处理（POST）
+from app.forms.sales_check_forms import SalesCheckForm
+
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
+from flask_login import current_user, login_required
+from app.extensions import db
+from app.models import DailySales, FinancialCheckStatus, RoleType, Store
+sales_bp = Blueprint('sales', __name__)
+
+@sales_bp.route('/check/<int:report_id>', methods=['GET', 'POST'])
+@login_required
+def sales_check_edit(report_id):
+    # 仅限财务/管理员
+    if current_user.role not in [RoleType.ADMIN, RoleType.FINANCE]:
+        flash('无权访问该页面', 'danger')
+        return redirect(url_for('sales.sales_check_list'))
+
+    daily_sales = DailySales.query.get_or_404(report_id)
+    form = SalesCheckForm(obj=daily_sales)
+    if form.validate_on_submit():
+        daily_sales.bank_deposit = form.bank_deposit.data
+        daily_sales.financial_check_status = form.financial_check_status.data
+        daily_sales.remark = form.remark.data
+        # 自动归档：审核通过即归档
+        if daily_sales.financial_check_status == FinancialCheckStatus.APPROVED:
+            daily_sales.archived = True
+        db.session.commit()
+        flash('审核信息已保存', 'success')
+        return redirect(url_for('sales.sales_check_list', store_id=daily_sales.store_id, report_date=daily_sales.report_date.strftime('%Y-%m-%d')))
+    # GET: 预填充表单
+    return render_template('sales/check_edit.html', form=form, daily_sales=daily_sales, title='销售审核')
+# 销售核对视图：管理员/财务可按门店编号、日期筛选，默认当天全部门店
+@sales_bp.route('/list', methods=['GET'])
+@login_required
+def sales_check_list():
+    # 仅限管理员/财务
+    if current_user.role not in [RoleType.ADMIN, RoleType.FINANCE]:
+        flash('无权访问该页面', 'danger')
+        return redirect(url_for('sales.report_sales'))
+
+    # 获取筛选参数
+    store_id = request.args.get('store_id', type=str)
+    date_str = request.args.get('report_date', datetime.today().strftime('%Y-%m-%d'))
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+
+    # 门店列表（下拉用）
+    stores = Store.query.order_by(Store.store_name).all()
+
+    # 构建查询
+    query = DailySales.query.filter_by(archived=False)
+    if store_id:
+        query = query.filter(DailySales.store_id == store_id)
+    if date_str:
+        try:
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+            query = query.filter(DailySales.report_date == date_obj)
+        except Exception:
+            pass
+    query = query.order_by(DailySales.report_date.desc(), DailySales.store_id)
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template('sales/list.html',
+        pagination=pagination,
+        stores=stores,
+        store_id=store_id,
+        report_date=date_str,
+        title="销售核对"
+    )
 # app/views/sales_views.py
 # 修订内容：1. 上传文件保存路径调整为 static/uploads；2. 自动创建 static/uploads 目录；3. 增加中文注释说明
 from datetime import datetime
@@ -23,7 +102,7 @@ from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 from wtforms.validators import DataRequired, Optional
 
-sales_bp = Blueprint('sales', __name__)
+
 
 # Helper function for file uploads
 # 修订：上传文件保存到 static/uploads，并自动创建该目录
@@ -66,7 +145,7 @@ def apply_dynamic_validation(form, step):
     required_fields = {
         'pos': ['store_id', 'report_date', 'cash_sales', 'electronic_sales', 'system_takeaway_sales', 'sales_slip_image'],
         'takeaway': ['store_id', 'report_date', 'takeaway_platform_sales', 'takeaway_platform_receipt'],
-        'bank': ['store_id', 'report_date', 'bank_deposit', 'bank_receipt_image']
+        'bank': ['store_id', 'report_date', 'electronic_actual_arrival', 'electronic_actual_arrival_receipt', 'bank_deposit', 'bank_fee', 'bank_receipt_image']
     }.get(step, [])  # Default to empty list if step is invalid
 
     for field_name, field in form._fields.items():
@@ -142,7 +221,8 @@ def report_sales():
                 daily_sales.voucher_amount = float(form.voucher_amount.data) if form.voucher_amount.data is not None else 0.0
                 daily_sales.cash_difference = float(form.cash_difference.data) if form.cash_difference.data is not None else 0.0
                 daily_sales.electronic_difference = float(form.electronic_difference.data) if form.electronic_difference.data is not None else 0.0
-
+                # POS机净收入T = 现金 + 电子支付 + POS外卖 + 代金券
+                daily_sales.pos_total = (daily_sales.cash_income or 0) + (daily_sales.pos_income or 0) + (daily_sales.day_pass_income or 0) + (daily_sales.voucher_amount or 0)
                 # 多文件保存：支持所有相关字段
                 for field, atype in [
                     ('sales_slip_image', AttachmentType.sales_slip),
@@ -151,13 +231,6 @@ def report_sales():
                     for file in files:
                         if file and file.filename:
                             save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
-                # 校验POS总收入
-                pos_total = daily_sales.cash_income + daily_sales.pos_income + daily_sales.day_pass_income
-                daily_sales.pos_total = pos_total
-                # 校验公式
-                if abs(pos_total - (daily_sales.cash_income + daily_sales.pos_income + daily_sales.day_pass_income)) > 0.01:
-                    flash('POS机小票总收入与各项收入之和不符，请检查！', 'danger')
-                    return redirect(url_for('sales.report_sales', report_date=daily_sales.report_date.strftime('%Y-%m-%d'), store_id=daily_sales.store_id))
                 # 步骤完成
                 daily_sales.pos_info_completed = True
             elif step == 'takeaway':
@@ -172,9 +245,18 @@ def report_sales():
                             save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
                 daily_sales.takeaway_info_completed = True
             elif step == 'bank':
+                # 电子支付实际入账金额及凭证（由用户填写）
+                daily_sales.electronic_actual_arrival = float(form.electronic_actual_arrival.data) if form.electronic_actual_arrival.data is not None else 0.0
+                for field, atype in [
+                    ('electronic_actual_arrival_receipt', AttachmentType.electronic_actual_arrival_receipt),
+                ]:
+                    files = request.files.getlist(field)
+                    for file in files:
+                        if file and file.filename:
+                            save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
+                # 银行存款及凭证
                 daily_sales.bank_deposit = float(form.bank_deposit.data) if form.bank_deposit.data is not None else 0.0
                 daily_sales.bank_fee = float(form.bank_fee.data) if form.bank_fee.data is not None else 0.0
-                # 多文件保存 bank_receipt
                 for field, atype in [
                     ('bank_receipt_image', AttachmentType.bank_receipt),
                 ]:
@@ -182,10 +264,20 @@ def report_sales():
                     for file in files:
                         if file and file.filename:
                             save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
-                daily_sales.bank_info_completed = True
+                # 步骤完成条件：电子支付实际入账和银行存款都已填写且大于0
+                if (daily_sales.electronic_actual_arrival is not None and daily_sales.electronic_actual_arrival > 0) \
+                   and (daily_sales.bank_deposit is not None and daily_sales.bank_deposit > 0):
+                    daily_sales.actual_arrival_info_completed = True
 
             elif request.form.get('submit_final') == 'final_submit':
-                if daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.bank_info_completed:
+                if daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.actual_arrival_info_completed:
+                    # --- 按模型注释公式自动计算相关字段 ---
+                    # 店铺理论营业额 (T0) = 现金收入 + 电子支付收入 + 外卖收入 + 代金券使用金额
+                    daily_sales.pos_total = (daily_sales.cash_income or 0) + (daily_sales.pos_income or 0) + (daily_sales.day_pass_income or 0) + (daily_sales.voucher_amount or 0)
+                    # 实际总营业额(S)=第三方外卖平台收入(T1)+外卖收入+电子支付实际入账金额+银行存款金额
+                    daily_sales.actual_sales = (daily_sales.takeaway_amount or 0) + (daily_sales.day_pass_income or 0) + (daily_sales.electronic_actual_arrival or 0) + (daily_sales.bank_deposit or 0)
+                    # 总误差(E)=电子支付实际入账金额+银行存款金额+银行存款手续费-POS机小票里显示的电子支付总金额-POS机小票里显示的现金总金额
+                    daily_sales.total_error = (daily_sales.electronic_actual_arrival or 0) + (daily_sales.bank_deposit or 0) + (daily_sales.bank_fee or 0) - (daily_sales.pos_income or 0) - (daily_sales.cash_income or 0)
                     daily_sales.is_submitted = True
                     flash('所有信息已最终提交，等待财务审核。', 'success')
                 else:
@@ -193,7 +285,7 @@ def report_sales():
                     return redirect(url_for('sales.report_sales', report_date=daily_sales.report_date.strftime('%Y-%m-%d'), store_id=daily_sales.store_id))
 
             db.session.commit()
-            current_app.logger.info(f"日报保存后主要字段: store_id={daily_sales.store_id}, report_date={daily_sales.report_date}, pos_info_completed={daily_sales.pos_info_completed}, takeaway_info_completed={daily_sales.takeaway_info_completed}, bank_info_completed={daily_sales.bank_info_completed}, is_submitted={daily_sales.is_submitted}")
+            current_app.logger.info(f"日报保存后主要字段: store_id={daily_sales.store_id}, report_date={daily_sales.report_date}, pos_info_completed={daily_sales.pos_info_completed}, takeaway_info_completed={daily_sales.takeaway_info_completed}, actual_arrival_info_completed={getattr(daily_sales, 'actual_arrival_info_completed', None)}, is_submitted={daily_sales.is_submitted}")
             return redirect(url_for('sales.report_sales', report_date=daily_sales.report_date.strftime('%Y-%m-%d'), store_id=daily_sales.store_id))
 
         except Exception as e:
