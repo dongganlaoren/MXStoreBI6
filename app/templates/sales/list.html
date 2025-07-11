@@ -18,6 +18,14 @@
             <label for="report_date" class="form-label">日期</label>
             <input type="date" class="form-control" id="report_date" name="report_date" value="{{ report_date }}">
         </div>
+        <div class="col-auto">
+            <label for="financial_check_status" class="form-label">审核状态</label>
+            <select class="form-select" id="financial_check_status" name="financial_check_status">
+                <option value="">全部</option>
+                <option value="APPROVED" {% if request.args.get('financial_check_status') == 'APPROVED' %}selected{% endif %}>已审核</option>
+                <option value="PENDING" {% if request.args.get('financial_check_status') == 'PENDING' %}selected{% endif %}>待审核</option>
+            </select>
+        </div>
         <div class="col-auto align-self-end">
             <button type="submit" class="btn btn-primary">筛选</button>
         </div>
@@ -27,11 +35,9 @@
             <tr>
                 <th>日期</th>
                 <th>门店编号</th>
-                <th>门店名称</th>
-                <th>POS收入</th>
-                <th>外卖收入</th>
-                <th>银行存入</th>
-                <th>实际到账</th>
+                <th>实际入账金额</th>
+                <th>误差</th>
+                <th>POS机总营业额</th>
                 <th>审核状态</th>
                 <th>财务备注</th>
                 <th>操作</th>
@@ -42,14 +48,11 @@
             <tr>
                 <td>{{ r.report_date }}</td>
                 <td>{{ r.store_id }}</td>
-                <td>{{ r.store.store_name if r.store else '-' }}</td>
+                <td>{{ r.actual_sales or '-' }}</td>
+                <td>{{ r.total_error or '-' }}</td>
                 <td>{{ r.pos_total or '-' }}</td>
-                <td>{{ r.takeaway_amount or '-' }}</td>
-                <td>{{ r.bank_receipt_amount or '-' }}</td>
-                <td>{{ r.bank_deposit or '-' }}</td>
                 <td>
-                    {% if r.financial_check_status == 1 %}<span class="badge bg-success">通过</span>
-                    {% elif r.financial_check_status == 2 %}<span class="badge bg-danger">驳回</span>
+                    {% if r.financial_check_status and r.financial_check_status.value == 'APPROVED' %}<span class="badge bg-success">已审核</span>
                     {% else %}<span class="badge bg-secondary">待审核</span>{% endif %}
                 </td>
                 <td>{{ r.remark or '' }}</td>

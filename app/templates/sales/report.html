@@ -114,10 +114,10 @@
                           {{ form.sales_slip_image(class="form-control", required=true, id="sales_slip_image", multiple=true) }}
                            {% for error in form.sales_slip_image.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                       </div>
-                      <div class="mb-3">
+                      {# <div class="mb-3">
                           <label class="form-label fw-bold">POS机小票总收入 T = 现金 + 电子支付 + POS外卖</label>
                           <input type="text" id="pos_total_display" class="form-control bg-light" value="{{ daily_sales.pos_total if daily_sales else '' }}" readonly>
-                      </div>
+                      </div> #}
                       {# 如果已完成则禁用所有字段和按钮 #}
                       {% if daily_sales and daily_sales.pos_info_completed %}
                       <script>setTimeout(function(){

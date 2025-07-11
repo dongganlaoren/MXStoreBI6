@@ -213,6 +213,7 @@ def report_sales():
             else:
                 flash('日报数据更新成功！', 'success')
 
+            show_final_submit_hint = False
             if step == 'pos':
                 # POS机信息
                 daily_sales.cash_income = float(form.cash_sales.data) if form.cash_sales.data is not None else 0.0
@@ -233,6 +234,9 @@ def report_sales():
                             save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
                 # 步骤完成
                 daily_sales.pos_info_completed = True
+                # 如果所有步骤都已完成但未最终提交，提示用户是否要最终提交
+                if daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.actual_arrival_info_completed and not daily_sales.is_submitted:
+                    show_final_submit_hint = True
             elif step == 'takeaway':
                 daily_sales.takeaway_amount = float(form.takeaway_platform_sales.data) if form.takeaway_platform_sales.data is not None else 0.0
                 # 多文件保存 takeaway_screenshot
@@ -244,6 +248,8 @@ def report_sales():
                         if file and file.filename:
                             save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
                 daily_sales.takeaway_info_completed = True
+                if daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.actual_arrival_info_completed and not daily_sales.is_submitted:
+                    show_final_submit_hint = True
             elif step == 'bank':
                 # 电子支付实际入账金额及凭证（由用户填写）
                 daily_sales.electronic_actual_arrival = float(form.electronic_actual_arrival.data) if form.electronic_actual_arrival.data is not None else 0.0
@@ -268,6 +274,8 @@ def report_sales():
                 if (daily_sales.electronic_actual_arrival is not None and daily_sales.electronic_actual_arrival > 0) \
                    and (daily_sales.bank_deposit is not None and daily_sales.bank_deposit > 0):
                     daily_sales.actual_arrival_info_completed = True
+                if daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.actual_arrival_info_completed and not daily_sales.is_submitted:
+                    show_final_submit_hint = True
 
             elif request.form.get('submit_final') == 'final_submit':
                 if daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.actual_arrival_info_completed:
@@ -286,6 +294,10 @@ def report_sales():
 
             db.session.commit()
             current_app.logger.info(f"日报保存后主要字段: store_id={daily_sales.store_id}, report_date={daily_sales.report_date}, pos_info_completed={daily_sales.pos_info_completed}, takeaway_info_completed={daily_sales.takeaway_info_completed}, actual_arrival_info_completed={getattr(daily_sales, 'actual_arrival_info_completed', None)}, is_submitted={daily_sales.is_submitted}")
+            # 如果所有步骤都已完成但未最终提交，提示用户是否要最终提交
+            if show_final_submit_hint:
+                flash('所有步骤已完成，是否要最终提交？请点击下方“我已确认，最终提交所有信息”按钮。', 'info')
+                return render_template('sales/report.html', form=form, title="上报营业额", daily_sales=daily_sales)
             return redirect(url_for('sales.report_sales', report_date=daily_sales.report_date.strftime('%Y-%m-%d'), store_id=daily_sales.store_id))
 
         except Exception as e:
