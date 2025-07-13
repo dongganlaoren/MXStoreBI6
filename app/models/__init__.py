@@ -5,6 +5,7 @@ from .attachment import DailySalesAttachments
 from .daily_sales import DailySales
 from .enums import AttachmentType, FinancialCheckStatus, RoleType
 from .store import Store
+from .bank_deposit_history import BankDepositHistory
 
 # 从各个模型文件中导出核心的模型类
 from .user import User

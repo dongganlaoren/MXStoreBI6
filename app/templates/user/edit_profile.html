@@ -23,6 +23,14 @@
                             {# 添加 required 属性，以配合 Pristine.js 进行前端验证 #}
                             {{ form.real_name(class="form-control", required="required", **{'data-pristine-required-message': '真实姓名不能为空'}) }}
                         </div>
+
+                        <div class="form-group mb-3">
+                            {{ form.employee_number.label(class="form-label") }}
+                            {{ form.employee_number(class="form-control", placeholder="如91123", readonly=true) }}
+                            {% for error in form.employee_number.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
                         
                         <div class="form-group mb-3">
                             {{ form.id_card_number.label(class="form-label") }}

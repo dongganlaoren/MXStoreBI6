@@ -37,7 +37,7 @@
                         </li>
                         {% if current_user.role.name in ['ADMIN', 'HEAD_MANAGER', 'FINANCE'] %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('sales.sales_check_list') }}">销售核对</a>
+                            <a class="nav-link" href="{{ url_for('sales.sales_check_list') }}">营业信息核对</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('admin_user.user_list') }}">用户管理</a>
@@ -79,7 +79,7 @@
 
     <footer class="footer mt-auto py-3 bg-light">
         <div class="container text-center">
-            <span class="text-muted">© {{ "now"|date("Y") }} BI System. All rights reserved.</span>
+            <span class="text-muted">© {{ "now"|date("Y") }} BI System. 版权所有 RenWeiMin</span>
         </div>
     </footer>
 

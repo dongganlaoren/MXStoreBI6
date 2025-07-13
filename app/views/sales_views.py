@@ -1,4 +1,3 @@
-
 # 销售核对审核处理（POST）
 from app.forms.sales_check_forms import SalesCheckForm
 
@@ -13,7 +12,7 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from app.extensions import db
-from app.models import DailySales, FinancialCheckStatus, RoleType, Store
+from app.models import DailySales, FinancialCheckStatus, RoleType, Store, BankDepositHistory
 sales_bp = Blueprint('sales', __name__)
 
 @sales_bp.route('/check/<int:report_id>', methods=['GET', 'POST'])
@@ -25,19 +24,76 @@ def sales_check_edit(report_id):
         return redirect(url_for('sales.sales_check_list'))
 
     daily_sales = DailySales.query.get_or_404(report_id)
+    # 已审核则跳转到只读详情页
+    if daily_sales.financial_check_status == FinancialCheckStatus.APPROVED or daily_sales.financial_check_status == 2:
+        history_list = BankDepositHistory.query.filter_by(report_id=report_id).order_by(BankDepositHistory.created_at.desc()).all()
+        return render_template('sales/report_detail.html', report=daily_sales, history_list=history_list)
+
     form = SalesCheckForm(obj=daily_sales)
+    # 只在GET请求时赋值，避免POST时覆盖用户提交的值
+    if request.method == 'GET' and daily_sales.financial_check_status:
+        form.financial_check_status.data = daily_sales.financial_check_status.value
+    history_list = BankDepositHistory.query.filter_by(report_id=report_id).order_by(BankDepositHistory.created_at.desc()).all()
+
+    editable_fields = [
+        'cash_income', 'pos_income', 'takeaway_amount',
+        'electronic_actual_arrival', 'bank_deposit', 'bank_fee'
+    ]
+
     if form.validate_on_submit():
-        daily_sales.bank_deposit = form.bank_deposit.data
-        daily_sales.financial_check_status = form.financial_check_status.data
+        changed = False
+        change_logs = []
+        for field in editable_fields:
+            old_value = getattr(daily_sales, field, None)
+            new_value = request.form.get(field, None)
+            try:
+                new_value = float(new_value) if new_value is not None and new_value != '' else None
+            except Exception:
+                new_value = None
+            if old_value != new_value and new_value is not None:
+                reason = request.form.get(f'remark_{field}', '') or form.remark.data or ''
+                if not reason:
+                    flash(f'请填写“{field}”的变更理由', 'danger')
+                    return render_template('sales/check_edit.html', form=form, daily_sales=daily_sales, title='营业信息审核', history_list=history_list)
+                history = BankDepositHistory(
+                    report_id=report_id,
+                    field_name=field,
+                    old_value=old_value,
+                    new_value=new_value,
+                    operator_id=current_user.user_id,
+                    operator_role=getattr(current_user.role, 'value', ''),
+                    remark=reason
+                )
+                db.session.add(history)
+                setattr(daily_sales, field, new_value)
+                changed = True
+                change_logs.append(f'{field}: {old_value} → {new_value}，理由：{reason}')
+
+        # 日志：表单提交的审核状态
+        current_app.logger.warning(f"[审核保存] form.financial_check_status.data={form.financial_check_status.data} 类型={type(form.financial_check_status.data)}")
+        current_app.logger.warning(f"[审核保存] 保存前 daily_sales.financial_check_status={daily_sales.financial_check_status} 类型={type(daily_sales.financial_check_status)}")
+        # 修正：将表单值转换为FinancialCheckStatus枚举类型
+        try:
+            daily_sales.financial_check_status = FinancialCheckStatus(form.financial_check_status.data)
+        except Exception as e:
+            current_app.logger.error(f"[审核保存] FinancialCheckStatus赋值异常: {e}")
+            flash(f"审核状态赋值失败: {e}", 'danger')
+            return render_template('sales/check_edit.html', form=form, daily_sales=daily_sales, title='营业信息审核', history_list=history_list)
         daily_sales.remark = form.remark.data
-        # 自动归档：审核通过即归档
-        if daily_sales.financial_check_status == FinancialCheckStatus.APPROVED:
-            daily_sales.archived = True
+        current_app.logger.warning(f"[审核保存] 保存后 daily_sales.financial_check_status={daily_sales.financial_check_status} 类型={type(daily_sales.financial_check_status)}")
+        # 审核通过不再归档，仅以审核状态标识业务流程
+        pass
+        if changed:
+            daily_sales.auto_calculate()
         db.session.commit()
-        flash('审核信息已保存', 'success')
-        return redirect(url_for('sales.sales_check_list', store_id=daily_sales.store_id, report_date=daily_sales.report_date.strftime('%Y-%m-%d')))
-    # GET: 预填充表单
-    return render_template('sales/check_edit.html', form=form, daily_sales=daily_sales, title='销售审核')
+        current_app.logger.warning(f"[审核保存] 提交后数据库 daily_sales.financial_check_status={daily_sales.financial_check_status} 类型={type(daily_sales.financial_check_status)}")
+        if changed:
+            flash('关键字段已修改并记录历史：' + '; '.join(change_logs), 'success')
+        else:
+            flash('审核信息已保存', 'success')
+        # 审核完成后返回列表页，带初始参数（全部门店、全部日期、待审核）
+        return redirect(url_for('sales.sales_check_list', initial_load='true'))
+    return render_template('sales/check_edit.html', form=form, daily_sales=daily_sales, title='营业信息审核', history_list=history_list)
 # 销售核对视图：管理员/财务可按门店编号、日期筛选，默认当天全部门店
 @sales_bp.route('/list', methods=['GET'])
 @login_required
@@ -47,17 +103,18 @@ def sales_check_list():
         flash('无权访问该页面', 'danger')
         return redirect(url_for('sales.report_sales'))
 
-    # 获取筛选参数
-    store_id = request.args.get('store_id', type=str)
-    date_str = request.args.get('report_date', datetime.today().strftime('%Y-%m-%d'))
+    # 获取筛选参数，第一次加载时默认：门店全部、日期全部、审核状态“待审核”
+    store_id = request.args.get('store_id', default='', type=str)
+    date_str = request.args.get('report_date', default='', type=str)
+    financial_check_status = request.args.get('financial_check_status', default='PENDING', type=str)
     page = request.args.get('page', 1, type=int)
     per_page = 20
 
     # 门店列表（下拉用）
     stores = Store.query.order_by(Store.store_name).all()
 
-    # 构建查询
-    query = DailySales.query.filter_by(archived=False)
+    # 构建查询（已移除archived逻辑，仅以审核状态区分）
+    query = DailySales.query
     if store_id:
         query = query.filter(DailySales.store_id == store_id)
     if date_str:
@@ -66,6 +123,14 @@ def sales_check_list():
             query = query.filter(DailySales.report_date == date_obj)
         except Exception:
             pass
+    # 默认只查待审核（PENDING），除非用户选择其它
+    if financial_check_status == 'PENDING':
+        from app.models.enums import FinancialCheckStatus
+        query = query.filter(DailySales.financial_check_status == FinancialCheckStatus.PENDING)
+    elif financial_check_status == 'APPROVED':
+        from app.models.enums import FinancialCheckStatus
+        query = query.filter(DailySales.financial_check_status == FinancialCheckStatus.APPROVED)
+    # 否则全部
     query = query.order_by(DailySales.report_date.desc(), DailySales.store_id)
 
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -75,6 +140,7 @@ def sales_check_list():
         stores=stores,
         store_id=store_id,
         report_date=date_str,
+        financial_check_status=financial_check_status,
         title="销售核对"
     )
 # app/views/sales_views.py
@@ -86,7 +152,7 @@ import pprint
 
 from app.extensions import db
 from app.forms.sales_forms import SalesForm
-from app.models import DailySales, FinancialCheckStatus, RoleType, Store, User
+from app.models import DailySales, FinancialCheckStatus, RoleType, Store, User, BankDepositHistory
 from app.models.attachment import DailySalesAttachments
 from app.models.enums import AttachmentType
 from flask import (
@@ -100,7 +166,7 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
-from wtforms.validators import DataRequired, Optional
+from wtforms.validators import DataRequired, Optional, NumberRange
 
 
 
@@ -139,8 +205,8 @@ def save_attachment(form_field, report_id, attachment_type):
 
 
 def apply_dynamic_validation(form, step):
-    """Applies DataRequired validators based on the step.
-    根据步骤应用 DataRequired 验证器。
+    """Apply validators dynamically based on the step.
+    根据步骤动态应用验证器。
     """
     required_fields = {
         'pos': ['store_id', 'report_date', 'cash_sales', 'electronic_sales', 'system_takeaway_sales', 'sales_slip_image'],
@@ -148,12 +214,19 @@ def apply_dynamic_validation(form, step):
         'bank': ['store_id', 'report_date', 'electronic_actual_arrival', 'electronic_actual_arrival_receipt', 'bank_deposit', 'bank_fee', 'bank_receipt_image']
     }.get(step, [])  # Default to empty list if step is invalid
 
+    monetary_fields = ['cash_sales', 'electronic_sales', 'system_takeaway_sales', 'voucher_amount', 'takeaway_platform_sales', 'electronic_actual_arrival', 'bank_deposit', 'bank_fee']
+
     for field_name, field in form._fields.items():
-        # Remove DataRequired validator first
+        # 先移除所有 DataRequired
         field.validators = [v for v in field.validators if not isinstance(v, DataRequired)]
-        # Add DataRequired if the field is required for the current step
-        if field_name in required_fields:
+        # 只为非货币字段添加 DataRequired
+        if field_name in required_fields and field_name not in monetary_fields:
             field.validators.insert(0, DataRequired())
+        # 只为货币字段添加 Optional + NumberRange
+        if field_name in monetary_fields:
+            field.validators = [v for v in field.validators if not isinstance(v, (NumberRange, Optional))]
+            field.validators.append(Optional())
+            field.validators.append(NumberRange(min=0, max=1000000, message="金额必须在0到1,000,000之间"))
 
 
 @sales_bp.route('/report', methods=['GET', 'POST'])
@@ -194,9 +267,12 @@ def report_sales():
 
             daily_sales = DailySales.query.filter_by(
                 store_id=form.store_id.data,
-                report_date=form.report_date.data,
-                archived=False
+                report_date=form.report_date.data
             ).first()
+
+            if daily_sales:
+                # 预加载附件数据
+                daily_sales.attachments.all()
 
             if daily_sales is None:
                 # 【调试关键】 记录即将保存到数据库的日期
@@ -234,7 +310,14 @@ def report_sales():
                             save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
                 # 步骤完成
                 daily_sales.pos_info_completed = True
-                # 如果所有步骤都已完成但未最终提交，提示用户是否要最终提交
+                # 获取当前店铺信息以判断是否需要外卖平台信息
+                current_store = Store.query.filter_by(store_id=daily_sales.store_id).first()
+                # 判断是否需要外卖平台信息
+                need_takeaway = current_store and current_store.third_party_platform
+                # 如果不需要外卖平台信息，则自动标记为完成
+                if not need_takeaway:
+                    daily_sales.takeaway_info_completed = True
+                # 检查是否所有必要步骤都已完成
                 if daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.actual_arrival_info_completed and not daily_sales.is_submitted:
                     show_final_submit_hint = True
             elif step == 'takeaway':
@@ -248,6 +331,10 @@ def report_sales():
                         if file and file.filename:
                             save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
                 daily_sales.takeaway_info_completed = True
+                # 获取当前店铺信息
+                current_store = Store.query.filter_by(store_id=daily_sales.store_id).first()
+                need_takeaway = current_store and current_store.third_party_platform
+                # 检查是否所有必要步骤都已完成
                 if daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.actual_arrival_info_completed and not daily_sales.is_submitted:
                     show_final_submit_hint = True
             elif step == 'bank':
@@ -270,14 +357,28 @@ def report_sales():
                     for file in files:
                         if file and file.filename:
                             save_attachment(type('F', (), {'data': file})(), daily_sales.report_id, atype)
-                # 步骤完成条件：电子支付实际入账和银行存款都已填写且大于0
-                if (daily_sales.electronic_actual_arrival is not None and daily_sales.electronic_actual_arrival > 0) \
-                   and (daily_sales.bank_deposit is not None and daily_sales.bank_deposit > 0):
+                # 步骤完成条件：电子支付实际入账和银行存款都已填写（允许为0）
+                if (form.electronic_actual_arrival.data is not None and form.bank_deposit.data is not None):
                     daily_sales.actual_arrival_info_completed = True
+                # 获取当前店铺信息
+                current_store = Store.query.filter_by(store_id=daily_sales.store_id).first()
+                need_takeaway = current_store and current_store.third_party_platform
+                # 如果不需要外卖平台信息，则确保标记为完成
+                if not need_takeaway:
+                    daily_sales.takeaway_info_completed = True
+                # 检查是否所有必要步骤都已完成
                 if daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.actual_arrival_info_completed and not daily_sales.is_submitted:
                     show_final_submit_hint = True
 
             elif request.form.get('submit_final') == 'final_submit':
+                # 获取当前店铺信息，判断是否需要外卖平台信息
+                current_store = Store.query.filter_by(store_id=daily_sales.store_id).first()
+                need_takeaway = current_store and current_store.third_party_platform
+                
+                # 如果不需要外卖平台信息，确保标记为完成
+                if not need_takeaway:
+                    daily_sales.takeaway_info_completed = True
+                
                 if daily_sales.pos_info_completed and daily_sales.takeaway_info_completed and daily_sales.actual_arrival_info_completed:
                     # --- 按模型注释公式自动计算相关字段 ---
                     # 店铺理论营业额 (T0) = 现金收入 + 电子支付收入 + 外卖收入 + 代金券使用金额
@@ -297,7 +398,7 @@ def report_sales():
             # 如果所有步骤都已完成但未最终提交，提示用户是否要最终提交
             if show_final_submit_hint:
                 flash('所有步骤已完成，是否要最终提交？请点击下方“我已确认，最终提交所有信息”按钮。', 'info')
-                return render_template('sales/report.html', form=form, title="上报营业额", daily_sales=daily_sales)
+            # 无论是否 show_final_submit_hint，均重定向，保证页面变量刷新
             return redirect(url_for('sales.report_sales', report_date=daily_sales.report_date.strftime('%Y-%m-%d'), store_id=daily_sales.store_id))
 
         except Exception as e:
@@ -330,49 +431,58 @@ def report_sales():
                 f"表单校验未通过: {form.errors}\n表单数据: {form.data}\n请求参数: {dict(request.form) if request.method == 'POST' else dict(request.args)}\n请求路径: {request.path} [{request.method}]"
             )
 
-    # 【关键修改】只在首次加载页面时从 URL 获取参数
-    initial_load = request.args.get('initial_load', False) == 'true' # 获取 initial_load 参数
-    if request.method == 'GET' and not form.is_submitted() and initial_load: # 判断是否为首次加载
-        selected_store_id = request.args.get('store_id', user_stores[0].store_id if user_stores else None)
-        selected_date_str = request.args.get('report_date', datetime.today().strftime('%Y-%m-%d'))
 
-         # 【调试关键】 记录预填充之前的 selected_date_str 和 form.report_date.data
-        current_app.logger.info(f"预填充之前的 selected_date_str: {selected_date_str}")
-        current_app.logger.info(f"预填充之前的 form.report_date.data: {form.report_date.data}")
+    # 【修正】GET 请求时，如果有 store_id 和 report_date 参数，无论 initial_load 是否 true，都赋值给 form，保证 tab 能正常显示
+    if request.method == 'GET' and not form.is_submitted():
+        selected_store_id = request.args.get('store_id')
+        selected_date_str = request.args.get('report_date')
+        if not selected_store_id and user_stores:
+            selected_store_id = user_stores[0].store_id
+        if not selected_date_str:
+            selected_date_str = datetime.today().strftime('%Y-%m-%d')
 
         if selected_store_id:
             form.store_id.data = selected_store_id
         if selected_date_str:
             try:
-                selected_date_str = selected_date_str.replace('/', '-')  # Standardize separator
+                selected_date_str = selected_date_str.replace('/', '-')
                 if '-' in selected_date_str:
                     form.report_date.data = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
                 elif len(selected_date_str) == 8:
                     form.report_date.data = datetime.strptime(selected_date_str, '%Y%m%d').date()
             except Exception:
                 form.report_date.data = datetime.today().date()
-         # 【调试关键】 记录预填充之后的 form.report_date.data
-        current_app.logger.info(f"预填充之后的 form.report_date.data: {form.report_date.data}")
 
-        # 【修正】预填充后立即查找日报，确保页面能加载到日报数据
+        # 预填充后立即查找日报，确保页面能加载到日报数据
         if form.store_id.data and form.report_date.data:
             daily_sales = DailySales.query.filter_by(
                 store_id=form.store_id.data,
-                report_date=form.report_date.data,
-                archived=False
+                report_date=form.report_date.data
             ).first()
             if daily_sales:
-                # 只在GET时赋值，POST时不覆盖
+                daily_sales.attachments.all()
                 form.cash_sales.data = daily_sales.cash_income
                 form.electronic_sales.data = daily_sales.pos_income
                 form.system_takeaway_sales.data = daily_sales.day_pass_income
                 form.voucher_amount.data = daily_sales.voucher_amount
                 form.cash_difference.data = daily_sales.cash_difference
                 form.electronic_difference.data = daily_sales.electronic_difference
-                form.sales_slip_image.data = None  # 文件字段不自动填充
+                form.sales_slip_image.data = None
                 form.takeaway_platform_sales.data = daily_sales.takeaway_amount
                 form.bank_deposit.data = daily_sales.bank_deposit
                 form.bank_fee.data = daily_sales.bank_fee
-                # 其它分步字段可按需补充
+                form.electronic_actual_arrival.data = daily_sales.electronic_actual_arrival
 
-    return render_template('sales/report.html', form=form, title="上报营业额", daily_sales=daily_sales)
+    # 获取当前选中店铺的信息，用于模板判断是否显示外卖平台Tab
+    current_store = None
+    if form.store_id.data:
+        current_store = Store.query.filter_by(store_id=form.store_id.data).first()
+    
+    # 如果有daily_sales，确保附件数据被预加载
+    if daily_sales:
+        daily_sales.attachments.all()
+    
+    # 创建店铺字典，便于模板查找店铺信息
+    stores_dict = {s.store_id: s for s in user_stores}
+    
+    return render_template('sales/report.html', form=form, title="上报营业额", daily_sales=daily_sales, current_store=current_store, stores_dict=stores_dict)

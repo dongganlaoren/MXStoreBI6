@@ -18,24 +18,7 @@
         <p>暂无店铺信息。</p>
     {% endif %}
 
-    <h2>最近一次归档的日营业额</h2>
-    {% if last_archived_sales %}
-        <ul>
-            {% for store_id, sales_data in last_archived_sales.items() %}
-                <li>
-                    店铺ID: {{ store_id }},
-                    {% if sales_data %}
-                        日期: {{ sales_data.report_date.strftime('%Y-%m-%d') }},
-                        营业额: {{ sales_data.actual_sales }}
-                    {% else %}
-                        暂无数据
-                    {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>暂无归档的日营业额数据。</p>
-    {% endif %}
+    {# archived相关展示已废弃 #}
 
     <h2>当月累计营业额</h2>
     {% if cumulative_sales %}

@@ -50,6 +50,7 @@ def edit_profile():
     form = EditProfileForm(data={
         'role': current_user.role.value if current_user.role else '',
         'real_name': current_user.real_name or '',
+        'employee_number': str(current_user.employee_number) if current_user.employee_number else '',
         'id_card_number': current_user.id_card_number or '',
         'bank_name': current_user.bank_name or '',
         'bank_account_number': current_user.bank_account_number or '',
@@ -82,6 +83,13 @@ def edit_profile():
                     except Exception as err:
                         current_app.logger.error(f"非法role值: {role_val}, 错误: {err}")
                         current_user.role = None
+            # 新增：员工编号保存
+            if hasattr(form, 'employee_number'):
+                emp_num_val = form.employee_number.data
+                if emp_num_val:
+                    current_user.employee_number = int(emp_num_val)
+                else:
+                    current_user.employee_number = None
             # 保存前输出所有字段调试
             current_app.logger.info(f"保存前用户数据: {current_user.to_dict()}")
             if current_user.role in [RoleType.EMPLOYEE, RoleType.BRANCH_MANAGER]:
@@ -130,11 +138,35 @@ def register():
             store_id = None
 
         try:
-            # 创建用户实例，现在包含所有信息
+            # 处理员工编号，仅分店长/员工角色时保存
+            employee_number = None
+            if role in [RoleType.BRANCH_MANAGER, RoleType.EMPLOYEE]:
+                # 前端已拼接好，后端校验格式
+                emp_num = form.employee_number.data
+                if not emp_num:
+                    flash('分店长和员工必须填写员工编号。', 'danger')
+                    return render_template('user/register.html', form=form, title="注册")
+                
+                # 校验格式：店铺编号+三位序号
+                emp_num_str = str(emp_num)
+                if not (emp_num_str.startswith(store_id) and len(emp_num_str) == len(store_id) + 3 and emp_num_str[len(store_id):].isdigit()):
+                    flash('员工编号格式错误，应为店铺编号+三位序号。', 'danger')
+                    return render_template('user/register.html', form=form, title="注册")
+                
+                # 检查员工编号是否已存在
+                existing_user = User.query.filter_by(employee_number=int(emp_num_str)).first()
+                if existing_user:
+                    flash('该员工编号已被使用，请换一个序号。', 'danger')
+                    return render_template('user/register.html', form=form, title="注册")
+                
+                employee_number = int(emp_num_str)
+
+            # 创建用户实例
             new_user = User(
                 username=form.username.data,
                 role=role,
-                store_id=store_id
+                store_id=store_id,
+                employee_number=employee_number
             )
             new_user.set_password(form.password.data)
 

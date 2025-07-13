@@ -15,8 +15,8 @@ class SalesCheckForm(FlaskForm):
     financial_check_status = SelectField(
         "审核状态",
         choices=[
-            (FinancialCheckStatus.PENDING, "待审核"),
-            (FinancialCheckStatus.APPROVED, "已审核")
+            ("PENDING", "待审核"),
+            ("APPROVED", "已审核")
         ],
         validators=[DataRequired()]
     )

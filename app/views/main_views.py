@@ -30,32 +30,15 @@ def index():
         today = date.today()
         first_day_of_month = date(today.year, today.month, 1)
 
-        last_archived_sales = {}
         cumulative_sales = {}
-
         for store in stores:
-            if not store: continue
-
-            latest_sale = DailySales.query.filter(
-                DailySales.store_id == store.store_id,
-                DailySales.archived == True
-            ).order_by(DailySales.report_date.desc()).first()
-
-            if latest_sale:
-                calculated_actual_sales = (latest_sale.bank_deposit or 0) + (latest_sale.voucher_amount or 0)
-                last_archived_sales[store.store_id] = {
-                    "report_date": latest_sale.report_date,
-                    "actual_sales": calculated_actual_sales
-                }
-            else:
-                last_archived_sales[store.store_id] = None
-
+            if not store:
+                continue
             total = db.session.query(
                 func.sum(literal(0) + DailySales.bank_deposit + DailySales.voucher_amount)
             ).filter(
                 DailySales.store_id == store.store_id,
-                DailySales.report_date >= first_day_of_month,
-                DailySales.archived == True
+                DailySales.report_date >= first_day_of_month
             ).scalar()
             cumulative_sales[store.store_id] = total or 0
 
@@ -64,10 +47,10 @@ def index():
         return render_template(
             "main/index.html",
             stores=stores,
-            last_archived_sales=last_archived_sales,
+            # last_archived_sales=last_archived_sales,  # archived相关逻辑已废弃
             cumulative_sales=cumulative_sales
         )
     except Exception as e:
         current_app.logger.error(f"加载首页时发生错误: {e}", exc_info=True)
         flash("加载首页时发生未知错误，请联系管理员。", "danger")
-        return render_template("main/index.html", stores=[], last_archived_sales={}, cumulative_sales={})
+        return render_template("main/index.html", stores=[], cumulative_sales={})

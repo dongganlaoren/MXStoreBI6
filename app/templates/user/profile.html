@@ -31,6 +31,9 @@
                 <dt class="col-sm-3">用户名:</dt>
                 <dd class="col-sm-9">{{ user.username }}</dd>
 
+                <dt class="col-sm-3">员工编号:</dt>
+                <dd class="col-sm-9">{{ user.employee_number or '无' }}</dd>
+
                 <dt class="col-sm-3">系统角色:</dt>
                 <dd class="col-sm-9">
                     <span class="badge bg-info">{{ user.role.name }}</span>

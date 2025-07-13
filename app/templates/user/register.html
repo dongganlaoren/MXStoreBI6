@@ -47,8 +47,8 @@
                             {% endfor %}
                         </div>
 
-                        {# 【核心新增】: 添加了所属店铺的选择字段 #}
-                        {# 这个字段会根据选择的角色，通过JS动态显示或隐藏 #}
+
+                        {# 选择店铺字段，仅分店长/员工显示 #}
                         <div class="form-group mb-3" id="store-id-field" style="display: none;">
                             {{ form.store_id.label(class="form-label") }}
                             {{ form.store_id(class="form-select") }}
@@ -56,6 +56,85 @@
                                 <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
+
+                        {# 员工编号字段，仅分店长/员工且已选店铺时显示 #}
+                        <div class="form-group mb-3" id="employee-number-field" style="display: none;">
+                            <label class="form-label">员工编号</label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="store-prefix"></span>
+                                <input type="number" class="form-control" id="employee-sequence" placeholder="123" min="1" max="999">
+                            </div>
+                            {{ form.employee_number(style="display: none;") }}
+                            {% for error in form.employee_number.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">请输入店内三位序号（如123），系统将自动拼接店铺编号。</div>
+                        </div>
+<script>
+// 注册页面动态显示店铺和员工编号字段
+document.addEventListener('DOMContentLoaded', function() {
+    var roleField = document.getElementById('role');
+    var storeField = document.getElementById('store-id-field');
+    var empNumField = document.getElementById('employee-number-field');
+    var storeSelect = document.getElementById('store_id');
+    var empNumInput = document.getElementById('employee_number');
+    var storePrefix = document.getElementById('store-prefix');
+    var sequenceInput = document.getElementById('employee-sequence');
+
+    function updateFields() {
+        var role = roleField ? roleField.value : '';
+        if (role === 'branch_manager' || role === 'employee') {
+            storeField.style.display = '';
+            // 只有选择了店铺才显示员工编号
+            if (storeSelect && storeSelect.value) {
+                empNumField.style.display = '';
+                // 更新店铺前缀显示
+                storePrefix.textContent = storeSelect.value + '-';
+                updateEmployeeNumber();
+            } else {
+                empNumField.style.display = 'none';
+                storePrefix.textContent = '';
+                empNumInput.value = '';
+            }
+        } else {
+            storeField.style.display = 'none';
+            empNumField.style.display = 'none';
+            empNumInput.value = '';
+        }
+    }
+
+    function updateEmployeeNumber() {
+        var storeId = storeSelect ? storeSelect.value : '';
+        var sequence = sequenceInput ? sequenceInput.value : '';
+        
+        if (storeId && sequence) {
+            // 确保序号是三位数
+            var paddedSequence = sequence.padStart(3, '0');
+            // 拼接完整的员工编号
+            empNumInput.value = storeId + paddedSequence;
+        } else {
+            empNumInput.value = '';
+        }
+    }
+
+    // 绑定事件监听器
+    if (roleField) roleField.addEventListener('change', updateFields);
+    if (storeSelect) {
+        storeSelect.addEventListener('change', function() {
+            updateFields();
+            if (sequenceInput && sequenceInput.value) {
+                updateEmployeeNumber();
+            }
+        });
+    }
+    if (sequenceInput) {
+        sequenceInput.addEventListener('input', updateEmployeeNumber);
+    }
+    
+    // 初始化
+    updateFields();
+});
+</script>
 
                         <div class="d-grid mt-4">
                             {# 使用在表单中定义的提交按钮 #}

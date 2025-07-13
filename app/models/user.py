@@ -11,6 +11,8 @@ from .enums import RoleType
 
 
 class User(UserMixin, db.Model):
+    # 员工编号，编码规则：店铺编号+店内三位序号，如91123
+    employee_number = db.Column(db.Integer, nullable=True, comment="员工编号（店铺编号+三位序号）")
     """
     系统用户模型（已合并员工档案信息）
     """
@@ -55,6 +57,7 @@ class User(UserMixin, db.Model):
         return {
             "user_id": self.user_id,
             "username": self.username,
+            "employee_number": self.employee_number,
             "user_status": self.user_status,
             "role": self.role.value if self.role else None,
             "store_id": self.store_id,

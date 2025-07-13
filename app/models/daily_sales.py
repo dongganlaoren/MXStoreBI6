@@ -8,6 +8,8 @@ from .enums import FinancialCheckStatus
 
 
 class DailySales(db.Model):
+    # 上报人对象（User）
+    user = db.relationship('User', backref='daily_sales', lazy='joined')
     # 理论营收总金额
     theoretical_total = db.Column(db.Float, comment='理论营收(T2)=店铺理论营业额(T0)+第三方外卖平台收入(T1)-POS机小票里显示的代金券总金额-银行存款金额')
     """
@@ -63,7 +65,6 @@ class DailySales(db.Model):
         nullable=False,
         comment='财务核对状态（仅PENDING/APPROVED）'
     )
-    archived = db.Column(db.Boolean, default=False, nullable=False, comment='是否已归档')
 
     created_at = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')
@@ -126,7 +127,7 @@ class DailySales(db.Model):
             "bank_info_completed": self.bank_info_completed,
             "is_submitted": self.is_submitted,
             "financial_check_status": self.financial_check_status.value if self.financial_check_status else None,
-            "archived": self.archived,
+            # "archived": self.archived,  # 已废弃
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "attachments": [attachment.to_dict() for attachment in self.attachments]

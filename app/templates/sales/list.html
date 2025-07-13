@@ -3,8 +3,11 @@
 {% block title %}销售核对列表{% endblock %}
 {% block content %}
 <div class="container mt-4">
-    <h2>销售核对列表</h2>
-    <form class="row g-3 mb-3" method="get">
+    <div class="d-flex align-items-center mb-3">
+        <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">销售核对列表</h2>
+        <span class="badge bg-primary bg-opacity-75 fs-6">BI营业审核</span>
+    </div>
+    <form class="row g-3 mb-3 p-3 border rounded bg-light shadow-sm" method="get">
         <div class="col-auto">
             <label for="store_id" class="form-label">门店编号</label>
             <select class="form-select" id="store_id" name="store_id">
@@ -16,55 +19,63 @@
         </div>
         <div class="col-auto">
             <label for="report_date" class="form-label">日期</label>
-            <input type="date" class="form-control" id="report_date" name="report_date" value="{{ report_date }}">
+            <input type="date" class="form-control" id="report_date" name="report_date" value="{{ report_date if report_date and report_date != '' else '' }}">
         </div>
         <div class="col-auto">
             <label for="financial_check_status" class="form-label">审核状态</label>
             <select class="form-select" id="financial_check_status" name="financial_check_status">
-                <option value="">全部</option>
+                <option value="" {% if request.args.get('financial_check_status', 'PENDING') == '' %}selected{% endif %}>全部</option>
                 <option value="APPROVED" {% if request.args.get('financial_check_status') == 'APPROVED' %}selected{% endif %}>已审核</option>
-                <option value="PENDING" {% if request.args.get('financial_check_status') == 'PENDING' %}selected{% endif %}>待审核</option>
+                <option value="PENDING" {% if request.args.get('financial_check_status', 'PENDING') == 'PENDING' %}selected{% endif %}>待审核</option>
             </select>
         </div>
         <div class="col-auto align-self-end">
             <button type="submit" class="btn btn-primary">筛选</button>
         </div>
     </form>
-    <table class="table table-bordered table-hover">
-        <thead>
-            <tr>
-                <th>日期</th>
-                <th>门店编号</th>
-                <th>实际入账金额</th>
-                <th>误差</th>
-                <th>POS机总营业额</th>
-                <th>审核状态</th>
-                <th>财务备注</th>
-                <th>操作</th>
+    <div class="table-responsive rounded shadow-sm">
+    <table class="table table-bordered table-hover align-middle mb-0" style="background:#fff;min-width:1100px;">
+        <thead class="table-primary text-center align-middle">
+            <tr style="font-size:1.02rem;">
+                <th style="min-width:90px;">日期</th>
+                <th style="min-width:90px;">门店编号</th>
+                <th style="min-width:110px;">实际入账金额</th>
+                <th style="min-width:90px;">误差</th>
+                <th style="min-width:120px;">POS机总营业额</th>
+                <th style="min-width:80px;">审核状态</th>
+                <th style="min-width:160px;">财务备注</th>
+                <th style="min-width:70px;">操作</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody class="text-center">
         {% for r in pagination.items %}
-            <tr>
+            <tr style="font-size:0.98rem;">
                 <td>{{ r.report_date }}</td>
-                <td>{{ r.store_id }}</td>
-                <td>{{ r.actual_sales or '-' }}</td>
-                <td>{{ r.total_error or '-' }}</td>
-                <td>{{ r.pos_total or '-' }}</td>
+                <td><span class="fw-bold text-primary">{{ r.store_id }}</span></td>
+                <td style="word-break:break-all;"> <span class="fw-bold text-success">{{ r.actual_sales or '-' }}</span> </td>
+                <td style="word-break:break-all;"> <span class="fw-bold text-danger">{{ r.total_error or '-' }}</span> </td>
+                <td style="word-break:break-all;"> <span class="fw-bold text-info">{{ r.pos_total or '-' }}</span> </td>
                 <td>
                     {% if r.financial_check_status and r.financial_check_status.value == 'APPROVED' %}<span class="badge bg-success">已审核</span>
                     {% else %}<span class="badge bg-secondary">待审核</span>{% endif %}
                 </td>
-                <td>{{ r.remark or '' }}</td>
+                <td style="max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ r.remark|default('', true) }}">
+                    {{ r.remark or '' }}
+                </td>
                 <td>
-                    <a href="{{ url_for('sales.sales_check_edit', report_id=r.report_id) }}" class="btn btn-sm btn-primary">审核</a>
+                    {% if r.financial_check_status and r.financial_check_status.value == 'APPROVED' %}
+                        <a href="{{ url_for('sales.sales_check_edit', report_id=r.report_id) }}" class="btn btn-sm btn-outline-secondary px-3 shadow-sm" disabled>查看</a>
+                    {% else %}
+                        <a href="{{ url_for('sales.sales_check_edit', report_id=r.report_id) }}" class="btn btn-sm btn-outline-primary px-3 shadow-sm">审核</a>
+                    {% endif %}
                 </td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
-    <nav>
-        <ul class="pagination">
+    </div>
+    <nav class="mt-3">
+        <ul class="pagination justify-content-center">
             {% if pagination.has_prev %}
             <li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}&store_id={{ store_id }}&report_date={{ report_date }}">上一页</a></li>
             {% else %}

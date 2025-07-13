@@ -1,6 +1,7 @@
+
 # app/forms/user_forms.py
 
-# 导入我们需要的模型，包括 Store (用于店铺下拉列表) 和 User (用于验证)
+# 正确导入模型
 from app.models import RoleType, Store, User
 from flask_wtf import FlaskForm
 
@@ -28,6 +29,8 @@ class LoginForm(FlaskForm):
 
 
 class RegistrationForm(FlaskForm):
+    # 员工编号，仅分店长/员工注册时必填
+    employee_number = StringField("员工编号", validators=[Optional()])
     """
     用户注册表单 (已更新，包含店铺选择)
     """
@@ -64,6 +67,19 @@ class RegistrationForm(FlaskForm):
         if User.query.filter_by(username=field.data).first():
             raise ValidationError('该用户名已被使用，请换一个。')
 
+    def validate_employee_number(self, field):
+        # 可为空，但如填写则需校验格式和唯一性
+        if field.data:
+            store_id = self.store_id.data or ''
+            val = str(field.data)
+            # 校验格式：店铺编号+三位序号
+            if not (store_id and val.startswith(store_id) and len(val) == len(store_id) + 3 and val[len(store_id):].isdigit()):
+                raise ValidationError('员工编号格式应为“店铺编号+三位序号”，如91123。')
+            # 唯一性校验
+            existing_user = User.query.filter_by(employee_number=int(val)).first()
+            if existing_user:
+                raise ValidationError('该员工编号已被使用，请换一个序号。')
+
 
 class EditProfileForm(FlaskForm):
     """
@@ -71,6 +87,7 @@ class EditProfileForm(FlaskForm):
     这些字段直接对应 User 模型中新增的字段。
     """
     real_name = StringField("真实姓名", validators=[DataRequired("请输入真实姓名"), Length(max=100)])
+    employee_number = StringField("员工编号", validators=[Optional()])
     id_card_number = StringField("身份证号", validators=[Optional(), Length(max=100)])
 
     # 银行信息
@@ -104,4 +121,16 @@ class EditProfileForm(FlaskForm):
         self.store_id.choices = [("", "--- (仅门店组人员需要选择) ---")] + \
             [(store.store_id, f"{store.store_id} - {store.store_name}") for store in Store.query.order_by(Store.store_name).all()]
         self.role.choices = [(role.value, role.name.replace('_', ' ').title()) for role in RoleType]
+
+    def validate_employee_number(self, field):
+        # 可为空，但如填写则需校验格式和唯一性
+        if field.data:
+            store_id = self.store_id.data or ''
+            val = str(field.data)
+            if not (store_id and val.startswith(store_id) and len(val) == len(store_id) + 3 and val[len(store_id):].isdigit()):
+                raise ValidationError('员工编号格式应为“店铺编号+三位序号”，如91123。')
+            # 唯一性校验（编辑时需排除自己）
+            existing_user = User.query.filter_by(employee_number=int(val)).first()
+            if existing_user and (not hasattr(self, 'user_id') or existing_user.id != getattr(self, 'user_id', None)):
+                raise ValidationError('该员工编号已被使用，请换一个序号。')
 

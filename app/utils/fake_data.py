@@ -38,8 +38,9 @@ def generate_fake_data():
     生成基础测试数据：门店信息和admin用户。
     如需生成日报等业务数据，请参考注释示例，自行扩展。
     """
+
     try:
-        # --- 阶段一：清空并创建基础数据 (门店、管理组用户) ---
+        # --- 阶段一：清空并创建基础数据 (门店、用户) ---
         with db.session.begin_nested():
             print("开始清空旧数据...")
             db.session.execute(text('DELETE FROM daily_sales_attachments'))
@@ -48,7 +49,7 @@ def generate_fake_data():
             db.session.execute(text('DELETE FROM stores'))
             print("旧数据已清空。")
 
-            print("开始生成基础数据 (门店和admin用户)...")
+            print("开始生成基础数据 (门店和用户)...")
             # 1. 门店数据
             store_data = [
                 {"store_id": "190", "store_name": "Central WestGate",
@@ -70,25 +71,136 @@ def generate_fake_data():
                  "store_address": "The Mall Life Store Ngamwongwan, 6/188-189 Moo 2,Thanon Ngamwongwan, Bang Khen, Nonthaburi 11000, Thailand",
                  "third_party_platform": False},
             ]
+            stores = []
             for data in store_data:
-                db.session.add(Store(**data))
+                store = Store(**data)
+                db.session.add(store)
+                stores.append(store)
             print("✅ 门店数据生成完成")
 
-            # 2. 只生成admin用户
+            # 2. 只保留admin用户，密码同用户名，employee_number 为空
+            users = []
             admin_user = User(
-                username='admin',
+                username="admin",
                 role=RoleType.ADMIN,
                 real_name=fake.name(),
                 email=fake.email(),
-                phone=fake.phone_number()
+                phone=fake.phone_number(),
+                store_id=None,
+                employee_number=None
             )
-            admin_user.set_password('admin')
+            admin_user.set_password("admin")
             db.session.add(admin_user)
-            print("✅ admin用户生成完成")
+            users.append(admin_user)
+
+            # 3. 生成所有角色的简单用户，用户名如 aaa、bbb、ccc、ddd、eee，密码同用户名
+            simple_users = []
+            role_list = [RoleType.ADMIN, RoleType.FINANCE, RoleType.HEAD_MANAGER]
+            for idx, role in enumerate(role_list):
+                uname = chr(97+idx)*3  # aaa, bbb, ccc
+                user = User(
+                    username=uname,
+                    role=role,
+                    real_name=fake.name(),
+                    email=fake.email(),
+                    phone=fake.phone_number(),
+                    store_id=None,
+                    employee_number=None
+                )
+                user.set_password(uname)
+                db.session.add(user)
+                simple_users.append(user)
+            # 为每个门店生成至少一个分店长和一个员工
+            store_employee_counter = {s.store_id: 0 for s in stores}
+            for store in stores:
+                # 分店长
+                store_employee_counter[store.store_id] += 1
+                emp_seq_mgr = str(store_employee_counter[store.store_id]).zfill(3)
+                employee_number_mgr = int(f"{store.store_id}{emp_seq_mgr}")
+                mgr_username = f"mgr_{store.store_id}"
+                mgr = User(
+                    username=mgr_username,
+                    role=RoleType.BRANCH_MANAGER,
+                    real_name=fake.name(),
+                    email=fake.email(),
+                    phone=fake.phone_number(),
+                    store_id=store.store_id,
+                    employee_number=employee_number_mgr
+                )
+                mgr.set_password(mgr_username)
+                db.session.add(mgr)
+                simple_users.append(mgr)
+                # 员工
+                store_employee_counter[store.store_id] += 1
+                emp_seq_emp = str(store_employee_counter[store.store_id]).zfill(3)
+                employee_number_emp = int(f"{store.store_id}{emp_seq_emp}")
+                emp_username = f"emp_{store.store_id}"
+                emp = User(
+                    username=emp_username,
+                    role=RoleType.EMPLOYEE,
+                    real_name=fake.name(),
+                    email=fake.email(),
+                    phone=fake.phone_number(),
+                    store_id=store.store_id,
+                    employee_number=employee_number_emp
+                )
+                emp.set_password(emp_username)
+                db.session.add(emp)
+                simple_users.append(emp)
+            users.extend(simple_users)
+            print("✅ 简单用户生成完成（含所有角色，且每个门店至少有分店长和员工）")
 
         db.session.commit()
 
-
+        # --- 阶段二：生成100条合理的日报数据 ---
+        print("开始生成日报数据...")
+        today = date.today()
+        all_users = users  # admin + simple_users
+        num_reports = 100
+        for i in range(num_reports):
+            store = random.choice(stores)
+            user = random.choice(all_users)
+            report_date = today - timedelta(days=random.randint(0, 29))
+            # 状态分布更均匀
+            status = random.choice([FinancialCheckStatus.PENDING, FinancialCheckStatus.APPROVED])
+            sales = DailySales(
+                user_id=user.user_id,
+                store_id=store.store_id,
+                report_date=report_date,
+                cash_income=round(random.uniform(100, 500), 2),
+                pos_income=round(random.uniform(200, 800), 2),
+                day_pass_income=round(random.uniform(50, 300), 2),
+                voucher_amount=round(random.uniform(0, 50), 2),
+                pos_total=0,  # 稍后自动算
+                electronic_actual_arrival=round(random.uniform(200, 800), 2),
+                bank_deposit=round(random.uniform(100, 500), 2),
+                bank_fee=round(random.uniform(0, 10), 2),
+                takeaway_amount=round(random.uniform(100, 400), 2),
+                actual_sales=0,  # 稍后自动算
+                total_error=0,   # 稍后自动算
+                cash_difference=round(random.uniform(-10, 10), 2),
+                electronic_difference=round(random.uniform(-10, 10), 2),
+                remark=fake.sentence(),
+                pos_info_completed=True,
+                takeaway_info_completed=True,
+                actual_arrival_info_completed=True,
+                is_submitted=True,
+                financial_check_status=status,
+                created_at=datetime.now() - timedelta(days=random.randint(0, 29)),
+                updated_at=datetime.now() - timedelta(days=random.randint(0, 29))
+            )
+            # 自动计算
+            sales.pos_total = sales.cash_income + sales.pos_income + sales.day_pass_income + sales.voucher_amount
+            sales.actual_sales = sales.takeaway_amount + sales.day_pass_income + sales.electronic_actual_arrival + sales.bank_deposit
+            sales.total_error = sales.electronic_actual_arrival + sales.bank_deposit + sales.bank_fee - sales.pos_income - sales.cash_income
+            db.session.add(sales)
+            db.session.flush()  # 确保sales.report_id有值
+            # 附件
+            for _ in range(random.randint(1, 2)):
+                att = create_daily_sales_attachment(sales, fake)
+                db.session.add(att)
+        db.session.commit()
+        print("✅ 日报数据生成完成")
 
     except Exception as e:
         db.session.rollback()
@@ -96,25 +208,3 @@ def generate_fake_data():
         raise e
 
 
-def clean_daily_sales_duplicates():
-    """
-    清理每个门店每天同一天归档数>1的销售日报，只保留最新一条，其余全部删除。
-    用于测试环境数据去重，避免统计异常。
-    """
-    from app.models import DailySales
-    from sqlalchemy import func
-    # 查询所有归档日报分组
-    subq = db.session.query(
-        DailySales.store_id,
-        DailySales.report_date,
-        func.count(DailySales.report_id).label('cnt')
-    ).filter(DailySales.archived==True).group_by(DailySales.store_id, DailySales.report_date).having(func.count(DailySales.report_id)>1).all()
-    total_deleted = 0
-    for store_id, report_date, cnt in subq:
-        # 找出该组所有归档日报，按创建时间倒序，保留最新一条
-        dups = DailySales.query.filter_by(store_id=store_id, report_date=report_date, archived=True).order_by(DailySales.created_at.desc()).all()
-        for dup in dups[1:]:
-            db.session.delete(dup)
-            total_deleted += 1
-    db.session.commit()
-    print(f"已清理重复归档日报 {total_deleted} 条")

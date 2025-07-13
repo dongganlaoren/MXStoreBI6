@@ -27,7 +27,7 @@
                 <td>{{ r.takeaway_amount or '-' }}</td>
                 <td>{{ r.bank_receipt_amount or '-' }}</td>
                 <td>
-                    {% if r.archived %}<span class="badge bg-secondary">已归档</span>
+                    {# archived相关展示已废弃 #}
                     {% elif r.is_submitted %}<span class="badge bg-success">已提交</span>
                     {% else %}<span class="badge bg-warning text-dark">草稿</span>{% endif %}
                 </td>
