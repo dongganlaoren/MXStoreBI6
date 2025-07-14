@@ -123,14 +123,14 @@ class EditProfileForm(FlaskForm):
         self.role.choices = [(role.value, role.name.replace('_', ' ').title()) for role in RoleType]
 
     def validate_employee_number(self, field):
-        # 可为空，但如填写则需校验格式和唯一性
+        # 只校验唯一性，不限制格式
         if field.data:
-            store_id = self.store_id.data or ''
             val = str(field.data)
-            if not (store_id and val.startswith(store_id) and len(val) == len(store_id) + 3 and val[len(store_id):].isdigit()):
-                raise ValidationError('员工编号格式应为“店铺编号+三位序号”，如91123。')
-            # 唯一性校验（编辑时需排除自己）
-            existing_user = User.query.filter_by(employee_number=int(val)).first()
+            try:
+                emp_num = int(val)
+            except Exception:
+                raise ValidationError('员工编号必须为数字。')
+            existing_user = User.query.filter_by(employee_number=emp_num).first()
             if existing_user and (not hasattr(self, 'user_id') or existing_user.id != getattr(self, 'user_id', None)):
                 raise ValidationError('该员工编号已被使用，请换一个序号。')
 

@@ -1,51 +1,62 @@
-{# app/templates/sales/report_list.html #}
 {% extends "base.html" %}
-{% block title %}营业日报列表{% endblock %}
+{% block title %}营业信息日报列表{% endblock %}
 {% block content %}
 <div class="container mt-4">
-    <h2>营业日报列表</h2>
-    <table class="table table-bordered table-hover mt-3">
-        <thead>
-            <tr>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="fw-bold text-primary-emphasis"><i class="bi bi-journal-text me-2"></i>营业信息日报</h2>
+        <a href="{{ url_for('sales_report.report_create') }}" class="btn btn-success shadow-sm px-4 py-2">
+            <i class="bi bi-plus-circle me-1"></i> 新建日报
+        </a>
+    </div>
+    <div class="table-responsive rounded shadow-sm">
+    <table class="table table-hover align-middle mb-0 bg-white rounded overflow-hidden">
+        <thead class="table-primary text-center align-middle">
+            <tr style="font-size:1.08rem;">
                 <th>日期</th>
-                <th>门店</th>
-                <th>上报人</th>
-                <th>POS收入</th>
-                <th>外卖收入</th>
-                <th>银行存入</th>
-                <th>状态</th>
-                <th>操作</th>
+                <th>门店编号</th>
+                <th>POS机总营业额</th>
+                <th>实际入账金额</th>
+                <th>误差</th>
+                <th>审核状态</th>
             </tr>
         </thead>
         <tbody>
-        {% for r in reports %}
-            <tr>
-                <td>{{ r.report_date }}</td>
-                <td>{{ r.store_id }}</td>
-                <td>{{ r.user_id }}</td>
-                <td>{{ r.pos_total or '-' }}</td>
-                <td>{{ r.takeaway_amount or '-' }}</td>
-                <td>{{ r.bank_receipt_amount or '-' }}</td>
-                <td>
-                    {# archived相关展示已废弃 #}
-                    {% elif r.is_submitted %}<span class="badge bg-success">已提交</span>
-                    {% else %}<span class="badge bg-warning text-dark">草稿</span>{% endif %}
+        {% for report in reports %}
+            <tr class="text-center">
+                <td>{{ report.report_date.strftime('%Y-%m-%d') if report.report_date else '--' }}</td>
+                <td>{{ report.store_id }}</td>
+                <td class="text-end">{{ '{:,.2f}'.format(report.pos_total or 0) }}</td>
+                <td class="text-end">{{ '{:,.2f}'.format(report.actual_sales or 0) }}</td>
+                <td class="text-end">
+                  {% set err = report.total_error or 0 %}
+                  {% if err > 0 %}
+                    <span class="text-danger fw-bold">+{{ '{:,.2f}'.format(err) }}</span>
+                  {% elif err < 0 %}
+                    <span class="text-primary fw-bold">{{ '{:,.2f}'.format(err) }}</span>
+                  {% else %}
+                    <span class="text-muted">0.00</span>
+                  {% endif %}
                 </td>
                 <td>
-                    <a href="{{ url_for('sales.sales_report_detail', report_id=r.report_id) }}" class="btn btn-sm btn-info">详情</a>
+                  {% if report.financial_check_status and report.financial_check_status.value == 'APPROVED' %}
+                    <span class="badge bg-success px-3 py-2 fs-6">已审核</span>
+                  {% elif report.financial_check_status and report.financial_check_status.value == 'PENDING' %}
+                    <span class="badge bg-warning text-dark px-3 py-2 fs-6">待审核</span>
+                  {% else %}
+                    <span class="text-muted">--</span>
+                  {% endif %}
                 </td>
             </tr>
+        {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">暂无数据</td></tr>
         {% endfor %}
         </tbody>
     </table>
-    {% if pagination.pages > 1 %}
-    <nav><ul class="pagination">
-        {% for p in range(1, pagination.pages+1) %}
-            <li class="page-item {% if p == pagination.page %}active{% endif %}">
-                <a class="page-link" href="?page={{ p }}">{{ p }}</a>
-            </li>
-        {% endfor %}
-    </ul></nav>
-    {% endif %}
+    </div>
+    <style>
+    .table thead th { background: linear-gradient(90deg,#f7b42c 0%,#fc575e 100%); color: #fff; border: none; }
+    .table-hover tbody tr:hover { background: #fffbe6; }
+    .table td, .table th { vertical-align: middle; }
+    </style>
 </div>
 {% endblock %}

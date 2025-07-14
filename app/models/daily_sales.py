@@ -8,6 +8,8 @@ from .enums import FinancialCheckStatus
 
 
 class DailySales(db.Model):
+    # 门店对象（Store）
+    store = db.relationship('Store', backref='daily_sales', lazy='joined')
     # 上报人对象（User）
     user = db.relationship('User', backref='daily_sales', lazy='joined')
     # 理论营收总金额
@@ -39,7 +41,7 @@ class DailySales(db.Model):
     bank_fee = db.Column(db.Float, comment='银行存款手续费 (BF)')
 
     # 第三方外卖平台
-    takeaway_amount = db.Column(db.Float, comment='第三方外卖平台收入 (T1)')
+    takeaway_amount = db.Column(db.Float, default=0.0, nullable=False, comment='第三方外卖平台收入 (T1)')
 
     # 实际总营业额
     actual_sales = db.Column(db.Float, comment='实际总营业额(S)=第三方外卖平台收入(T1)+外卖收入+电子支付实际入账金额+银行存款金额')
@@ -74,7 +76,6 @@ class DailySales(db.Model):
                                   cascade="all, delete-orphan")
 
     def __repr__(self):
-        current_app.logger.info(f"[营业日报] 查询日报: id={self.report_id}, 门店={self.store_id}, 日期={self.report_date}")
         return f'<DailySales {self.report_id} for Store {self.store_id} on {self.report_date}>'
 
     def auto_calculate(self):
@@ -102,7 +103,6 @@ class DailySales(db.Model):
         """
         将 DailySales 对象转换为字典格式，方便API返回。
         """
-        current_app.logger.debug(f"[营业日报] to_dict: {self.report_id}")
         return {
             "report_id": self.report_id,
             "store_id": self.store_id,

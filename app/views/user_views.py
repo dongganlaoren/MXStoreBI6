@@ -28,7 +28,7 @@ def profile():
     统一的个人资料页面视图。
     现在它只传递当前用户对象，因为所有信息都在 User 模型里。
     """
-    current_app.logger.info(f"用户 {current_user.username} 正在查看个人资料页面。")
+    # 去除无用 info 日志
     # 传递 staff_info=current_user，模板可直接用 staff_info.xxx
     return render_template('user/profile.html', user=current_user, staff_info=current_user, title="我的资料")
 
@@ -83,19 +83,13 @@ def edit_profile():
                     except Exception as err:
                         current_app.logger.error(f"非法role值: {role_val}, 错误: {err}")
                         current_user.role = None
-            # 新增：员工编号保存
-            if hasattr(form, 'employee_number'):
-                emp_num_val = form.employee_number.data
-                if emp_num_val:
-                    current_user.employee_number = int(emp_num_val)
-                else:
-                    current_user.employee_number = None
+            # 员工编号不允许编辑，编辑时不保存
             # 保存前输出所有字段调试
-            current_app.logger.info(f"保存前用户数据: {current_user.to_dict()}")
+            # 去除无用 info 日志
             if current_user.role in [RoleType.EMPLOYEE, RoleType.BRANCH_MANAGER]:
                 current_user.profile_completed = True
             db.session.commit()
-            current_app.logger.info(f"用户 {current_user.username} 成功更新了自己的个人资料。")
+            # 去除无用 info 日志
             flash('您的个人资料已成功更新！', 'success')
 
             # 操作成功后，重定向回个人资料查看页面
@@ -104,12 +98,12 @@ def edit_profile():
         except Exception as e:
             import traceback
             db.session.rollback()
-            current_app.logger.error(f"保存用户 {current_user.username} 的个人资料时发生错误: {e}\n{traceback.format_exc()}")
+            current_app.logger.error(f"保存用户资料时发生错误: {e}")
             flash('保存资料时发生未知错误，请联系管理员。', 'danger')
 
     # 如果是GET请求或表单验证失败，渲染编辑页面
     if form.errors:
-        current_app.logger.warning(f"员工档案表单校验失败: {form.errors}")
+        pass
     return render_template('user/edit_profile.html', form=form, title="编辑我的资料")
 
 
@@ -173,14 +167,14 @@ def register():
             db.session.add(new_user)
             db.session.commit()
 
-            current_app.logger.info(f"新用户 {new_user.username} (角色: {role.name}) 注册成功。")
+            # 去除无用 info 日志
             login_user(new_user)  # 注册后自动登录
             flash('恭喜您，注册成功，已自动登录！', 'success')
             return redirect(url_for('main.index'))
 
         except Exception as e:
             db.session.rollback()
-            current_app.logger.error(f"用户注册时发生数据库错误: {e}", exc_info=True)
+            current_app.logger.error(f"用户注册数据库错误: {e}")
             flash('注册时发生未知错误，请稍后重试。', 'danger')
 
     return render_template('user/register.html', form=form, title="注册")
@@ -199,10 +193,10 @@ def login():
             login_user(user, remember=form.remember_me.data)
             user.last_login_time = db.func.now()  # 更新最后登录时间
             db.session.commit()
-            current_app.logger.info(f"用户 {user.username} 登录成功。")
+            # 去除无用 info 日志
             return redirect(request.args.get('next') or url_for('main.index'))
 
-        current_app.logger.warning(f"用户 {form.username.data} 登录失败：用户名或密码错误，或账户被禁用。")
+        # 去除无用 warning 日志
         flash('用户名或密码无效，或账户已被禁用。', 'warning')
 
     return render_template('user/login.html', form=form, title="登录")
@@ -211,7 +205,7 @@ def login():
 @user_bp.route('/logout')
 @login_required
 def logout():
-    current_app.logger.info(f"用户 {current_user.username} 已登出。")
+    # 去除无用 info 日志
     logout_user()
     flash('您已成功登出。', 'success')
     return redirect(url_for('main.index'))

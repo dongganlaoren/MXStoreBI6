@@ -1,37 +1,152 @@
 {# app/templates/main/index.html #}
 {% extends "base.html" %}
 {% block content %}
-<div class="container">
-    <h1>Welcome to the Main Page!</h1>
-
-    <h2>店铺信息</h2>
-    {% if stores %}
-        <ul>
-            {% for store in stores %}
-                <li>
-                    店铺ID: {{ store.store_id }},
-                    店铺名称: {{ store.store_name }}
-                </li>
-            {% endfor %}
-        </ul>
+<div class="container py-4">
+    <div class="d-flex flex-column flex-md-row align-items-center justify-content-between mb-4">
+        <div class="fs-4 fw-bold text-primary" style="letter-spacing:1px;">
+            <i class="bi bi-bar-chart-fill me-2"></i>BI 运营驾驶舱
+            <span class="fs-6 fw-normal text-secondary ms-2">MIXUE Mira 业务智能分析</span>
+        </div>
+        <div class="d-none d-md-block">
+            <span class="badge bg-warning text-dark fs-6 shadow-sm" style="padding:10px 22px;border-radius:20px;">运营数据总览</span>
+        </div>
+    </div>
+    {% if stores and stats and daily_reports %}
+        {% for store in stores %}
+        <div class="card mb-5 shadow-lg border-0" style="border-radius: 1.5rem; overflow: hidden;">
+            <div class="card-header px-4 py-3" style="background:linear-gradient(90deg,#5470C6 0%,#91CC75 100%);color:#fff;font-size:1.25rem;font-weight:600;letter-spacing:1px;box-shadow:0 2px 8px #0001;">
+                <i class="bi bi-shop-window me-2"></i><b>店铺ID：</b>{{ store.store_id }} &nbsp; <b>店铺名称：</b>{{ store.store_name }}
+            </div>
+            <div class="card-body bg-light" style="border-radius:0 0 1.5rem 1.5rem;">
+                <div class="row g-4 align-items-stretch">
+                    <div class="col-md-6">
+                        <div class="p-3 h-100 bg-white rounded-4 shadow-sm border position-relative">
+                            <div class="fw-bold mb-2" style="color:#5470C6;"><i class="bi bi-bar-chart-fill me-1"></i>本月累计</div>
+                            <div id="bar-{{ store.store_id }}" style="height:260px;"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 h-100 bg-white rounded-4 shadow-sm border position-relative">
+                            <div class="fw-bold mb-2" style="color:#91CC75;"><i class="bi bi-graph-up-arrow me-1"></i>近一周营业日报</div>
+                            <div id="line-{{ store.store_id }}" style="height:260px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 table-responsive">
+                    <table class="table table-sm table-bordered align-middle text-center table-hover table-striped" style="border-radius:1rem;overflow:hidden;min-width:540px;">
+                        <thead class="table-primary">
+                            <tr class="table-header-row">
+                                <th>日期</th>
+                                <th>理论营业额</th>
+                                {% if stats[store.store_id].has_t1 %}<th>外卖</th>{% endif %}
+                                <th>实际到账</th>
+                                <th>误差</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in daily_reports[store.store_id] %}
+                            <tr class="table-data-row">
+                                <td>{{ report.date }}</td>
+                                <td>{{ '%.2f'|format(report.t0) }}</td>
+                                {% if report.has_t1 %}
+                                    <td>{{ '%.2f'|format(report.t1 if report.t1 is not none else 0) }}</td>
+                                {% endif %}
+                                <td>{{ '%.2f'|format(report.actual) }}</td>
+                                <td>{{ '%.2f'|format(report.total_error if report.total_error is not none else 0) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+<style>
+@media (max-width: 576px) {
+    .table-header-row th, .table-data-row td {
+        font-size: 0.92rem !important;
+        padding: 0.35rem 0.3rem !important;
+        min-width: 70px;
+    }
+    .table {
+        font-size: 0.92rem;
+    }
+}
+</style>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+        <script id="echarts-data" type="application/json">
+        {
+            "storeStats": {{ stats|tojson }},
+            "storeDailyReports": {{ daily_reports|tojson }}
+        }
+        </script>
+        <script>
+        var echartsData = JSON.parse(document.getElementById('echarts-data').textContent);
+        var storeStats = echartsData.storeStats;
+        var storeDailyReports = echartsData.storeDailyReports;
+        {% for store in stores %}
+        (function() {
+            var barDom = document.getElementById('bar-{{ store.store_id }}');
+            var lineDom = document.getElementById('line-{{ store.store_id }}');
+            if (!barDom || !lineDom) return;
+            var stat = storeStats["{{ store.store_id }}"];
+            var reports = storeDailyReports["{{ store.store_id }}"];
+            // 动态设置柱状图和折线图的T1
+            var barData = [stat.t0];
+            var barNames = ['T0'];
+            var barColors = ['#5470C6'];
+            if (stat.has_t1 && stat.t1 !== null) {
+                barData.push(stat.t1);
+                barNames.push('T1');
+                barColors.push('#91CC75');
+            }
+            barData.push(stat.actual);
+            barNames.push('S');
+            barColors.push('#FAC858');
+            var barChart = echarts.init(barDom);
+            barChart.setOption({
+                title: {text: '本月累计', left: 'center', top: 10, textStyle: {fontSize: 16}},
+                tooltip: {},
+                xAxis: {type: 'category', data: barNames},
+                yAxis: {type: 'value'},
+                series: [{
+                    data: barData,
+                    type: 'bar',
+                    itemStyle: {color: function(params){return barColors[params.dataIndex];}}
+                }]
+            });
+            // 折线图
+            var lineNames = ['T0'];
+            var lineSeries = [
+                {name: 'T0', type: 'line', data: reports.map(r => r.t0), smooth: true}
+            ];
+            if (stat.has_t1) {
+                lineNames.push('T1');
+                lineSeries.push({name: 'T1', type: 'line', data: reports.map(r => r.t1), smooth: true});
+            }
+            lineNames.push('S');
+            lineSeries.push({name: 'S', type: 'line', data: reports.map(r => r.actual), smooth: true});
+            var lineChart = echarts.init(lineDom);
+            lineChart.setOption({
+                title: {text: '近一周营业日报', left: 'center', top: 10, textStyle: {fontSize: 16}},
+                tooltip: {trigger: 'axis'},
+                legend: {data: lineNames, top: 30},
+                xAxis: {type: 'category', data: reports.map(r => r.date)},
+                yAxis: {type: 'value'},
+                series: lineSeries
+            });
+        })();
+        {% endfor %}
+        </script>
     {% else %}
-        <p>暂无店铺信息。</p>
+        <div class="container py-5 text-center">
+            <div class="display-6 text-secondary mb-3"><i class="bi bi-emoji-frown"></i> 暂无店铺数据</div>
+            <div class="lead">请联系管理员添加门店和日报数据</div>
+        </div>
     {% endif %}
-
-    {# archived相关展示已废弃 #}
-
-    <h2>当月累计营业额</h2>
-    {% if cumulative_sales %}
-        <ul>
-            {% for store_id, total_sales in cumulative_sales.items() %}
-                <li>
-                    店铺ID: {{ store_id }},
-                    当月累计营业额: {{ total_sales }}
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>暂无当月累计营业额数据。</p>
-    {% endif %}
+    </div>
 </div>
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 {% endblock %}

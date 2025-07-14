@@ -20,49 +20,67 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+
+    <nav class="navbar navbar-expand-lg navbar-light shadow-sm" style="background:linear-gradient(90deg,#f7b42c 0%,#fc575e 100%);">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">BI System</a>
+            <a class="navbar-brand d-flex align-items-center fw-bold fs-4" href="{{ url_for('main.index') }}" style="color:#fff;letter-spacing:1px;">
+                <img src="/static/img/logo.png" alt="LOGO" style="height:40px;width:40px;border-radius:12px;box-shadow:0 2px 8px #fff3;object-fit:cover;margin-right:12px;background:#fff6;">
+                MIXUE Mira <span class="d-none d-md-inline" style="font-size:1.1rem;font-weight:400;margin-left:8px;">BI系统</span>
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    {% if current_user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.index') }}">首页</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('sales.report_sales') }}">营业信息上报</a>
-                        </li>
-                        {% if current_user.role.name in ['ADMIN', 'HEAD_MANAGER', 'FINANCE'] %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('sales.sales_check_list') }}">营业信息核对</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_user.user_list') }}">用户管理</a>
-                        </li>
-                        {% endif %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('user.profile') }}">{{ current_user.username }}</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('user.logout') }}" onclick="return confirm('确定要退出登录吗？');">登出</a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('user.login') }}">登录</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('user.register') }}">注册</a>
-                        </li>
+                <ul class="navbar-nav ms-auto gap-2">
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link menu-link px-4 py-2 d-flex align-items-center gap-2" href="{{ url_for('main.index') }}">
+                            <i class="bi bi-house-door-fill"></i> 首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link menu-link px-4 py-2 d-flex align-items-center gap-2" href="{{ url_for('sales_report.report_list') }}">
+                            <i class="bi bi-journal-text"></i> 营业信息日报
+                        </a>
+                    </li>
+                    {% if current_user.role.name in ['ADMIN', 'HEAD_MANAGER', 'FINANCE'] %}
+                    <li class="nav-item">
+                        <a class="nav-link menu-link px-4 py-2 d-flex align-items-center gap-2" href="{{ url_for('sales_audit.sales_check_list') }}">
+                            <i class="bi bi-clipboard-check"></i> 营业信息核对
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link menu-link px-4 py-2 d-flex align-items-center gap-2" href="{{ url_for('admin_user.user_list') }}">
+                            <i class="bi bi-people-fill"></i> 用户管理
+                        </a>
+                    </li>
                     {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link menu-link px-4 py-2 d-flex align-items-center gap-2" href="{{ url_for('user.profile') }}">
+                            <i class="bi bi-person-circle"></i> {{ current_user.username }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link menu-link px-4 py-2 d-flex align-items-center gap-2" href="{{ url_for('user.logout') }}" onclick="return confirm('确定要退出登录吗？');">
+                            <i class="bi bi-box-arrow-right"></i> 登出
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link menu-link px-4 py-2 d-flex align-items-center gap-2" href="{{ url_for('user.login') }}">
+                            <i class="bi bi-box-arrow-in-right"></i> 登录
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link menu-link px-4 py-2 d-flex align-items-center gap-2" href="{{ url_for('user.register') }}">
+                            <i class="bi bi-person-plus"></i> 注册
+                        </a>
+                    </li>
+                {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
-
-    <main class="container py-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -77,9 +95,12 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="footer mt-auto py-3 bg-light">
+
+    <footer class="footer mt-auto py-3" style="background:linear-gradient(90deg,#5470C6 0%,#91CC75 100%);">
         <div class="container text-center">
-            <span class="text-muted">© {{ "now"|date("Y") }} BI System. 版权所有 RenWeiMin</span>
+            <span class="text-white fw-semibold" style="font-size:1.08rem;letter-spacing:1px;">
+                © 2024 MIXUE Mira. All Rights Reserved.<br class="d-md-none"> Developed by RenWeiMin
+            </span>
         </div>
     </footer>
 

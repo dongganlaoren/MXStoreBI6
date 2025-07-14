@@ -7,11 +7,11 @@ class RoleType(enum.Enum):
     """
     用户角色枚举 (源自 user.py)
     """
-    ADMIN = "admin"            # 管理员
-    HEAD_MANAGER = "head_manager"  # 总店长
-    FINANCE = "finance"        # 财务
-    BRANCH_MANAGER = "branch_manager" # 分店长
-    EMPLOYEE = "employee"      # 店员
+    ADMIN = "ADMIN"            # 管理员
+    HEAD_MANAGER = "HEAD_MANAGER"  # 总店长
+    FINANCE = "FINANCE"        # 财务
+    BRANCH_MANAGER = "BRANCH_MANAGER" # 分店长
+    EMPLOYEE = "EMPLOYEE"      # 店员
 
 class AttachmentType(enum.Enum):
     """

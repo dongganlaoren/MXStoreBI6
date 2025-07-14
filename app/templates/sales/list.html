@@ -53,7 +53,7 @@
                 <td>{{ r.report_date }}</td>
                 <td><span class="fw-bold text-primary">{{ r.store_id }}</span></td>
                 <td style="word-break:break-all;"> <span class="fw-bold text-success">{{ r.actual_sales or '-' }}</span> </td>
-                <td style="word-break:break-all;"> <span class="fw-bold text-danger">{{ r.total_error or '-' }}</span> </td>
+                <td style="word-break:break-all;"> <span class="fw-bold text-danger">{{ '-' if r.total_error is none else '%.2f'|format(r.total_error) }}</span> </td>
                 <td style="word-break:break-all;"> <span class="fw-bold text-info">{{ r.pos_total or '-' }}</span> </td>
                 <td>
                     {% if r.financial_check_status and r.financial_check_status.value == 'APPROVED' %}<span class="badge bg-success">已审核</span>
@@ -64,9 +64,9 @@
                 </td>
                 <td>
                     {% if r.financial_check_status and r.financial_check_status.value == 'APPROVED' %}
-                        <a href="{{ url_for('sales.sales_check_edit', report_id=r.report_id) }}" class="btn btn-sm btn-outline-secondary px-3 shadow-sm" disabled>查看</a>
+                        <a href="{{ url_for('sales_audit.sales_check_edit', report_id=r.report_id) }}" class="btn btn-sm btn-outline-secondary px-3 shadow-sm" disabled>查看</a>
                     {% else %}
-                        <a href="{{ url_for('sales.sales_check_edit', report_id=r.report_id) }}" class="btn btn-sm btn-outline-primary px-3 shadow-sm">审核</a>
+                        <a href="{{ url_for('sales_audit.sales_check_edit', report_id=r.report_id) }}" class="btn btn-sm btn-outline-primary px-3 shadow-sm">审核</a>
                     {% endif %}
                 </td>
             </tr>

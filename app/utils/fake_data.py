@@ -1,3 +1,48 @@
+import random
+from datetime import date, timedelta
+from app.extensions import db
+from app.models import Store, DailySales, RoleType, user
+from app.models.enums import FinancialCheckStatus
+
+def generate_no_takeaway_store_test_data():
+    """
+    生成部分未开通外卖平台的门店及其近一周日报（无T1），以及部分正常门店（有T1），用于首页展示测试。
+    """
+    # 创建2个未开通外卖平台的门店
+    for i in range(2):
+        store = Store(store_id=f"NO_T1_{i+1}", store_name=f"无外卖门店{i+1}")
+        setattr(store, 'has_takeaway', False)
+        db.session.add(store)
+    # 创建2个正常门店
+    for i in range(2):
+        store = Store(store_id=f"T1_{i+1}", store_name=f"有外卖门店{i+1}")
+        setattr(store, 'has_takeaway', True)
+        db.session.add(store)
+    db.session.commit()
+
+    today = date.today()
+    # 为每个门店生成近7天日报
+    for store in Store.query.all():
+        for d in range(7):
+            report_date = today - timedelta(days=d)
+            # 随机生成营业额，金额保留2位小数
+            t0 = round(random.uniform(1000, 3000), 2)
+            t1 = round(random.uniform(500, 1500), 2) if getattr(store, 'has_takeaway', False) else None
+            s = round(t0 + (t1 or 0) + random.uniform(100, 500), 2)
+            daily = DailySales(
+                store_id=store.store_id,
+                user_id=1,
+                report_date=report_date,
+                pos_total=t0,
+                takeaway_amount=t1,
+                actual_sales=s,
+                financial_check_status=FinancialCheckStatus.APPROVED
+            )
+            db.session.add(daily)
+    db.session.commit()
+
+if __name__ == "__main__":
+    generate_no_takeaway_store_test_data()
 # app/utils/fake_data.py
 import random
 from datetime import date, datetime, timedelta
@@ -156,30 +201,48 @@ def generate_fake_data():
         print("开始生成日报数据...")
         today = date.today()
         all_users = users  # admin + simple_users
-        num_reports = 100
+        num_reports = 1000
+        store_no_t1 = {"92", "76", "191"}
         for i in range(num_reports):
             store = random.choice(stores)
             user = random.choice(all_users)
             report_date = today - timedelta(days=random.randint(0, 29))
             # 状态分布更均匀
             status = random.choice([FinancialCheckStatus.PENDING, FinancialCheckStatus.APPROVED])
+            # 这三家门店不生成T1
+            if store.store_id in store_no_t1:
+                t1 = None
+            else:
+                t1 = round(random.uniform(100, 400), 2)
+            cash_income = round(random.uniform(100, 500), 2)
+            pos_income = round(random.uniform(200, 800), 2)
+            day_pass_income = round(random.uniform(50, 300), 2)
+            voucher_amount = round(random.uniform(0, 50), 2)
+            electronic_actual_arrival = round(random.uniform(200, 800), 2)
+            bank_deposit = round(random.uniform(100, 500), 2)
+            bank_fee = round(random.uniform(0, 10), 2)
+            cash_difference = round(random.uniform(-10, 10), 2)
+            electronic_difference = round(random.uniform(-10, 10), 2)
+            pos_total = round(cash_income + pos_income + day_pass_income + voucher_amount, 2)
+            actual_sales = round((t1 or 0) + day_pass_income + electronic_actual_arrival + bank_deposit, 2)
+            total_error = round(electronic_actual_arrival + bank_deposit + bank_fee - pos_income - cash_income, 2)
             sales = DailySales(
                 user_id=user.user_id,
                 store_id=store.store_id,
                 report_date=report_date,
-                cash_income=round(random.uniform(100, 500), 2),
-                pos_income=round(random.uniform(200, 800), 2),
-                day_pass_income=round(random.uniform(50, 300), 2),
-                voucher_amount=round(random.uniform(0, 50), 2),
-                pos_total=0,  # 稍后自动算
-                electronic_actual_arrival=round(random.uniform(200, 800), 2),
-                bank_deposit=round(random.uniform(100, 500), 2),
-                bank_fee=round(random.uniform(0, 10), 2),
-                takeaway_amount=round(random.uniform(100, 400), 2),
-                actual_sales=0,  # 稍后自动算
-                total_error=0,   # 稍后自动算
-                cash_difference=round(random.uniform(-10, 10), 2),
-                electronic_difference=round(random.uniform(-10, 10), 2),
+                cash_income=cash_income,
+                pos_income=pos_income,
+                day_pass_income=day_pass_income,
+                voucher_amount=voucher_amount,
+                pos_total=pos_total,
+                electronic_actual_arrival=electronic_actual_arrival,
+                bank_deposit=bank_deposit,
+                bank_fee=bank_fee,
+                takeaway_amount=t1,
+                actual_sales=actual_sales,
+                total_error=total_error,
+                cash_difference=cash_difference,
+                electronic_difference=electronic_difference,
                 remark=fake.sentence(),
                 pos_info_completed=True,
                 takeaway_info_completed=True,
@@ -189,10 +252,6 @@ def generate_fake_data():
                 created_at=datetime.now() - timedelta(days=random.randint(0, 29)),
                 updated_at=datetime.now() - timedelta(days=random.randint(0, 29))
             )
-            # 自动计算
-            sales.pos_total = sales.cash_income + sales.pos_income + sales.day_pass_income + sales.voucher_amount
-            sales.actual_sales = sales.takeaway_amount + sales.day_pass_income + sales.electronic_actual_arrival + sales.bank_deposit
-            sales.total_error = sales.electronic_actual_arrival + sales.bank_deposit + sales.bank_fee - sales.pos_income - sales.cash_income
             db.session.add(sales)
             db.session.flush()  # 确保sales.report_id有值
             # 附件

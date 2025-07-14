@@ -42,6 +42,9 @@ def user_edit(user_id):
     form = EditProfileForm(obj=user)
     if form.validate_on_submit():
         form.populate_obj(user)
+        # 强制 role 字段为大写枚举，防止小写写入
+        if hasattr(form, 'role') and form.role.data:
+            user.role = RoleType(form.role.data.upper())
         db.session.commit()
         flash('用户资料已更新', 'success')
         return redirect(url_for('admin_user.user_detail', user_id=user.user_id))
@@ -55,7 +58,7 @@ def user_create():
     if form.validate_on_submit():
         user = User(
             username=form.username.data,
-            role=RoleType(form.role.data),
+            role=RoleType(form.role.data.upper()),
             store_id=form.store_id.data or None,
             real_name=form.real_name.data,
             email=form.email.data,

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}新建营业信息日报{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>新建营业信息日报</h2>
+    <form method="POST" enctype="multipart/form-data" action="{{ url_for('sales_report.report_create') }}" class="mt-4">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            <label for="store_id" class="form-label">门店编号</label>
+            {{ form.store_id(class="form-select", required=true, onchange="this.form.submit();") }}
+            {% for error in form.store_id.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+            <label for="report_date" class="form-label">日期</label>
+            {{ form.report_date(class="form-control", required=true) }}
+            {% for error in form.report_date.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <hr>
+        <h5>POS机营业信息</h5>
+        <div class="mb-3">
+            <label for="cash_income" class="form-label">现金收入 (C)</label>
+            {{ form.cash_income(class="form-control", required=true) }}
+            {% for error in form.cash_income.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+            <label for="pos_income" class="form-label">电子支付收入 (P)</label>
+            {{ form.pos_income(class="form-control", required=true) }}
+            {% for error in form.pos_income.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+            <label for="voucher_amount" class="form-label">代金券使用金额 (R)</label>
+            {{ form.voucher_amount(class="form-control") }}
+            {% for error in form.voucher_amount.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+            <label class="form-label">POS机营业信息凭证</label>
+            {{ form.sales_slip_image(class="form-control", multiple=true) }}
+            {% for error in form.sales_slip_image.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <hr>
+        {% if show_takeaway %}
+        <h5>第三方外卖平台销售信息</h5>
+        <div class="mb-3">
+            <label for="takeaway_amount" class="form-label">第三方外卖平台收入 (T1)</label>
+            {{ form.takeaway_amount(class="form-control") }}
+            {% for error in form.takeaway_amount.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+            <label class="form-label">第三方外卖平台收入凭证</label>
+            {{ form.takeaway_platform_receipt(class="form-control", multiple=true) }}
+            {% for error in form.takeaway_platform_receipt.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        {% endif %}
+        <hr>
+        <h5>实际入账信息</h5>
+        <div class="mb-3">
+            <label for="electronic_actual_arrival" class="form-label">电子支付实际入账金额 (EA)</label>
+            {{ form.electronic_actual_arrival(class="form-control") }}
+            {% for error in form.electronic_actual_arrival.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+            <label class="form-label">电子支付入账凭证</label>
+            {{ form.electronic_actual_arrival_receipt(class="form-control", multiple=true) }}
+            {% for error in form.electronic_actual_arrival_receipt.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+            <label for="bank_deposit" class="form-label">银行存款金额 (BC)</label>
+            {{ form.bank_deposit(class="form-control") }}
+            {% for error in form.bank_deposit.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+            <label for="bank_fee" class="form-label">银行存款手续费 (BF)</label>
+            {{ form.bank_fee(class="form-control") }}
+            {% for error in form.bank_fee.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+            <label class="form-label">银行存款凭证</label>
+            {{ form.bank_receipt_image(class="form-control", multiple=true) }}
+            {% for error in form.bank_receipt_image.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary">保存</button>
+    </form>
+</div>
+{% endblock %}
