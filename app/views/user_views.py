@@ -116,16 +116,13 @@ def register():
         return redirect(url_for('main.index'))
 
     form = RegistrationForm()
+    # 动态设置店铺下拉框选项，确保每次渲染页面都能获取到最新店铺
+    from app.models import Store
+    form.store_id.choices = [(s.store_id, f"{s.store_id} - {s.store_name}") for s in Store.query.order_by(Store.store_name).all()]
     if form.validate_on_submit():
         # 根据角色决定是否需要店铺ID
         role = RoleType(form.role.data)
         store_id = form.store_id.data
-
-        # 【核心业务逻辑】: 如果是门店组角色，必须选择一个店铺
-        if role in [RoleType.BRANCH_MANAGER, RoleType.EMPLOYEE] and not store_id:
-            flash('作为门店组成员，您必须选择一个所属店铺。', 'warning')
-            # 因为验证失败，重新渲染表单，保留用户已填写的数据
-            return render_template('user/register.html', form=form, title="注册")
 
         # 【核心业务逻辑】: 如果是管理组角色，强制将店铺ID设为None
         if role in [RoleType.ADMIN, RoleType.HEAD_MANAGER, RoleType.FINANCE]:
@@ -135,25 +132,8 @@ def register():
             # 处理员工编号，仅分店长/员工角色时保存
             employee_number = None
             if role in [RoleType.BRANCH_MANAGER, RoleType.EMPLOYEE]:
-                # 前端已拼接好，后端校验格式
-                emp_num = form.employee_number.data
-                if not emp_num:
-                    flash('分店长和员工必须填写员工编号。', 'danger')
-                    return render_template('user/register.html', form=form, title="注册")
-                
-                # 校验格式：店铺编号+三位序号
-                emp_num_str = str(emp_num)
-                if not (emp_num_str.startswith(store_id) and len(emp_num_str) == len(store_id) + 3 and emp_num_str[len(store_id):].isdigit()):
-                    flash('员工编号格式错误，应为店铺编号+三位序号。', 'danger')
-                    return render_template('user/register.html', form=form, title="注册")
-                
-                # 检查员工编号是否已存在
-                existing_user = User.query.filter_by(employee_number=int(emp_num_str)).first()
-                if existing_user:
-                    flash('该员工编号已被使用，请换一个序号。', 'danger')
-                    return render_template('user/register.html', form=form, title="注册")
-                
-                employee_number = int(emp_num_str)
+                if form.employee_number.data:  # 确保数据存在且不为空
+                    employee_number = int(form.employee_number.data)
 
             # 创建用户实例
             new_user = User(
@@ -167,7 +147,6 @@ def register():
             db.session.add(new_user)
             db.session.commit()
 
-            # 去除无用 info 日志
             login_user(new_user)  # 注册后自动登录
             flash('恭喜您，注册成功，已自动登录！', 'success')
             return redirect(url_for('main.index'))
@@ -209,4 +188,3 @@ def logout():
     logout_user()
     flash('您已成功登出。', 'success')
     return redirect(url_for('main.index'))
-

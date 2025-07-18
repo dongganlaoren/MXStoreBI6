@@ -1,8 +1,8 @@
 """init
 
-Revision ID: a1179d2300ce
+Revision ID: bdfeaa83bf61
 Revises: 
-Create Date: 2025-07-13 12:53:01.293169
+Create Date: 2025-07-18 17:34:55.874012
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'a1179d2300ce'
+revision = 'bdfeaa83bf61'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -65,7 +65,7 @@ def upgrade():
     sa.Column('electronic_actual_arrival', sa.Float(), nullable=True, comment='电子支付实际入账金额 (EA)'),
     sa.Column('bank_deposit', sa.Float(), nullable=True, comment='银行存款金额 (BC)'),
     sa.Column('bank_fee', sa.Float(), nullable=True, comment='银行存款手续费 (BF)'),
-    sa.Column('takeaway_amount', sa.Float(), nullable=True, comment='第三方外卖平台收入 (T1)'),
+    sa.Column('takeaway_amount', sa.Float(), nullable=False, comment='第三方外卖平台收入 (T1)'),
     sa.Column('actual_sales', sa.Float(), nullable=True, comment='实际总营业额(S)=第三方外卖平台收入(T1)+外卖收入+电子支付实际入账金额+银行存款金额'),
     sa.Column('total_error', sa.Float(), nullable=True, comment='总误差(E)=电子支付实际入账金额+银行存款金额+银行存款手续费-POS机小票里显示的电子支付总金额-POS机小票里显示的现金总金额'),
     sa.Column('cash_difference', sa.Float(), nullable=False, comment='POS现金收入误差(A)，仅存储，默认0'),

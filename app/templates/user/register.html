@@ -19,125 +19,59 @@
                             {{ form.username.label(class="form-label") }}
                             {{ form.username(class="form-control", placeholder="请输入用户名") }}
                             {% for error in form.username.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
                         <div class="form-group mb-3">
                             {{ form.password.label(class="form-label") }}
-                            {{ form.password(class="form-control", placeholder="请输入密码") }}
+                            <input type="password" name="password" class="form-control" placeholder="请输入密码" value="{{ form.password.data or '' }}">
                             {% for error in form.password.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
                         <div class="form-group mb-3">
                             {{ form.confirm_password.label(class="form-label") }}
-                            {{ form.confirm_password(class="form-control", placeholder="请再次输入密码") }}
+                            <input type="password" name="confirm_password" class="form-control" placeholder="请再次输入密码" value="{{ form.confirm_password.data or '' }}">
                             {% for error in form.confirm_password.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
                         <div class="form-group mb-3">
                             {{ form.role.label(class="form-label") }}
-                            {{ form.role(class="form-select") }}
+                            {{ form.role(class="form-select", id="role") }}
                             {% for error in form.role.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
-
-                        {# 选择店铺字段，仅分店长/员工显示 #}
-                        <div class="form-group mb-3" id="store-id-field" style="display: none;">
-                            {{ form.store_id.label(class="form-label") }}
-                            {{ form.store_id(class="form-select") }}
+                        {# 选择店铺字段：始终显示，直接渲染所有店铺 #}
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="store_id">所属店铺</label>
+                            <select class="form-select" id="store_id" name="store_id">
+                                <option value="">--- 请选择店铺 ---</option>
+                                {% for sid, sname in form.store_id.choices if sid %}
+                                    <option value="{{ sid }}" {% if form.store_id.data == sid %}selected{% endif %}>{{ sname }}</option>
+                                {% endfor %}
+                            </select>
                             {% for error in form.store_id.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
                         </div>
 
-                        {# 员工编号字段，仅分店长/员工且已选店铺时显示 #}
-                        <div class="form-group mb-3" id="employee-number-field" style="display: none;">
-                            <label class="form-label">员工编号</label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="store-prefix"></span>
-                                <input type="number" class="form-control" id="employee-sequence" placeholder="123" min="1" max="999">
-                            </div>
-                            {{ form.employee_number(style="display: none;") }}
+                        {# 员工编号字段：始终显示，普通文本输入 #}
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="employee_number">员工编号</label>
+                            <input type="text" class="form-control" id="employee_number" name="employee_number" placeholder="如 91001" value="{{ form.employee_number.data or '' }}">
                             {% for error in form.employee_number.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            <div class="invalid-feedback d-block">{{ error }}</div>
                             {% endfor %}
-                            <div class="form-text">请输入店内三位序号（如123），系统将自动拼接店铺编号。</div>
+                            <div class="form-text">请手动输入员工编号（如：店铺编号+三位序号，例如91001）。</div>
                         </div>
-<script>
-// 注册页面动态显示店铺和员工编号字段
-document.addEventListener('DOMContentLoaded', function() {
-    var roleField = document.getElementById('role');
-    var storeField = document.getElementById('store-id-field');
-    var empNumField = document.getElementById('employee-number-field');
-    var storeSelect = document.getElementById('store_id');
-    var empNumInput = document.getElementById('employee_number');
-    var storePrefix = document.getElementById('store-prefix');
-    var sequenceInput = document.getElementById('employee-sequence');
-
-    function updateFields() {
-        var role = roleField ? roleField.value : '';
-        if (role === 'branch_manager' || role === 'employee') {
-            storeField.style.display = '';
-            // 只有选择了店铺才显示员工编号
-            if (storeSelect && storeSelect.value) {
-                empNumField.style.display = '';
-                // 更新店铺前缀显示
-                storePrefix.textContent = storeSelect.value + '-';
-                updateEmployeeNumber();
-            } else {
-                empNumField.style.display = 'none';
-                storePrefix.textContent = '';
-                empNumInput.value = '';
-            }
-        } else {
-            storeField.style.display = 'none';
-            empNumField.style.display = 'none';
-            empNumInput.value = '';
-        }
-    }
-
-    function updateEmployeeNumber() {
-        var storeId = storeSelect ? storeSelect.value : '';
-        var sequence = sequenceInput ? sequenceInput.value : '';
-        
-        if (storeId && sequence) {
-            // 确保序号是三位数
-            var paddedSequence = sequence.padStart(3, '0');
-            // 拼接完整的员工编号
-            empNumInput.value = storeId + paddedSequence;
-        } else {
-            empNumInput.value = '';
-        }
-    }
-
-    // 绑定事件监听器
-    if (roleField) roleField.addEventListener('change', updateFields);
-    if (storeSelect) {
-        storeSelect.addEventListener('change', function() {
-            updateFields();
-            if (sequenceInput && sequenceInput.value) {
-                updateEmployeeNumber();
-            }
-        });
-    }
-    if (sequenceInput) {
-        sequenceInput.addEventListener('input', updateEmployeeNumber);
-    }
-    
-    // 初始化
-    updateFields();
-});
-</script>
 
                         <div class="d-grid mt-4">
-                            {# 使用在表单中定义的提交按钮 #}
                             {{ form.submit(class="btn btn-primary btn-block") }}
                         </div>
                     </form>
@@ -150,4 +84,3 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 {% endblock %}
-

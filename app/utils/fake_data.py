@@ -10,13 +10,11 @@ def generate_no_takeaway_store_test_data():
     """
     # 创建2个未开通外卖平台的门店
     for i in range(2):
-        store = Store(store_id=f"NO_T1_{i+1}", store_name=f"无外卖门店{i+1}")
-        setattr(store, 'has_takeaway', False)
+        store = Store(store_id=f"NO_T1_{i+1}", store_name=f"无外卖门店{i+1}", third_party_platform=False)
         db.session.add(store)
     # 创建2个正常门店
     for i in range(2):
-        store = Store(store_id=f"T1_{i+1}", store_name=f"有外卖门店{i+1}")
-        setattr(store, 'has_takeaway', True)
+        store = Store(store_id=f"T1_{i+1}", store_name=f"有外卖门店{i+1}", third_party_platform=True)
         db.session.add(store)
     db.session.commit()
 
@@ -27,8 +25,8 @@ def generate_no_takeaway_store_test_data():
             report_date = today - timedelta(days=d)
             # 随机生成营业额，金额保留2位小数
             t0 = round(random.uniform(1000, 3000), 2)
-            t1 = round(random.uniform(500, 1500), 2) if getattr(store, 'has_takeaway', False) else None
-            s = round(t0 + (t1 or 0) + random.uniform(100, 500), 2)
+            t1 = round(random.uniform(500, 1500), 2) if store.third_party_platform else 0.0
+            s = round(t0 + t1 + random.uniform(100, 500), 2)
             daily = DailySales(
                 store_id=store.store_id,
                 user_id=1,
@@ -265,5 +263,3 @@ def generate_fake_data():
         db.session.rollback()
         print(f"❌ 生成测试数据时发生严重错误: {e}")
         raise e
-
-

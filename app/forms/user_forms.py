@@ -1,4 +1,3 @@
-
 # app/forms/user_forms.py
 
 # 正确导入模型
@@ -48,9 +47,9 @@ class RegistrationForm(FlaskForm):
     )
     # 新增：所属店铺字段。设为 Optional，因为管理组用户不需要选择店铺。
     # 具体的验证逻辑（如“店员必须选店”）将在视图函数中处理。
-    store_id = SelectField("所属店铺", coerce=str, validators=[Optional()])
+    store_id = SelectField("所属店铺", choices=[], validators=[Optional()], coerce=str)
 
-    submit = SubmitField("立即注册")
+    submit = SubmitField("注册")
 
     def __init__(self, *args, **kwargs):
         """
@@ -68,17 +67,48 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('该用户名已被使用，请换一个。')
 
     def validate_employee_number(self, field):
-        # 可为空，但如填写则需校验格式和唯一性
-        if field.data:
-            store_id = self.store_id.data or ''
+        # 仅分店长/员工角色需要员工编号
+        if self.role.data in ['BRANCH_MANAGER', 'EMPLOYEE']:
+            if not field.data:
+                raise ValidationError('分店长和员工必须填写员工编号。')
+
+            store_id = str(self.store_id.data or '')
+            if not store_id:
+                # 如果没有选择店铺，这个错误会由 validate_store_id 处理
+                return
+
             val = str(field.data)
             # 校验格式：店铺编号+三位序号
-            if not (store_id and val.startswith(store_id) and len(val) == len(store_id) + 3 and val[len(store_id):].isdigit()):
-                raise ValidationError('员工编号格式应为“店铺编号+三位序号”，如91123。')
+            if not (val.startswith(store_id) and len(val) == len(store_id) + 3 and val[len(store_id):].isdigit()):
+                raise ValidationError('员工编号格式应为"店铺编号+三位序号"，如91001。')
+
             # 唯一性校验
             existing_user = User.query.filter_by(employee_number=int(val)).first()
             if existing_user:
                 raise ValidationError('该员工编号已被使用，请换一个序号。')
+
+    def validate_store_id(self, field):
+        # 仅分店长/员工角色必须选择店铺
+        if self.role.data in ['BRANCH_MANAGER', 'EMPLOYEE']:
+            if not field.data or field.data == '':
+                raise ValidationError('作为门店组成员，您必须选择一个所属店铺。')
+
+    def validate(self, extra_validators=None):
+        initial_validation = super().validate(extra_validators)
+        if not initial_validation:
+            return False
+        # 动态业务校验
+        role = self.role.data
+        # 需要选择店铺和员工编号的角色
+        must_choose_store = ["BRANCH_MANAGER", "EMPLOYEE"]
+        if role in must_choose_store:
+            if not self.store_id.data or self.store_id.data == '':
+                self.store_id.errors.append("该角色必须选择所属店铺")
+                return False
+            if not self.employee_number.data or self.employee_number.data.strip() == '':
+                self.employee_number.errors.append("该角色必须填写员工编号")
+                return False
+        return True
 
 
 class EditProfileForm(FlaskForm):
@@ -119,7 +149,8 @@ class EditProfileForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super(EditProfileForm, self).__init__(*args, **kwargs)
         self.store_id.choices = [("", "--- (仅门店组人员需要选择) ---")] + \
-            [(store.store_id, f"{store.store_id} - {store.store_name}") for store in Store.query.order_by(Store.store_name).all()]
+            [(str(store.store_id), f"{store.store_id} - {store.store_name}")
+             for store in Store.query.order_by(Store.store_name).all()]
         self.role.choices = [(role.value, role.name.replace('_', ' ').title()) for role in RoleType]
 
     def validate_employee_number(self, field):
@@ -133,4 +164,3 @@ class EditProfileForm(FlaskForm):
             existing_user = User.query.filter_by(employee_number=emp_num).first()
             if existing_user and (not hasattr(self, 'user_id') or existing_user.id != getattr(self, 'user_id', None)):
                 raise ValidationError('该员工编号已被使用，请换一个序号。')
-
