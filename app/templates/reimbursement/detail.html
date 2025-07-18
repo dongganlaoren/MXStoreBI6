@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}报销申请详情{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h2>报销申请详情</h2>
+  <table class="table table-bordered">
+    <tr><th>ID</th><td>{{ req.request_id }}</td></tr>
+    <tr><th>一级分类</th><td>{{ req.primary_category.value }}</td></tr>
+    <tr><th>二级分类</th><td>{{ req.secondary_category.value }}</td></tr>
+    <tr><th>所属店铺</th><td>{{ req.store.store_name if req.store else '公摊' }}</td></tr>
+    <tr><th>报销事由</th><td>{{ req.reason }}</td></tr>
+    <tr><th>提报日期</th><td>{{ req.submission_date }}</td></tr>
+    <tr><th>金额</th><td>{{ req.amount }} {{ req.currency }}</td></tr>
+    <tr><th>状态</th><td>{{ req.status.value }}</td></tr>
+    <tr><th>申请人</th><td>{{ req.submitter.real_name or req.submitter.username }}</td></tr>
+    <tr><th>审批人</th><td>{{ req.approver.real_name or req.approver.username }}</td></tr>
+    <tr><th>审批意见</th><td>{{ req.approval_comments or '' }}</td></tr>
+    <tr><th>创建时间</th><td>{{ req.created_at }}</td></tr>
+    <tr><th>更新时间</th><td>{{ req.updated_at }}</td></tr>
+    <tr><th>审批时间</th><td>{{ req.approved_at or '' }}</td></tr>
+  </table>
+  <h4>附件</h4>
+  <ul>
+    {% for att in attachments %}
+      <li>
+        <a href="/{{ att.file_path }}" target="_blank">{{ att.original_filename }}</a>
+        ({{ att.attachment_type.value }})
+      </li>
+    {% endfor %}
+  </ul>
+  {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
+    <a class="btn btn-success" href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}">审批通过</a>
+  {% endif %}
+  <a class="btn btn-secondary" href="{{ url_for('reimbursement.list_requests') }}">返回列表</a>
+</div>
+{% endblock %}

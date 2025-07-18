@@ -113,6 +113,7 @@ def register_blueprints(app: Flask):
     from app.views.sales_report_views import sales_report_bp  # 日报相关（如日报创建、列表等）
     from app.views.user_views import user_bp           # 用户相关
     from app.views.admin_user_views import admin_user_bp # 管理员相关
+    from app.views.reimbursement_views import bp as reimbursement_bp  # 财务报销模块
     # 如有上传相关蓝图，可在此导入并注册
 
     # 注册蓝图及其路由前缀
@@ -123,6 +124,7 @@ def register_blueprints(app: Flask):
     app.register_blueprint(sales_audit_bp, url_prefix="/sales/audit")  # 销售审核相关
     app.register_blueprint(sales_report_bp, url_prefix="/sales/report")  # 日报相关
     app.register_blueprint(admin_user_bp)  # 管理员相关
+    app.register_blueprint(reimbursement_bp, url_prefix="/reimbursement")  # 财务报销模块
 
 # -------------------- 错误处理 --------------------
 def handle_app_error(app: Flask, error: Exception, code: int) -> tuple:

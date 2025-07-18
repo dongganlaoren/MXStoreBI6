@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}报销申请列表{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h2>我的报销申请</h2>
+  <table class="table table-bordered">
+    <thead><tr><th>ID</th><th>一级分类</th><th>二级分类</th><th>金额</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for req in my_requests %}
+      <tr>
+        <td>{{ req.request_id }}</td>
+        <td>{{ req.primary_category.value }}</td>
+        <td>{{ req.secondary_category.value }}</td>
+        <td>{{ req.amount }}</td>
+        <td>{{ req.status.value }}</td>
+        <td><a href="{{ url_for('reimbursement.detail', request_id=req.request_id) }}">详情</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <h2 class="mt-5">待我审批的申请</h2>
+  <table class="table table-bordered">
+    <thead><tr><th>ID</th><th>申请人</th><th>金额</th><th>状态</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for req in to_approve %}
+      <tr>
+        <td>{{ req.request_id }}</td>
+        <td>{{ req.submitter.real_name or req.submitter.username }}</td>
+        <td>{{ req.amount }}</td>
+        <td>{{ req.status.value }}</td>
+        <td><a href="{{ url_for('reimbursement.detail', request_id=req.request_id) }}">详情</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <a class="btn btn-primary mt-4" href="{{ url_for('reimbursement.create') }}">新建报销申请</a>
+</div>
+{% endblock %}
+
