@@ -42,6 +42,11 @@
                             <i class="bi bi-journal-text"></i> 营业信息日报
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link menu-link px-4 py-2 d-flex align-items-center gap-2" href="{{ url_for('sales_manage.manage_list') }}">
+                            <i class="bi bi-gear-wide-connected"></i> 营业信息管理
+                        </a>
+                    </li>
                     {% if current_user.role.name in ['ADMIN', 'HEAD_MANAGER', 'FINANCE'] %}
                     <li class="nav-item">
                         <a class="nav-link menu-link px-4 py-2 d-flex align-items-center gap-2" href="{{ url_for('sales_audit.sales_check_list') }}">

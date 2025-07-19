@@ -53,7 +53,7 @@ class DailySales(db.Model):
     cash_difference = db.Column(db.Float, default=0.0, nullable=False, comment='POS现金收入误差(A)，仅存储，默认0')
     electronic_difference = db.Column(db.Float, default=0.0, nullable=False, comment='POS电子支付误差(B)，仅存储，默认0')
 
-    remark = db.Column(db.String(255), comment='备注')
+    remark = db.Column(db.String(255), comment='审核备注')
 
     # 步骤与状态
     pos_info_completed = db.Column(db.Boolean, default=False, nullable=False, comment='第一步(POS)是否完成')
