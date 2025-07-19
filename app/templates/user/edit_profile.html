@@ -302,8 +302,8 @@
 
 <div class="page-hero">
   <div class="container page-hero-content">
-    <h1 class="page-title">✏️ 编辑资料</h1>
-    <p class="page-subtitle">完善您的个人信息</p>
+    <h1 class="page-title">✏️ {{ lang_dict['edit_profile'] if lang_dict.get('edit_profile') else '编辑资料' }}</h1>
+    <p class="page-subtitle">{{ lang_dict['edit_profile_subtitle'] if lang_dict.get('edit_profile_subtitle') else '完善您的个人信息' }}</p>
   </div>
 </div>
 
@@ -314,13 +314,13 @@
       <div class="form-avatar">
         {{ current_user.username[0]|upper }}
       </div>
-      <div class="form-username">编辑 {{ current_user.username }} 的资料</div>
+      <div class="form-username">{{ lang_dict['edit_profile_for'] if lang_dict.get('edit_profile_for') else '编辑' }} {{ current_user.username }} {{ lang_dict['profile'] if lang_dict.get('profile') else '的资料' }}</div>
     </div>
 
     <div class="form-body">
       <div class="completion-tip">
         <i class="bi bi-lightbulb field-icon"></i>
-        <strong>提示：</strong>完善个人资料有助于提高账户安全性，并便于团队协作和财务报销等功能的使用。
+        <strong>{{ lang_dict['tip'] if lang_dict.get('tip') else '提示：' }}</strong>{{ lang_dict['edit_profile_tip'] if lang_dict.get('edit_profile_tip') else '完善个人资料有助于提高账户安全性，并便于团队协作和财务报销等功能的使用。' }}
       </div>
 
       <form id="profile-edit-form" method="POST" action="{{ url_for('user.edit_profile') }}" novalidate>
@@ -331,25 +331,25 @@
           <div class="form-section">
             <h4 class="section-title">
               <i class="bi bi-person-fill field-icon"></i>
-              个人信息
+              {{ lang_dict['personal_info'] if lang_dict.get('personal_info') else '个人信息' }}
             </h4>
 
             <div class="form-grid">
               <div class="form-group">
-                {{ form.real_name.label(class="form-label") }}
-                {{ form.real_name(class="form-control", required="required", placeholder="请输入真实姓名", **{'data-pristine-required-message': '真实姓名不能为空'}) }}
+                {{ form.real_name.label(class="form-label", text=lang_dict['real_name'] if lang_dict.get('real_name') else '真实姓名') }}
+                {{ form.real_name(class="form-control", required="required", placeholder=lang_dict['real_name_placeholder'] if lang_dict.get('real_name_placeholder') else '请输入真实姓名', **{'data-pristine-required-message': lang_dict['real_name_required'] if lang_dict.get('real_name_required') else '真实姓名不能为空'}) }}
               </div>
 
               <div class="form-group">
-                {{ form.employee_number.label(class="form-label") }}
-                <input class="form-control" value="{{ form.employee_number.data or '未分配' }}" readonly tabindex="-1" title="员工编号由管理员分配">
-                <small class="text-muted">此字段由管理员分配，无法自行修改</small>
+                {{ form.employee_number.label(class="form-label", text=lang_dict['employee_number'] if lang_dict.get('employee_number') else '员工编号') }}
+                <input class="form-control" value="{{ form.employee_number.data or (lang_dict['unassigned'] if lang_dict.get('unassigned') else '未分配') }}" readonly tabindex="-1" title="{{ lang_dict['employee_number_admin_only'] if lang_dict.get('employee_number_admin_only') else '员工编号由管理员分配' }}">
+                <small class="text-muted">{{ lang_dict['employee_number_admin_only'] if lang_dict.get('employee_number_admin_only') else '此字段由管理员分配，无法自行修改' }}</small>
               </div>
             </div>
 
             <div class="form-group">
-              {{ form.id_card_number.label(class="form-label") }}
-              {{ form.id_card_number(class="form-control", placeholder="请输入身份证号码") }}
+              {{ form.id_card_number.label(class="form-label", text=lang_dict['id_card_number'] if lang_dict.get('id_card_number') else '身份证号') }}
+              {{ form.id_card_number(class="form-control", placeholder=lang_dict['id_card_number_placeholder'] if lang_dict.get('id_card_number_placeholder') else '请输入身份证号码') }}
             </div>
           </div>
 
@@ -357,24 +357,24 @@
           <div class="form-section">
             <h4 class="section-title">
               <i class="bi bi-telephone-fill field-icon"></i>
-              联系方式
+              {{ lang_dict['contact_info'] if lang_dict.get('contact_info') else '联系方式' }}
             </h4>
 
             <div class="form-grid">
               <div class="form-group">
-                {{ form.phone.label(class="form-label") }}
-                {{ form.phone(class="form-control", placeholder="请输入联系电话") }}
+                {{ form.phone.label(class="form-label", text=lang_dict['phone'] if lang_dict.get('phone') else '联系电话') }}
+                {{ form.phone(class="form-control", placeholder=lang_dict['phone_placeholder'] if lang_dict.get('phone_placeholder') else '请输入联系电话') }}
               </div>
 
               <div class="form-group">
-                {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control", placeholder="请输入电子邮箱", type="email", **{'data-pristine-email-message': '请输入一个有效的邮箱地址'}) }}
+                {{ form.email.label(class="form-label", text=lang_dict['email'] if lang_dict.get('email') else '电子邮箱') }}
+                {{ form.email(class="form-control", placeholder=lang_dict['email_placeholder'] if lang_dict.get('email_placeholder') else '请输入电子邮箱', type="email", **{'data-pristine-email-message': lang_dict['email_invalid'] if lang_dict.get('email_invalid') else '请输入一个有效的邮箱地址'}) }}
               </div>
             </div>
 
             <div class="form-group">
-              {{ form.line_id.label(class="form-label") }}
-              {{ form.line_id(class="form-control", placeholder="请输入LINE ID") }}
+              {{ form.line_id.label(class="form-label", text=lang_dict['line_id'] if lang_dict.get('line_id') else 'LINE ID') }}
+              {{ form.line_id(class="form-control", placeholder=lang_dict['line_id_placeholder'] if lang_dict.get('line_id_placeholder') else '请输入LINE ID') }}
             </div>
           </div>
 
@@ -383,36 +383,36 @@
           <div class="form-section">
             <h4 class="section-title">
               <i class="bi bi-bank field-icon"></i>
-              银行及在职信息
+              {{ lang_dict['bank_and_job_info'] if lang_dict.get('bank_and_job_info') else '银行及在职信息' }}
             </h4>
 
             <div class="store-only-notice">
               <i class="bi bi-info-circle me-2"></i>
-              此部分仅对门店人员开放，用于薪资发放和报销等财务相关功能。
+              {{ lang_dict['store_only_notice'] if lang_dict.get('store_only_notice') else '此部分仅对门店人员开放，用于薪资发放和报销等财务相关功能。' }}
             </div>
 
             <div class="form-grid">
               <div class="form-group">
-                {{ form.bank_name.label(class="form-label") }}
-                {{ form.bank_name(class="form-control", placeholder="请输入银行名称") }}
+                {{ form.bank_name.label(class="form-label", text=lang_dict['bank_name'] if lang_dict.get('bank_name') else '银行名称') }}
+                {{ form.bank_name(class="form-control", placeholder=lang_dict['bank_name_placeholder'] if lang_dict.get('bank_name_placeholder') else '请输入银行名称') }}
               </div>
 
               <div class="form-group">
-                {{ form.bank_account_number.label(class="form-label") }}
-                {{ form.bank_account_number(class="form-control", placeholder="请输入银行账号") }}
+                {{ form.bank_account_number.label(class="form-label", text=lang_dict['bank_account_number'] if lang_dict.get('bank_account_number') else '银行账号') }}
+                {{ form.bank_account_number(class="form-control", placeholder=lang_dict['bank_account_number_placeholder'] if lang_dict.get('bank_account_number_placeholder') else '请输入银行账号') }}
               </div>
             </div>
 
             <div class="form-group">
-              {{ form.start_date.label(class="form-label") }}
+              {{ form.start_date.label(class="form-label", text=lang_dict['start_date'] if lang_dict.get('start_date') else '入职日期') }}
               {{ form.start_date(class="form-control") }}
             </div>
 
             <div class="form-group">
-              <label class="form-label">联系人设置</label>
+              <label class="form-label">{{ lang_dict['is_primary_contact'] if lang_dict.get('is_primary_contact') else '联系人设置' }}</label>
               <div class="form-check">
                 {{ form.is_primary_contact(class="form-check-input") }}
-                {{ form.is_primary_contact.label(class="form-check-label") }}
+                {{ form.is_primary_contact.label(class="form-check-label", text=lang_dict['is_primary_contact'] if lang_dict.get('is_primary_contact') else '主要联系人') }}
               </div>
             </div>
           </div>
@@ -425,10 +425,10 @@
   <!-- 操作按钮 -->
   <div class="action-buttons">
     <button type="submit" form="profile-edit-form" class="btn-action btn-primary">
-      <i class="bi bi-check-circle"></i> 保存修改
+      <i class="bi bi-check-circle"></i> {{ lang_dict['save'] if lang_dict.get('save') else '保存修改' }}
     </button>
-    <a href="{{ url_for('user.profile') }}" class="btn-action btn-secondary">
-      <i class="bi bi-x-circle"></i> 取消编辑
+    <a href="{{ url_for('user.profile') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}" class="btn-action btn-secondary">
+      <i class="bi bi-x-circle"></i> {{ lang_dict['cancel_edit'] if lang_dict.get('cancel_edit') else '取消编辑' }}
     </a>
   </div>
 </div>

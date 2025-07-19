@@ -6,7 +6,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 
-from flask import Flask, render_template
+from flask import Flask, render_template, g, request, session
 from markupsafe import Markup, escape
 
 from app import commands
@@ -69,6 +69,22 @@ def create_app(config: object) -> Flask:
         用法：{{ now.year }}
         """
         return {'now': datetime.utcnow()}
+
+    def inject_lang_dict():
+        lang = request.args.get('lang')
+        if lang:
+            session['lang'] = lang
+        else:
+            lang = session.get('lang', None)
+        if not lang:
+            lang = getattr(g, 'lang', None) or 'zh'
+        from app.utils.lang_dict import lang_dict
+        # 设置g.lang，方便后续代码使用
+        g.lang = lang
+        return {'lang_dict': lang_dict.get(lang, lang_dict['zh']), 'current_lang': lang}
+
+    # 注册全局模板变量
+    app.context_processor(inject_lang_dict)
 
     # 注册蓝图
     with app.app_context():

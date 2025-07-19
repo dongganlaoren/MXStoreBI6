@@ -1,6 +1,6 @@
 {# app/templates/user/profile.html #}
 {% extends "base.html" %}
-{% block title %}个人资料{% endblock %}
+{% block title %}{{ lang_dict['profile_title'] if lang_dict.get('profile_title') else '个人资料' }}{% endblock %}
 
 {% block content %}
 <style>
@@ -377,8 +377,8 @@
 
 <div class="page-hero">
   <div class="container page-hero-content">
-    <h1 class="page-title">👤 个人资料</h1>
-    <p class="page-subtitle">My Profile</p>
+    <h1 class="page-title">👤 {{ lang_dict['profile_title'] if lang_dict.get('profile_title') else '个人资料' }}</h1>
+    <p class="page-subtitle">{{ lang_dict['profile_subtitle'] if lang_dict.get('profile_subtitle') else 'My Profile' }}</p>
   </div>
 </div>
 
@@ -399,30 +399,30 @@
           <div class="profile-role role-{{ current_user.role.name.lower().replace('_', '-') if current_user.role else 'unknown' }}">
             {% if current_user.role %}
               {% if current_user.role.name == 'ADMIN' %}
-                👑 管理员
+                👑 {{ lang_dict['role_admin'] if lang_dict.get('role_admin') else '管理员' }}
               {% elif current_user.role.name == 'FINANCE' %}
-                💼 财务
+                💼 {{ lang_dict['role_finance'] if lang_dict.get('role_finance') else '财务' }}
               {% elif current_user.role.name == 'HEAD_MANAGER' %}
-                🏢 店长
+                🏢 {{ lang_dict['role_head_manager'] if lang_dict.get('role_head_manager') else '店长' }}
               {% elif current_user.role.name == 'STAFF' %}
-                👤 员工
+                👤 {{ lang_dict['role_staff'] if lang_dict.get('role_staff') else '员工' }}
               {% else %}
                 {{ current_user.role.name }}
               {% endif %}
             {% else %}
-              未设置角色
+              {{ lang_dict['role_unset'] if lang_dict.get('role_unset') else '未设置角色' }}
             {% endif %}
           </div>
           <div class="profile-stats">
             <div class="stat-item">
-              <span class="stat-number">{{ current_user.created_at.strftime('%Y') if current_user.created_at else '未知' }}</span>
-              <span class="stat-label">加入年份</span>
+              <span class="stat-number">{{ current_user.created_at.strftime('%Y') if current_user.created_at else lang_dict['unknown'] if lang_dict.get('unknown') else '未知' }}</span>
+              <span class="stat-label">{{ lang_dict['join_year'] if lang_dict.get('join_year') else '加入年份' }}</span>
             </div>
             <div class="stat-item">
               <span class="stat-number">
                 {% if current_user.store %}1{% else %}0{% endif %}
               </span>
-              <span class="stat-label">关联门店</span>
+              <span class="stat-label">{{ lang_dict['related_store'] if lang_dict.get('related_store') else '关联门店' }}</span>
             </div>
           </div>
         </div>
@@ -432,7 +432,7 @@
       <div class="completion-progress">
         <div class="progress-title">
           <i class="bi bi-clipboard-check"></i>
-          资料完善度
+          {{ lang_dict['profile_completion'] if lang_dict.get('profile_completion') else '资料完善度' }}
         </div>
         {% set completion_fields = [
           current_user.real_name,
@@ -450,7 +450,7 @@
           <div class="progress-bar" style="width: {{ completion_percentage }}%"></div>
         </div>
         <div class="progress-text">
-          {{ completed_count }}/{{ total_count }} 项已完成 ({{ completion_percentage }}%)
+          {{ completed_count }}/{{ total_count }} {{ lang_dict['completed'] if lang_dict.get('completed') else '项已完成' }} ({{ completion_percentage }}%)
         </div>
       </div>
 
@@ -458,15 +458,15 @@
       <div class="quick-actions">
         <div class="quick-actions-title">
           <i class="bi bi-lightning-fill"></i>
-          快捷操作
+          {{ lang_dict['quick_actions'] if lang_dict.get('quick_actions') else '快捷操作' }}
         </div>
         <a href="{{ url_for('user.edit_profile') }}" class="action-button action-edit">
           <i class="bi bi-pencil"></i>
-          编辑资料
+          {{ lang_dict['edit_profile'] if lang_dict.get('edit_profile') else '编辑资料' }}
         </a>
-        <a href="#" class="action-button action-password" onclick="alert('密码修改功能待开发');">
+        <a href="#" class="action-button action-password" onclick="alert('{{ lang_dict['change_password_tip'] if lang_dict.get('change_password_tip') else '密码修改功能待开发' }}');">
           <i class="bi bi-key"></i>
-          修改密码
+          {{ lang_dict['change_password'] if lang_dict.get('change_password') else '修改密码' }}
         </a>
       </div>
     </div>
@@ -478,33 +478,33 @@
         <div class="section-header">
           <h3 class="section-title">
             <i class="bi bi-person-fill"></i>
-            基本信息
+            {{ lang_dict['basic_info'] if lang_dict.get('basic_info') else '基本信息' }}
           </h3>
         </div>
         <div class="section-body">
           <div class="info-grid">
             <div class="info-item">
-              <div class="info-label">真实姓名</div>
+              <div class="info-label">{{ lang_dict['real_name'] if lang_dict.get('real_name') else '真实姓名' }}</div>
               <div class="info-value {{ 'empty' if not current_user.real_name }}">
-                {{ current_user.real_name or '未填写' }}
+                {{ current_user.real_name or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
               </div>
             </div>
             <div class="info-item">
-              <div class="info-label">员工编号</div>
+              <div class="info-label">{{ lang_dict['employee_number'] if lang_dict.get('employee_number') else '员工编号' }}</div>
               <div class="info-value {{ 'empty' if not current_user.employee_number }}">
-                {{ current_user.employee_number or '未分配' }}
+                {{ current_user.employee_number or lang_dict['not_assigned'] if lang_dict.get('not_assigned') else '未分配' }}
               </div>
             </div>
             <div class="info-item">
-              <div class="info-label">身份证号</div>
+              <div class="info-label">{{ lang_dict['id_card_number'] if lang_dict.get('id_card_number') else '身份证号' }}</div>
               <div class="info-value {{ 'empty' if not current_user.id_card_number }}">
-                {{ current_user.id_card_number or '未填写' }}
+                {{ current_user.id_card_number or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
               </div>
             </div>
             <div class="info-item">
-              <div class="info-label">注册时间</div>
+              <div class="info-label">{{ lang_dict['register_time'] if lang_dict.get('register_time') else '注册时间' }}</div>
               <div class="info-value">
-                {{ current_user.created_at.strftime('%Y-%m-%d %H:%M:%S') if current_user.created_at else '未知' }}
+                {{ current_user.created_at.strftime('%Y-%m-%d %H:%M:%S') if current_user.created_at else lang_dict['unknown'] if lang_dict.get('unknown') else '未知' }}
               </div>
             </div>
           </div>
@@ -516,33 +516,33 @@
         <div class="section-header">
           <h3 class="section-title">
             <i class="bi bi-briefcase-fill"></i>
-            工作信息
+            {{ lang_dict['work_info'] if lang_dict.get('work_info') else '工作信息' }}
           </h3>
         </div>
         <div class="section-body">
           <div class="info-grid">
             <div class="info-item">
-              <div class="info-label">所属门店</div>
+              <div class="info-label">{{ lang_dict['store_id'] if lang_dict.get('store_id') else '所属门店' }}</div>
               <div class="info-value {{ 'empty' if not current_user.store }}">
-                {{ '🏪 ' + current_user.store.name if current_user.store else '未分配' }}
+                {{ '🏪 ' + current_user.store.name if current_user.store else lang_dict['not_assigned'] if lang_dict.get('not_assigned') else '未分配' }}
               </div>
             </div>
             <div class="info-item">
-              <div class="info-label">入职日期</div>
+              <div class="info-label">{{ lang_dict['start_date'] if lang_dict.get('start_date') else '入职日期' }}</div>
               <div class="info-value {{ 'empty' if not current_user.start_date }}">
-                {{ current_user.start_date or '未填写' }}
+                {{ current_user.start_date or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
               </div>
             </div>
             <div class="info-item">
-              <div class="info-label">离职日期</div>
+              <div class="info-label">{{ lang_dict['end_date'] if lang_dict.get('end_date') else '离职日期' }}</div>
               <div class="info-value {{ 'empty' if not current_user.end_date }}">
-                {{ current_user.end_date or '在职' }}
+                {{ current_user.end_date or lang_dict['on_job'] if lang_dict.get('on_job') else '在职' }}
               </div>
             </div>
             <div class="info-item">
-              <div class="info-label">主要联系人</div>
+              <div class="info-label">{{ lang_dict['is_primary_contact'] if lang_dict.get('is_primary_contact') else '主要联系人' }}</div>
               <div class="info-value">
-                {{ '✅ 是' if current_user.is_primary_contact else '❌ 否' }}
+                {{ lang_dict['yes'] if current_user.is_primary_contact and lang_dict.get('yes') else (lang_dict['no'] if lang_dict.get('no') else '❌ 否') }}
               </div>
             </div>
           </div>
@@ -554,27 +554,27 @@
         <div class="section-header">
           <h3 class="section-title">
             <i class="bi bi-telephone-fill"></i>
-            联系方式
+            {{ lang_dict['contact_info'] if lang_dict.get('contact_info') else '联系方式' }}
           </h3>
         </div>
         <div class="section-body">
           <div class="info-grid">
             <div class="info-item">
-              <div class="info-label">联系电话</div>
+              <div class="info-label">{{ lang_dict['phone'] if lang_dict.get('phone') else '联系电话' }}</div>
               <div class="info-value {{ 'empty' if not current_user.phone }}">
-                {{ current_user.phone or '未填写' }}
+                {{ current_user.phone or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
               </div>
             </div>
             <div class="info-item">
-              <div class="info-label">电子邮箱</div>
+              <div class="info-label">{{ lang_dict['email'] if lang_dict.get('email') else '电子邮箱' }}</div>
               <div class="info-value {{ 'empty' if not current_user.email }}">
-                {{ current_user.email or '未填写' }}
+                {{ current_user.email or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
               </div>
             </div>
             <div class="info-item">
               <div class="info-label">LINE ID</div>
               <div class="info-value {{ 'empty' if not current_user.line_id }}">
-                {{ current_user.line_id or '未填写' }}
+                {{ current_user.line_id or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
               </div>
             </div>
           </div>
@@ -586,21 +586,21 @@
         <div class="section-header">
           <h3 class="section-title">
             <i class="bi bi-bank"></i>
-            银行信息
+            {{ lang_dict['bank_info'] if lang_dict.get('bank_info') else '银行信息' }}
           </h3>
         </div>
         <div class="section-body">
           <div class="info-grid">
             <div class="info-item">
-              <div class="info-label">银行名称</div>
+              <div class="info-label">{{ lang_dict['bank_name'] if lang_dict.get('bank_name') else '银行名称' }}</div>
               <div class="info-value {{ 'empty' if not current_user.bank_name }}">
-                {{ current_user.bank_name or '未填写' }}
+                {{ current_user.bank_name or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
               </div>
             </div>
             <div class="info-item">
-              <div class="info-label">银行账号</div>
+              <div class="info-label">{{ lang_dict['bank_account_number'] if lang_dict.get('bank_account_number') else '银行账号' }}</div>
               <div class="info-value {{ 'empty' if not current_user.bank_account_number }}">
-                {{ current_user.bank_account_number or '未填写' }}
+                {{ current_user.bank_account_number or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
               </div>
             </div>
           </div>

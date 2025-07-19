@@ -1,6 +1,6 @@
 {# app/templates/user/login.html #}
 {% extends "base.html" %}
-{% block title %}用户登录{% endblock %}
+{% block title %}{{ lang_dict['login_title'] if lang_dict.get('login_title') else '用户登录' }}{% endblock %}
 
 {% block content %}
 <style>
@@ -267,19 +267,19 @@
       <div class="login-logo">
         🔐
       </div>
-      <h1 class="login-title">欢迎回来</h1>
-      <p class="login-subtitle">请登录您的账户</p>
+      <h1 class="login-title">{{ lang_dict['login_welcome'] if lang_dict.get('login_welcome') else '欢迎回来' }}</h1>
+      <p class="login-subtitle">{{ lang_dict['login_subtitle'] if lang_dict.get('login_subtitle') else '请登录您的账户' }}</p>
     </div>
 
     <div class="login-body">
-      <form method="post" novalidate>
+      <form method="post" novalidate action="{{ url_for('user.login') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
         {{ form.hidden_tag() }}
 
         <div class="form-group">
-          {{ form.username.label(class="form-label") }}
+          {{ form.username.label(class="form-label", text=lang_dict['username']) }}
           <div class="input-icon">
             <i class="bi bi-person-fill"></i>
-            {{ form.username(class="form-control", placeholder="请输入用户名") }}
+            {{ form.username(class="form-control", placeholder=lang_dict['username']) }}
           </div>
           {% if form.username.errors %}
             <ul class="errors">
@@ -291,10 +291,10 @@
         </div>
 
         <div class="form-group">
-          {{ form.password.label(class="form-label") }}
+          {{ form.password.label(class="form-label", text=lang_dict['password']) }}
           <div class="input-icon">
             <i class="bi bi-lock-fill"></i>
-            {{ form.password(class="form-control", placeholder="请输入密码") }}
+            {{ form.password(class="form-control", placeholder=lang_dict['password']) }}
           </div>
           {% if form.password.errors %}
             <ul class="errors">
@@ -307,15 +307,15 @@
 
         <div class="form-check">
           {{ form.remember_me(class="form-check-input") }}
-          {{ form.remember_me.label(class="form-check-label") }}
+          {{ form.remember_me.label(class="form-check-label", text=lang_dict['remember_me'] if lang_dict.get('remember_me') else '记住我') }}
         </div>
 
-        {{ form.submit(class="btn-login") }}
+        {{ form.submit(class="btn-login", value=lang_dict['login_btn'] if lang_dict.get('login_btn') else '登录') }}
       </form>
     </div>
 
     <div class="login-footer">
-      <p class="mb-0">还没有账户？ <a href="{{ url_for('user.register') }}">立即注册</a></p>
+      <p class="mb-0">{{ lang_dict['no_account'] if lang_dict.get('no_account') else '还没有账户？' }} <a href="{{ url_for('user.register') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">{{ lang_dict['register_now'] if lang_dict.get('register_now') else '立即注册' }}</a></p>
     </div>
   </div>
 </div>

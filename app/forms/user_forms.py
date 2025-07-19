@@ -131,6 +131,7 @@ class EditProfileForm(FlaskForm):
 
     # 在职信息
     start_date = DateField("入职日期", validators=[Optional()], format='%Y-%m-%d')
+    end_date = DateField("离职日期", validators=[Optional()], format='%Y-%m-%d')
 
     # 店铺主要联系人
     is_primary_contact = BooleanField("我是店铺的主要联系人", default=False)

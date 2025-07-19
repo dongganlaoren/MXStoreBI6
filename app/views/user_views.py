@@ -17,6 +17,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
+from app.utils.lang_dict import lang_dict
 
 user_bp = Blueprint('user', __name__)
 
@@ -110,8 +111,9 @@ def edit_profile():
 @user_bp.route('/register', methods=['GET', 'POST'])
 def register():
     """
-    用户注册视图（已更新，处理店铺ID）
+    用户注册视图（已更新，处理店铺ID，支持中泰双语）
     """
+    lang = request.args.get('lang', 'zh')
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
 
@@ -119,6 +121,7 @@ def register():
     # 动态设置店铺下拉框选项，确保每次渲染页面都能获取到最新店铺
     from app.models import Store
     form.store_id.choices = [(s.store_id, f"{s.store_id} - {s.store_name}") for s in Store.query.order_by(Store.store_name).all()]
+
     if form.validate_on_submit():
         # 根据角色决定是否需要店铺ID
         role = RoleType(form.role.data)
@@ -156,7 +159,12 @@ def register():
             current_app.logger.error(f"用户注册数据库错误: {e}")
             flash('注册时发生未知错误，请稍后重试。', 'danger')
 
-    return render_template('user/register.html', form=form, title="注册")
+    return render_template(
+        'user/register.html',
+        form=form,
+        lang=lang,
+        lang_dict=lang_dict[lang]
+    )
 
 
 # --- 登录和登出视图保持不变 ---

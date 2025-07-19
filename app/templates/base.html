@@ -26,7 +26,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark shadow-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); backdrop-filter: blur(10px);">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center fw-bold fs-4" href="{{ url_for('main.index') }}" style="color:#fff;letter-spacing:1px;">
+            <a class="navbar-brand d-flex align-items-center fw-bold fs-4" href="{{ url_for('main.index') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}" style="color:#fff;letter-spacing:1px;">
                 <img src="/static/img/logo.png" alt="LOGO" style="height:45px;width:45px;border-radius:15px;box-shadow:0 4px 15px rgba(255,255,255,0.3);object-fit:cover;margin-right:15px;background:#fff;padding:2px;">
                 <span class="brand-text">MIXUE Mira</span>
                 <span class="d-none d-lg-inline brand-subtitle" style="font-size:0.9rem;font-weight:400;margin-left:8px;opacity:0.9;">BI系统</span>
@@ -39,21 +39,21 @@
                 {% if current_user.is_authenticated %}
                     <!-- 主要功能菜单 -->
                     <li class="nav-item">
-                        <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2" href="{{ url_for('main.index') }}">
+                        <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2" href="{{ url_for('main.index') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
                             <i class="bi bi-house-door-fill"></i>
-                            <span class="menu-text">首页</span>
+                            <span class="menu-text">{{ lang_dict['home'] if lang_dict.get('home') else '首页' }}</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2" href="{{ url_for('sales_manage.manage_list') }}">
+                        <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2" href="{{ url_for('sales_manage.manage_list') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
                             <i class="bi bi-clipboard-data"></i>
-                            <span class="menu-text">营业管理</span>
+                            <span class="menu-text">{{ lang_dict['sales_manage'] if lang_dict.get('sales_manage') else '营业管理' }}</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2" href="{{ url_for('reimbursement.list_requests') }}">
+                        <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2" href="{{ url_for('reimbursement.list_requests') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
                             <i class="bi bi-credit-card"></i>
-                            <span class="menu-text">财务报销</span>
+                            <span class="menu-text">{{ lang_dict['reimbursement'] if lang_dict.get('reimbursement') else '财务报销' }}</span>
                         </a>
                     </li>
 
@@ -62,15 +62,15 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link menu-link dropdown-toggle d-flex align-items-center gap-2 px-3 py-2" href="#" id="manageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-gear-wide-connected"></i>
-                            <span class="menu-text">系统管理</span>
+                            <span class="menu-text">{{ lang_dict['system_manage'] if lang_dict.get('system_manage') else '系统管理' }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 15px; margin-top: 8px;">
-                            <li><a class="dropdown-item py-2" href="{{ url_for('admin_user.user_list') }}">
-                                <i class="bi bi-people-fill me-2 text-primary"></i>用户管理
+                            <li><a class="dropdown-item py-2" href="{{ url_for('admin_user.user_list') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                                <i class="bi bi-people-fill me-2 text-primary"></i>{{ lang_dict['user_manage'] if lang_dict.get('user_manage') else '用户管理' }}
                             </a></li>
                             {% if current_user.is_authenticated and current_user.username == 'admin' and current_user.role.name == 'ADMIN' %}
-                            <li><a class="dropdown-item py-2" href="{{ url_for('reimbursement.list_all') }}">
-                                <i class="bi bi-list-ul me-2 text-success"></i>全部报销申请
+                            <li><a class="dropdown-item py-2" href="{{ url_for('reimbursement.list_all') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                                <i class="bi bi-list-ul me-2 text-success"></i>{{ lang_dict['all_reimbursement'] if lang_dict.get('all_reimbursement') else '全部报销申请' }}
                             </a></li>
                             {% endif %}
                         </ul>
@@ -84,30 +84,44 @@
                             <span class="menu-text">{{ current_user.username }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 15px; margin-top: 8px;">
-                            <li><a class="dropdown-item py-2" href="{{ url_for('user.profile') }}">
-                                <i class="bi bi-person-gear me-2 text-info"></i>个人资料
+                            <li><a class="dropdown-item py-2" href="{{ url_for('user.profile') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                                <i class="bi bi-person-gear me-2 text-info"></i>{{ lang_dict['profile'] if lang_dict.get('profile') else '个人资料' }}
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item py-2 text-danger" href="{{ url_for('user.logout') }}" onclick="return confirm('确定要退出登录吗？');">
-                                <i class="bi bi-box-arrow-right me-2"></i>退出登录
+                            <li><a class="dropdown-item py-2 text-danger" href="{{ url_for('user.logout') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}" onclick="return confirm('{{ lang_dict['logout_confirm'] if lang_dict.get('logout_confirm') else '确定要退出登录吗？' }}');">
+                                <i class="bi bi-box-arrow-right me-2"></i>{{ lang_dict['logout'] if lang_dict.get('logout') else '退出登录' }}
                             </a></li>
                         </ul>
                     </li>
                 {% else %}
                     <!-- 未登录状态菜单 -->
                     <li class="nav-item">
-                        <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2" href="{{ url_for('user.login') }}">
+                        <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2" href="{{ url_for('user.login') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
                             <i class="bi bi-box-arrow-in-right"></i>
-                            <span class="menu-text">登录</span>
+                            <span class="menu-text">{{ lang_dict['login_now'] if lang_dict.get('login_now') else '登录' }}</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2" href="{{ url_for('user.register') }}">
+                        <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2" href="{{ url_for('user.register') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
                             <i class="bi bi-person-plus"></i>
-                            <span class="menu-text">注册</span>
+                            <span class="menu-text">{{ lang_dict['register_btn'] if lang_dict.get('register_btn') else '注册' }}</span>
                         </a>
                     </li>
                 {% endif %}
+                </ul>
+
+                <!-- 语言切换入口（右上角，兼容PC和APP端） -->
+                <ul class="navbar-nav ms-auto flex-row align-items-center" style="gap:0.3rem;">
+                    <li class="nav-item">
+                        <a class="nav-link py-2 px-2 {% if current_lang == 'zh' %}active-lang{% endif %}" href="{{ request.path }}?lang=zh{% if request.query_string and 'lang=zh' not in request.query_string.decode() %}&{{ request.query_string.decode()|replace('lang=th','')|replace('lang=zh','')|trim('&') }}{% endif %}">
+                            <span class="d-inline d-lg-none">🇨🇳</span><span class="d-none d-lg-inline">中文</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-2 px-2 {% if current_lang == 'th' %}active-lang{% endif %}" href="{{ request.path }}?lang=th{% if request.query_string and 'lang=th' not in request.query_string.decode() %}&{{ request.query_string.decode()|replace('lang=zh','')|replace('lang=th','')|trim('&') }}{% endif %}">
+                            <span class="d-inline d-lg-none">🇹🇭</span><span class="d-none d-lg-inline">ไทย</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -407,6 +421,19 @@
 
     .navbar-nav .nav-link.menu-link::before {
         pointer-events: none;
+    }
+
+    .navbar-nav .nav-link.active-lang {
+        background: #fff !important;
+        color: #764ba2 !important;
+        font-weight: bold;
+        border: 2px solid #764ba2;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(118,75,162,0.08);
+    }
+    .navbar-nav .nav-link.active-lang:hover {
+        background: #f3e9fa !important;
+        color: #764ba2 !important;
     }
     </style>
 

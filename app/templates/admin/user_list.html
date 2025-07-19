@@ -354,8 +354,8 @@
 
 <div class="page-hero">
   <div class="container page-hero-content">
-    <h1 class="page-title">👥 用户管理</h1>
-    <p class="page-subtitle">User Management System</p>
+    <h1 class="page-title">👥 {{ lang_dict['user_manage'] if lang_dict.get('user_manage') else '用户管理' }}</h1>
+    <p class="page-subtitle">{{ lang_dict['user_manage_subtitle'] if lang_dict.get('user_manage_subtitle') else 'User Management System' }}</p>
   </div>
 </div>
 
@@ -365,22 +365,22 @@
     <div class="stats-card">
       <span class="stats-card-icon">👥</span>
       <div class="stats-card-number">{{ users|length }}</div>
-      <div class="stats-card-label">总用户数</div>
+      <div class="stats-card-label">{{ lang_dict['total_users'] if lang_dict.get('total_users') else '总用户数' }}</div>
     </div>
     <div class="stats-card">
       <span class="stats-card-icon">👑</span>
       <div class="stats-card-number">{{ users|selectattr('role.name', 'equalto', 'ADMIN')|list|length }}</div>
-      <div class="stats-card-label">管理员</div>
+      <div class="stats-card-label">{{ lang_dict['role_admin'] if lang_dict.get('role_admin') else '管理员' }}</div>
     </div>
     <div class="stats-card">
       <span class="stats-card-icon">💼</span>
       <div class="stats-card-number">{{ users|selectattr('role.name', 'equalto', 'FINANCE')|list|length }}</div>
-      <div class="stats-card-label">财务人员</div>
+      <div class="stats-card-label">{{ lang_dict['role_finance'] if lang_dict.get('role_finance') else '财务人员' }}</div>
     </div>
     <div class="stats-card">
       <span class="stats-card-icon">🏪</span>
       <div class="stats-card-number">{{ users|selectattr('role.name', 'equalto', 'STAFF')|list|length }}</div>
-      <div class="stats-card-label">门店员工</div>
+      <div class="stats-card-label">{{ lang_dict['role_staff'] if lang_dict.get('role_staff') else '门店员工' }}</div>
     </div>
   </div>
 
@@ -389,7 +389,7 @@
     <div class="main-card-header">
       <h3 class="main-card-title">
         <i class="bi bi-people-fill"></i>
-        用户列表
+        {{ lang_dict['user_list'] if lang_dict.get('user_list') else '用户列表' }}
       </h3>
     </div>
     <div class="main-card-body">
@@ -398,10 +398,10 @@
         <table class="table user-table mb-0">
           <thead>
             <tr>
-              <th>用户信息</th>
-              <th>角色</th>
-              <th>门店</th>
-              <th>操作</th>
+              <th>{{ lang_dict['user_info'] if lang_dict.get('user_info') else '用户信息' }}</th>
+              <th>{{ lang_dict['role'] if lang_dict.get('role') else '角色' }}</th>
+              <th>{{ lang_dict['store'] if lang_dict.get('store') else '门店' }}</th>
+              <th>{{ lang_dict['action'] if lang_dict.get('action') else '操作' }}</th>
             </tr>
           </thead>
           <tbody>
@@ -421,13 +421,13 @@
               <td>
                 <span class="role-badge role-{{ user.role.name.lower().replace('_', '-') }}">
                   {% if user.role.name == 'ADMIN' %}
-                    👑 管理员
+                    👑 {{ lang_dict['role_admin'] if lang_dict.get('role_admin') else '管理员' }}
                   {% elif user.role.name == 'FINANCE' %}
-                    💼 财务
+                    💼 {{ lang_dict['role_finance'] if lang_dict.get('role_finance') else '财务' }}
                   {% elif user.role.name == 'HEAD_MANAGER' %}
-                    🏢 店长
+                    🏢 {{ lang_dict['role_head_manager'] if lang_dict.get('role_head_manager') else '店长' }}
                   {% elif user.role.name == 'STAFF' %}
-                    👤 员工
+                    👤 {{ lang_dict['role_staff'] if lang_dict.get('role_staff') else '员工' }}
                   {% else %}
                     {{ user.role.name }}
                   {% endif %}
@@ -437,16 +437,16 @@
                 {% if user.store_id %}
                   <span class="store-info">🏪 {{ user.store_id }}</span>
                 {% else %}
-                  <span class="store-empty">未分配</span>
+                  <span class="store-empty">{{ lang_dict['unassigned'] if lang_dict.get('unassigned') else '未分配' }}</span>
                 {% endif %}
               </td>
               <td>
                 <div class="action-buttons">
-                  <a href="{{ url_for('admin_user.user_detail', user_id=user.user_id) }}" class="btn-action btn-detail">
-                    <i class="bi bi-eye"></i> 详情
+                  <a href="{{ url_for('admin_user.user_detail', user_id=user.user_id) }}{% if current_lang %}?lang={{ current_lang }}{% endif %}" class="btn-action btn-detail">
+                    <i class="bi bi-eye"></i> {{ lang_dict['detail'] if lang_dict.get('detail') else '详情' }}
                   </a>
-                  <a href="{{ url_for('admin_user.user_edit', user_id=user.user_id) }}" class="btn-action btn-edit">
-                    <i class="bi bi-pencil"></i> 编辑
+                  <a href="{{ url_for('admin_user.user_edit', user_id=user.user_id) }}{% if current_lang %}?lang={{ current_lang }}{% endif %}" class="btn-action btn-edit">
+                    <i class="bi bi-pencil"></i> {{ lang_dict['edit'] if lang_dict.get('edit') else '编辑' }}
                   </a>
                 </div>
               </td>
@@ -458,8 +458,8 @@
       {% else %}
       <div class="empty-state">
         <div class="empty-state-icon">👤</div>
-        <div class="empty-state-text">暂无用户数据</div>
-        <div class="empty-state-subtext">系统中还没有用户信息</div>
+        <div class="empty-state-text">{{ lang_dict['no_user_data'] if lang_dict.get('no_user_data') else '暂无用户数据' }}</div>
+        <div class="empty-state-subtext">{{ lang_dict['no_user_info'] if lang_dict.get('no_user_info') else '系统中还没有用户信息' }}</div>
       </div>
       {% endif %}
     </div>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}营业日报{% endblock %}
+{% block title %}{{ lang_dict['daily_report'] if lang_dict.get('daily_report') else '营业日报' }}{% endblock %}
 {% block content %}
 <style>
   :root {
@@ -362,7 +362,7 @@
 <div class="hero-section">
   <div class="container hero-content">
     <div class="text-center">
-      <h1 class="hero-title">📊 营业日报</h1>
+      <h1 class="hero-title">📊 {{ lang_dict['daily_report'] if lang_dict.get('daily_report') else '营业日报' }}</h1>
       <p class="hero-subtitle">Business Daily Report</p>
     </div>
   </div>
@@ -373,17 +373,17 @@
   <div class="info-cards">
     <div class="info-card">
       <span class="info-card-icon">📅</span>
-      <div class="info-card-label">报告日期</div>
+      <div class="info-card-label">{{ lang_dict['report_date'] if lang_dict.get('report_date') else '报告日期' }}</div>
       <div class="info-card-value">{{ report.report_date }}</div>
     </div>
     <div class="info-card">
       <span class="info-card-icon">🏪</span>
-      <div class="info-card-label">门店编号</div>
+      <div class="info-card-label">{{ lang_dict['store_id'] if lang_dict.get('store_id') else '门店编号' }}</div>
       <div class="info-card-value">{{ report.store_id }}</div>
     </div>
     <div class="info-card">
       <span class="info-card-icon">👤</span>
-      <div class="info-card-label">上报人</div>
+      <div class="info-card-label">{{ lang_dict['report_user'] if lang_dict.get('report_user') else '上报人' }}</div>
       <div class="info-card-value">
         {% if report.user and report.user.employee_number %}
           {{ report.user.employee_number }}
@@ -401,25 +401,25 @@
     <div class="section-header primary">
       <h3 class="section-title">
         <span class="section-icon">💳</span>
-        POS机销售信息
+        {{ lang_dict['pos_sales_info'] if lang_dict.get('pos_sales_info') else 'POS机销售信息' }}
       </h3>
     </div>
     <div class="section-body">
       <div class="data-grid">
         <div class="data-item">
-          <div class="data-label">现金收入 (C)</div>
+          <div class="data-label">{{ lang_dict['cash_income'] if lang_dict.get('cash_income') else '现金收入 (C)' }}</div>
           <div class="data-value">¥{{ report.cash_income }}</div>
         </div>
         <div class="data-item">
-          <div class="data-label">电子支付收入 (P)</div>
+          <div class="data-label">{{ lang_dict['pos_income'] if lang_dict.get('pos_income') else '电子支付收入 (P)' }}</div>
           <div class="data-value">¥{{ report.pos_income }}</div>
         </div>
         <div class="data-item">
-          <div class="data-label">代金券使用金额 (R)</div>
+          <div class="data-label">{{ lang_dict['voucher_amount'] if lang_dict.get('voucher_amount') else '代金券使用金额 (R)' }}</div>
           <div class="data-value">¥{{ report.voucher_amount }}</div>
         </div>
         <div class="data-item">
-          <div class="data-label">POS机总营业额（T0）</div>
+          <div class="data-label">{{ lang_dict['pos_total'] if lang_dict.get('pos_total') else 'POS机总营业额（T0）' }}</div>
           <div class="data-value" style="border-left-color: #28a745;">¥{{ report.pos_total }}</div>
         </div>
       </div>
@@ -432,13 +432,13 @@
     <div class="section-header success">
       <h3 class="section-title">
         <span class="section-icon">🛵</span>
-        第三方外卖平台销售信息
+        {{ lang_dict['third_party_sales_info'] if lang_dict.get('third_party_sales_info') else '第三方外卖平台销售信息' }}
       </h3>
     </div>
     <div class="section-body">
       <div class="data-grid">
         <div class="data-item">
-          <div class="data-label">第三方外卖平台销售额（T1）</div>
+          <div class="data-label">{{ lang_dict['takeaway_amount'] if lang_dict.get('takeaway_amount') else '第三方外卖平台销售额（T1）' }}</div>
           <div class="data-value" style="border-left-color: #28a745;">¥{{ report.takeaway_amount }}</div>
         </div>
       </div>
@@ -451,25 +451,25 @@
     <div class="section-header warning">
       <h3 class="section-title">
         <span class="section-icon">🏦</span>
-        实际入账信息
+        {{ lang_dict['actual_sales_info'] if lang_dict.get('actual_sales_info') else '实际入账信息' }}
       </h3>
     </div>
     <div class="section-body">
       <div class="data-grid">
         <div class="data-item">
-          <div class="data-label">电子支付实际到账金额</div>
+          <div class="data-label">{{ lang_dict['electronic_actual_arrival'] if lang_dict.get('electronic_actual_arrival') else '电子支付实际到账金额' }}</div>
           <div class="data-value" style="border-left-color: #ffc107;">¥{{ report.electronic_actual_arrival }}</div>
         </div>
         <div class="data-item">
-          <div class="data-label">银行存款金额(BC)</div>
+          <div class="data-label">{{ lang_dict['bank_deposit'] if lang_dict.get('bank_deposit') else '银行存款金额(BC)' }}</div>
           <div class="data-value" style="border-left-color: #ffc107;">¥{{ report.bank_deposit }}</div>
         </div>
         <div class="data-item">
-          <div class="data-label">存款手续费 (BF)</div>
+          <div class="data-label">{{ lang_dict['bank_fee'] if lang_dict.get('bank_fee') else '存款手续费 (BF)' }}</div>
           <div class="data-value" style="border-left-color: #ffc107;">¥{{ report.bank_fee }}</div>
         </div>
         <div class="data-item">
-          <div class="data-label">实际到账金额</div>
+          <div class="data-label">{{ lang_dict['actual_sales'] if lang_dict.get('actual_sales') else '实际到账金额' }}</div>
           <div class="data-value" style="border-left-color: #dc3545; font-size: 1.8rem;">¥{{ report.actual_sales }}</div>
         </div>
       </div>
@@ -482,12 +482,12 @@
     <div class="section-header info">
       <h3 class="section-title">
         <span class="section-icon">📝</span>
-        审核备注
+        {{ lang_dict['finance_remark'] if lang_dict.get('finance_remark') else '审核备注' }}
       </h3>
     </div>
     <div class="section-body">
       <div style="padding: 1.5rem; background: #f8f9fa; border-radius: 12px; font-size: 1.1rem; line-height: 1.6;">
-        {{ report.remark or '暂无备注' }}
+        {{ report.remark or (lang_dict['no_remark'] if lang_dict.get('no_remark') else '暂无备注') }}
       </div>
     </div>
   </div>
@@ -497,7 +497,7 @@
     <div class="section-header warning">
       <h3 class="section-title">
         <span class="section-icon">📋</span>
-        关键字段修改历史
+        {{ lang_dict['key_change_history'] if lang_dict.get('key_change_history') else '关键字段修改历史' }}
       </h3>
     </div>
     <div class="section-body">
@@ -506,13 +506,13 @@
         <table class="table history-table mb-0">
           <thead>
             <tr>
-              <th>字段</th>
-              <th>原值</th>
-              <th>新值</th>
-              <th>操作人</th>
-              <th>角色</th>
-              <th>理由</th>
-              <th>时间</th>
+              <th>{{ lang_dict['field'] if lang_dict.get('field') else '字段' }}</th>
+              <th>{{ lang_dict['old_value'] if lang_dict.get('old_value') else '原值' }}</th>
+              <th>{{ lang_dict['new_value'] if lang_dict.get('new_value') else '新值' }}</th>
+              <th>{{ lang_dict['operator'] if lang_dict.get('operator') else '操作人' }}</th>
+              <th>{{ lang_dict['role'] if lang_dict.get('role') else '角色' }}</th>
+              <th>{{ lang_dict['reason'] if lang_dict.get('reason') else '理由' }}</th>
+              <th>{{ lang_dict['time'] if lang_dict.get('time') else '时间' }}</th>
             </tr>
           </thead>
           <tbody>
@@ -533,7 +533,7 @@
       {% else %}
       <div class="empty-state">
         <div class="empty-state-icon">📊</div>
-        <div>暂无关键字段修改历史</div>
+        <div>{{ lang_dict['no_key_change_history'] if lang_dict.get('no_key_change_history') else '暂无关键字段修改历史' }}</div>
       </div>
       {% endif %}
     </div>
@@ -545,7 +545,7 @@
     <div class="section-header secondary">
       <h3 class="section-title">
         <span class="section-icon">📷</span>
-        日报凭证
+        {{ lang_dict['daily_voucher'] if lang_dict.get('daily_voucher') else '日报凭证' }}
       </h3>
     </div>
     <div class="section-body">
