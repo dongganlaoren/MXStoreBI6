@@ -2,35 +2,161 @@
 {% block title %}报销申请详情{% endblock %}
 {% block content %}
 <div class="container mt-4">
-  <h2>报销申请详情</h2>
-  <table class="table table-bordered">
-    <tr><th>ID</th><td>{{ req.request_id }}</td></tr>
-    <tr><th>一级分类</th><td>{{ req.primary_category.value }}</td></tr>
-    <tr><th>二级分类</th><td>{{ req.secondary_category.value }}</td></tr>
-    <tr><th>所属店铺</th><td>{{ req.store.store_name if req.store else '公摊' }}</td></tr>
-    <tr><th>报销事由</th><td>{{ req.reason }}</td></tr>
-    <tr><th>提报日期</th><td>{{ req.submission_date }}</td></tr>
-    <tr><th>金额</th><td>{{ req.amount }} {{ req.currency }}</td></tr>
-    <tr><th>状态</th><td>{{ req.status.value }}</td></tr>
-    <tr><th>申请人</th><td>{{ req.submitter.real_name or req.submitter.username }}</td></tr>
-    <tr><th>审批人</th><td>{{ req.approver.real_name or req.approver.username }}</td></tr>
-    <tr><th>审批意见</th><td>{{ req.approval_comments or '' }}</td></tr>
-    <tr><th>创建时间</th><td>{{ req.created_at }}</td></tr>
-    <tr><th>更新时间</th><td>{{ req.updated_at }}</td></tr>
-    <tr><th>审批时间</th><td>{{ req.approved_at or '' }}</td></tr>
-  </table>
-  <h4>附件</h4>
-  <ul>
-    {% for att in attachments %}
-      <li>
-        <a href="/{{ att.file_path }}" target="_blank">{{ att.original_filename }}</a>
-        ({{ att.attachment_type.value }})
-      </li>
-    {% endfor %}
-  </ul>
-  {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
-    <a class="btn btn-success" href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}">审批通过</a>
-  {% endif %}
-  <a class="btn btn-secondary" href="{{ url_for('reimbursement.list_requests') }}">返回列表</a>
+  <div class="d-flex align-items-center mb-3">
+    <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">报销申请详情</h2>
+    <span class="badge bg-primary bg-opacity-75 fs-6">财务报销</span>
+  </div>
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <h5 class="mb-3 text-primary">申请信息</h5>
+          <table class="table table-borderless mb-0">
+            <tr><th class="text-end text-secondary">ID：</th><td>{{ req.request_id }}</td></tr>
+            <tr><th class="text-end text-secondary">一级分类：</th><td>{{ req.primary_category.value }}</td></tr>
+            <tr><th class="text-end text-secondary">二级分类：</th><td>{{ req.secondary_category.value }}</td></tr>
+            <tr><th class="text-end text-secondary">所属店铺：</th><td>{{ req.store.store_name if req.store else '公摊' }}</td></tr>
+            <tr><th class="text-end text-secondary">金额：</th><td class="fw-bold text-danger">{{ req.amount }} {{ req.currency }}</td></tr>
+            <tr><th class="text-end text-secondary">申请日期：</th><td>{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else '' }}</td></tr>
+            <tr><th class="text-end text-secondary">报销事由：</th><td>{{ req.description }}</td></tr>
+            <tr><th class="text-end text-secondary">申请人：</th><td>{{ req.submitter.real_name or req.submitter.username }}</td></tr>
+          </table>
+          <h6 class="mt-4">报销相关附件</h6>
+          <ul class="list-group mb-4">
+            {% for att in attachments %}
+              {% set att_type = att.attachment_type.value if att.attachment_type is not string and att.attachment_type is not none else att.attachment_type %}
+              {% if att_type == 'SUBMISSION' %}
+              <li class="list-group-item d-flex align-items-center justify-content-between">
+                <span>
+                  <i class="bi bi-paperclip me-2 text-primary"></i>
+                  <a href="/{{ att.file_path }}" target="_blank" class="attachment-link" style="color: #0d6efd;">{{ att.original_filename }}</a>
+                  <span class="badge bg-primary bg-opacity-75 text-white ms-2 attachment-badge-blue">报销附件</span>
+                </span>
+                <a href="#" class="btn btn-link btn-sm text-primary preview-btn" data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">预览查看</a>
+              </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="col-md-6">
+          <h5 class="mb-3 text-success">审批信息</h5>
+          <table class="table table-borderless mb-0">
+            <tr><th class="text-end text-secondary">状态：</th><td>{% if req.status.value == 'PENDING' %}<span class="badge bg-warning text-dark">待审批</span>{% elif req.status.value == 'APPROVED' %}<span class="badge bg-success">审批通过</span>{% elif req.status.value == 'REJECTED' %}<span class="badge bg-danger">已拒绝</span>{% else %}{{ req.status.value }}{% endif %}</td></tr>
+            {% if req.status.value != 'PENDING' %}
+            <tr><th class="text-end text-secondary">审批时间：</th><td>{{ req.approved_at or '' }}</td></tr>
+            <tr><th class="text-end text-secondary">审批人：</th><td>{{ req.approver.real_name or req.approver.username }}</td></tr>
+            <tr><th class="text-end text-secondary">审批意见：</th><td>{{ req.approval_comments or '' }}</td></tr>
+            {% else %}
+            <tr><th class="text-end text-secondary">审批人：</th><td>{{ req.approver.real_name or req.approver.username }}</td></tr>
+            {% endif %}
+          </table>
+          <h6 class="mt-4">审批相关附件</h6>
+          <ul class="list-group mb-4">
+            {% for att in attachments %}
+              {% set att_type = att.attachment_type.value if att.attachment_type is not string and att.attachment_type is not none else att.attachment_type %}
+              {% if att_type == 'APPROVAL' %}
+              <li class="list-group-item d-flex align-items-center justify-content-between">
+                <span>
+                  <i class="bi bi-paperclip me-2 text-success"></i>
+                  <a href="/{{ att.file_path }}" target="_blank" class="attachment-link" style="color: #198754;">{{ att.original_filename }}</a>
+                  <span class="badge bg-success bg-opacity-75 text-white ms-2 attachment-badge-green">审批附件</span>
+                </span>
+                <a href="#" class="btn btn-link btn-sm text-success preview-btn" data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">预览查看</a>
+              </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <!-- 预览弹窗Modal -->
+      <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="previewModalLabel">附件预览</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body" id="previewBody" style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex justify-content-between mt-4">
+        {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
+          <a class="btn btn-success px-4" href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}">进入审批</a>
+        {% endif %}
+        <a class="btn btn-secondary px-4" href="{{ url_for('reimbursement.list_requests') }}">返回列表</a>
+      </div>
+    </div>
+  </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<style>
+.attachment-link {
+  max-width: 120px;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  font-weight: 500;
+}
+@media (max-width: 768px) {
+  .attachment-link {
+    max-width: 80px;
+  }
+}
+.attachment-badge-blue {
+  background: #0d6efd !important;
+  color: #fff !important;
+}
+.attachment-badge-green {
+  background: #198754 !important;
+  color: #fff !important;
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const previewBtns = document.querySelectorAll('.preview-btn');
+  const previewBody = document.getElementById('previewBody');
+  const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+  previewBtns.forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const fileUrl = btn.getAttribute('data-file');
+      const filename = btn.getAttribute('data-filename');
+      previewBody.innerHTML = '';
+      if (/(.jpg|.jpeg|.png|.gif|.bmp|.webp)$/i.test(fileUrl)) {
+        previewBody.innerHTML = `<img src="${fileUrl}" alt="${filename}" style="max-width:100%;max-height:70vh;">`;
+      } else if (/(.pdf)$/i.test(fileUrl)) {
+        previewBody.innerHTML = `<iframe src="${fileUrl}" style="width:100%;height:70vh;" frameborder="0"></iframe>`;
+      } else if (/(.mp4|.webm|.ogg)$/i.test(fileUrl)) {
+        previewBody.innerHTML = `<video src="${fileUrl}" controls style="max-width:100%;max-height:70vh;"></video>`;
+      } else {
+        previewBody.innerHTML = `<a href="${fileUrl}" target="_blank">点击下载/查看</a>`;
+      }
+      previewModal.show();
+    });
+  });
+});
+// 粘贴板粘贴图片支持（如有上传控件）
+const attachmentInput = document.getElementById('attachmentInput');
+if (attachmentInput) {
+  attachmentInput.addEventListener('paste', function(event) {
+    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        const dt = new DataTransfer();
+        for (let j = 0; j < attachmentInput.files.length; j++) {
+          dt.items.add(attachmentInput.files[j]);
+        }
+        dt.items.add(file);
+        attachmentInput.files = dt.files;
+      }
+    }
+  });
+}
+</script>
 {% endblock %}

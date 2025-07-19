@@ -12,17 +12,64 @@ import os
 from werkzeug.utils import secure_filename
 from app.models.enums import ReimbursementAttachmentType
 from flask import current_app
-from datetime import datetime
+from datetime import datetime, timedelta
 
 bp = Blueprint('reimbursement', __name__, url_prefix='/reimbursement')
 
 @bp.route('/')
 @login_required
 def list_requests():
-    # 我的申请和待我审批的申请
-    my_requests = ReimbursementRequest.query.filter_by(submitter_id=current_user.user_id).order_by(ReimbursementRequest.created_at.desc()).all()
-    to_approve = ReimbursementRequest.query.filter_by(approver_id=current_user.user_id, status=ReimbursementStatus.PENDING).order_by(ReimbursementRequest.created_at.desc()).all()
-    return render_template('reimbursement/list.html', my_requests=my_requests, to_approve=to_approve)
+    # 获取筛选参数
+    category = request.args.get('category', 'todo')  # todo, done, mine
+    status = request.args.get('status', 'all')
+    time_range = request.args.get('time_range', '7d')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    # 时间范围处理
+    now = datetime.now()
+    if time_range == '24h':
+        begin = now - timedelta(hours=24)
+        end = now
+    elif time_range == '7d':
+        begin = now - timedelta(days=7)
+        end = now
+    elif time_range == '30d':
+        begin = now - timedelta(days=30)
+        end = now
+    elif time_range == 'custom' and start_date and end_date:
+        try:
+            begin = datetime.strptime(start_date, '%Y-%m-%d')
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+        except Exception:
+            begin = now - timedelta(days=7)
+            end = now
+    else:
+        begin = now - timedelta(days=7)
+        end = now
+
+    # 查询条件
+    query = ReimbursementRequest.query
+    if category == 'todo':
+        query = query.filter(ReimbursementRequest.approver_id == current_user.user_id)
+    elif category == 'done':
+        query = query.filter(ReimbursementRequest.approver_id == current_user.user_id)
+        query = query.filter(ReimbursementRequest.status == ReimbursementStatus.APPROVED)
+    else:  # mine
+        query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
+    if status != 'all':
+        query = query.filter(ReimbursementRequest.status == getattr(ReimbursementStatus, status))
+    query = query.filter(ReimbursementRequest.created_at >= begin, ReimbursementRequest.created_at < end)
+    requests = query.order_by(ReimbursementRequest.created_at.desc()).all()
+
+    return render_template('reimbursement/list.html',
+        requests=requests,
+        category=category,
+        status=status,
+        time_range=time_range,
+        start_date=start_date,
+        end_date=end_date
+    )
 
 @bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -37,7 +84,7 @@ def create():
                 primary_category=form.primary_category.data,
                 secondary_category=form.secondary_category.data,
                 store_id=store_id,
-                description=form.reason.data,  # 保证字段一致
+                description=form.reason.data,  # 保证字段一致，模型字段为description
                 amount=form.amount.data,
                 status=ReimbursementStatus.PENDING,
                 submitter_id=current_user.user_id,
@@ -94,8 +141,32 @@ def approve(request_id):
     req = ReimbursementRequest.query.get_or_404(request_id)
     form = ReimbursementApproveForm()
     if form.validate_on_submit():
+        # 直接审批通过，无需status字段
         req.status = ReimbursementStatus.APPROVED
         req.approval_comments = form.approval_comments.data
+        req.approved_at = datetime.now()
+        # 保存审批附件
+        files = request.files.getlist('attachments') if 'attachments' in request.files else []
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'app/static/uploads')
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+        for file in files:
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                save_name = f"{req.request_id}_{int(datetime.utcnow().timestamp())}_{filename}"
+                file_path = os.path.join(upload_folder, save_name)
+                file.save(file_path)
+                rel_path = os.path.relpath(file_path, start=current_app.root_path)
+                att = ReimbursementAttachment(
+                    request_id=req.request_id,
+                    attachment_type=ReimbursementAttachmentType.APPROVAL,
+                    uploader_id=current_user.user_id,
+                    original_filename=filename,
+                    file_path=rel_path.replace('\\', '/'),
+                    file_size=os.path.getsize(file_path),
+                    mime_type=file.mimetype,
+                )
+                db.session.add(att)
         db.session.commit()
         flash('审批已通过', 'success')
         return redirect(url_for('reimbursement.detail', request_id=request_id))
@@ -134,3 +205,45 @@ def approver_search():
         for u in users
     ]
     return jsonify(result)
+
+@bp.route('/all')
+@login_required
+def list_all():
+    # 只允许admin/ADMIN访问
+    if not (current_user.is_authenticated and current_user.username == 'admin' and getattr(current_user.role, 'name', None) == 'ADMIN'):
+        flash('无权限访问', 'danger')
+        return redirect(url_for('main.index'))
+    submitter = request.args.get('submitter', '').strip()
+    approver = request.args.get('approver', '').strip()
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    query = ReimbursementRequest.query
+    if submitter:
+        query = query.join(User, ReimbursementRequest.submitter_id == User.user_id)
+        query = query.filter(
+            (User.username.like(f"%{submitter}%")) |
+            (User.real_name.like(f"%{submitter}%")) |
+            (User.employee_number.like(f"%{submitter}%"))
+        )
+    if approver:
+        query = query.join(User, ReimbursementRequest.approver_id == User.user_id)
+        query = query.filter(
+            (User.username.like(f"%{approver}%")) |
+            (User.real_name.like(f"%{approver}%")) |
+            (User.employee_number.like(f"%{approver}%"))
+        )
+    from datetime import datetime, timedelta
+    if start_date:
+        try:
+            begin = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(ReimbursementRequest.created_at >= begin)
+        except Exception:
+            pass
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(ReimbursementRequest.created_at < end)
+        except Exception:
+            pass
+    requests = query.order_by(ReimbursementRequest.created_at.desc()).all()
+    return render_template('reimbursement/list_all.html', requests=requests)

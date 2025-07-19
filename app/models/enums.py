@@ -86,3 +86,4 @@ class ReimbursementStatus(enum.Enum):
     """
     PENDING = 'PENDING'
     APPROVED = 'APPROVED'
+    REJECTED = 'REJECTED'

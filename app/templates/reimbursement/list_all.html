@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>全部报销申请（调试专用）</title>
+</head>
+<body>
+{% extends 'base.html' %}
+{% block title %}全部报销申请（调试专用）{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex align-items-center mb-3">
+    <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">全部报销申请（调试专用）</h2>
+    <span class="badge bg-danger bg-opacity-75 fs-6">仅admin可见</span>
+  </div>
+  <form class="row g-3 mb-3 p-3 border rounded bg-light shadow-sm" method="get">
+    <div class="col-auto">
+      <label class="form-label">申请人</label>
+      <input type="text" class="form-control" name="submitter" value="{{ request.args.get('submitter', '') }}" placeholder="用户名/姓名/工号">
+    </div>
+    <div class="col-auto">
+      <label class="form-label">审批人</label>
+      <input type="text" class="form-control" name="approver" value="{{ request.args.get('approver', '') }}" placeholder="用户名/姓名/工号">
+    </div>
+    <div class="col-auto">
+      <label class="form-label">时间</label>
+      <input type="date" class="form-control" name="start_date" value="{{ request.args.get('start_date', '') }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label">至</label>
+      <input type="date" class="form-control" name="end_date" value="{{ request.args.get('end_date', '') }}">
+    </div>
+    <div class="col-auto align-self-end">
+      <button type="submit" class="btn btn-primary">筛选</button>
+    </div>
+  </form>
+  <div class="table-responsive rounded shadow-sm">
+    <table class="table table-bordered table-hover align-middle mb-0" style="background:#fff;min-width:1100px;">
+      <thead class="table-primary text-center align-middle">
+        <tr style="font-size:1.02rem;">
+          <th>ID</th>
+          <th>一级分类</th>
+          <th>二级分类</th>
+          <th>金额</th>
+          <th>状态</th>
+          <th>申请人</th>
+          <th>审批人</th>
+          <th>申请日期</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody class="text-center">
+        {% for req in requests %}
+        <tr>
+          <td>{{ req.request_id }}</td>
+          <td>{{ req.primary_category.value }}</td>
+          <td>{{ req.secondary_category.value }}</td>
+          <td>{{ req.amount }}</td>
+          <td>
+            {% if req.status.value == 'PENDING' %}待审批
+            {% elif req.status.value == 'APPROVED' %}审批通过
+            {% elif req.status.value == 'REJECTED' %}已拒绝
+            {% else %}{{ req.status.value }}{% endif %}
+          </td>
+          <td>{{ req.submitter.real_name or req.submitter.username }}</td>
+          <td>{{ req.approver.real_name if req.approver else '' }}</td>
+          <td>{{ req.submission_date }}</td>
+          <td><a href="{{ url_for('reimbursement.detail', request_id=req.request_id) }}" class="btn btn-sm btn-outline-primary">详情</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-center">暂无数据</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+</body>
+</html>

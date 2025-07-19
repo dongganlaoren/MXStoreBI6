@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>报销审批</h2>
+    <form method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            <label class="form-label">申请人</label>
+            <input type="text" class="form-control" value="{{ req.submitter.real_name or req.submitter.username }}" readonly>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">报销金额</label>
+            <input type="text" class="form-control" value="{{ req.amount }}" readonly>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">报销事由</label>
+            <textarea class="form-control" readonly>{{ req.description }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">申请日期</label>
+            <input type="text" class="form-control" value="{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else '' }}" readonly>
+        </div>
+        <div class="mb-3">
+            {{ form.approval_comments.label(class="form-label") }}
+            {{ form.approval_comments(class="form-control") }}
+        </div>
+        <!-- 审批结果下拉框已隐藏，直接通过按钮提交为通过状态 -->
+        <div class="mb-3 d-none">
+            <!-- {{ form.status.label(class="form-label") }} -->
+            <!-- {{ form.status(class="form-select") }} -->
+        </div>
+        <div class="mb-3">
+            {{ form.attachments.label(class="form-label") }}
+            {{ form.attachments(class="form-control", multiple=True, id="attachmentInput") }}
+            <div class="form-text">可上传多个附件，支持直接粘贴截图</div>
+        </div>
+        <button type="submit" class="btn btn-primary">审批通过</button>
+        <a href="{{ url_for('reimbursement.list_requests') }}" class="btn btn-secondary">返回</a>
+    </form>
+    {% if req.attachments %}
+    <div class="mt-4">
+        <h5>报销相关附件</h5>
+        <ul class="list-group mb-4">
+        {% for att in req.attachments %}
+            <li class="list-group-item d-flex align-items-center justify-content-between">
+                <span>
+                  <i class="bi bi-paperclip me-2 text-secondary"></i>
+                  <a href="/{{ att.file_path }}" target="_blank">{{ att.original_filename }}</a>
+                  <span class="badge bg-light text-dark ms-2">
+                    报销附件
+                  </span>
+                </span>
+                <a href="#" class="btn btn-link btn-sm text-primary preview-btn" data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">预览查看</a>
+            </li>
+        {% endfor %}
+        </ul>
+        <!-- 预览弹窗Modal -->
+        <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">附件预览</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+              </div>
+              <div class="modal-body" id="previewBody" style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>
+            </div>
+          </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// 审批附件支持粘贴板粘贴图片
+const attachmentInput = document.getElementById('attachmentInput');
+attachmentInput.addEventListener('paste', function(event) {
+    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            // 创建一个新的 DataTransfer 用于追加文件
+            const dt = new DataTransfer();
+            // 先把已有文件加进去
+            for (let j = 0; j < attachmentInput.files.length; j++) {
+                dt.items.add(attachmentInput.files[j]);
+            }
+            dt.items.add(file);
+            attachmentInput.files = dt.files;
+        }
+    }
+});
+document.addEventListener('DOMContentLoaded', function() {
+  const previewBtns = document.querySelectorAll('.preview-btn');
+  const previewBody = document.getElementById('previewBody');
+  const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+  previewBtns.forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const fileUrl = btn.getAttribute('data-file');
+      const filename = btn.getAttribute('data-filename');
+      previewBody.innerHTML = '';
+      if (/(.jpg|.jpeg|.png|.gif|.bmp|.webp)$/i.test(fileUrl)) {
+        previewBody.innerHTML = `<img src="${fileUrl}" alt="${filename}" style="max-width:100%;max-height:70vh;">`;
+      } else if (/(.pdf)$/i.test(fileUrl)) {
+        previewBody.innerHTML = `<iframe src="${fileUrl}" style="width:100%;height:70vh;" frameborder="0"></iframe>`;
+      } else if (/(.mp4|.webm|.ogg)$/i.test(fileUrl)) {
+        previewBody.innerHTML = `<video src="${fileUrl}" controls style="max-width:100%;max-height:70vh;"></video>`;
+      } else {
+        previewBody.innerHTML = `<a href="${fileUrl}" target="_blank">点击下载/查看</a>`;
+      }
+      previewModal.show();
+    });
+  });
+});
+</script>
+{% endblock %}
