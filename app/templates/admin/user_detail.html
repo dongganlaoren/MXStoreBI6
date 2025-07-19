@@ -3,36 +3,534 @@
 {% block title %}用户详情{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>用户详情</h2>
-    <table class="table table-bordered mt-3">
-        <tr><th>用户名</th><td>{{ user.username }}</td></tr>
-        <tr><th>角色</th><td>{{ user.role.name if user.role else '' }}</td></tr>
-        <tr><th>所属门店</th><td>{{ user.store.name if user.store else '—' }}</td></tr>
-        <tr><th>员工编号</th><td>{{ user.employee_number or '' }}</td></tr>
-        <tr><th>注册时间</th><td>{{ user.created_at|default('', true) }}</td></tr>
-        <tr><th>真实姓名</th><td>{{ user.real_name or '' }}</td></tr>
-        <tr><th>身份证号</th><td>{{ user.id_card_number or '' }}</td></tr>
-        <tr><th>银行名称</th><td>{{ user.bank_name or '' }}</td></tr>
-        <tr><th>银行账号</th><td>{{ user.bank_account_number or '' }}</td></tr>
-        <tr><th>联系电话</th><td>{{ user.phone or '' }}</td></tr>
-        <tr><th>LINE ID</th><td>{{ user.line_id or '' }}</td></tr>
-        <tr><th>电子邮箱</th><td>{{ user.email or '' }}</td></tr>
-        <tr><th>入职日期</th><td>{{ user.start_date or '' }}</td></tr>
-        <tr><th>离职日期</th><td>{{ user.end_date or '' }}</td></tr>
-        <tr><th>是否为主要联系人</th><td>{{ '是' if user.is_primary_contact else '否' }}</td></tr>
-        <tr><th>是否已完善资料</th><td>{{ '是' if user.profile_completed else '否' }}</td></tr>
-        <tr><th>状态</th><td>{{ '正常' if user.is_active else '禁用' }}</td></tr>
-    </table>
-    <a href="{{ url_for('admin_user.user_list') }}" class="btn btn-secondary">返回列表</a>
-    <a href="{{ url_for('admin_user.user_edit', user_id=user.user_id) }}" class="btn btn-primary">编辑</a>
+<style>
+  :root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
+    --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
+    --border-radius: 20px;
+  }
+
+  .page-hero {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 3rem 0;
+    margin: 0 -15px 3rem -15px;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+    opacity: 0.3;
+  }
+
+  .page-hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+  }
+
+  .page-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    letter-spacing: 2px;
+  }
+
+  .page-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin-bottom: 0;
+  }
+
+  .user-profile-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    border: none;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .profile-header {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    padding: 2rem;
+    text-align: center;
+    border-bottom: 1px solid #f8f9fa;
+  }
+
+  .profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: var(--primary-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin: 0 auto 1rem;
+    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+  }
+
+  .profile-name {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+  }
+
+  .profile-role {
+    display: inline-block;
+    padding: 0.5rem 1.2rem;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+  }
+
+  .role-admin {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+  }
+
+  .role-finance {
+    background: linear-gradient(135deg, #74b9ff, #0984e3);
+    color: white;
+    box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
+  }
+
+  .role-head-manager {
+    background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+    color: white;
+    box-shadow: 0 4px 15px rgba(162, 155, 254, 0.3);
+  }
+
+  .role-staff {
+    background: linear-gradient(135deg, #55a3ff, #003d82);
+    color: white;
+    box-shadow: 0 4px 15px rgba(85, 163, 255, 0.3);
+  }
+
+  .profile-status {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .status-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .status-active {
+    background: rgba(17, 153, 142, 0.1);
+    color: #11998e;
+    border: 1px solid rgba(17, 153, 142, 0.3);
+  }
+
+  .status-inactive {
+    background: rgba(255, 107, 107, 0.1);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+  }
+
+  .status-completed {
+    background: rgba(116, 185, 255, 0.1);
+    color: #74b9ff;
+    border: 1px solid rgba(116, 185, 255, 0.3);
+  }
+
+  .detail-sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .detail-section {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    border: none;
+    overflow: hidden;
+  }
+
+  .section-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f8f9fa;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  }
+
+  .section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .section-body {
+    padding: 1.5rem;
+  }
+
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid #f8f9fa;
+  }
+
+  .detail-item:last-child {
+    border-bottom: none;
+  }
+
+  .detail-label {
+    font-weight: 500;
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+
+  .detail-value {
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: right;
+    max-width: 60%;
+    word-break: break-word;
+  }
+
+  .detail-value.empty {
+    color: #6c757d;
+    font-style: italic;
+  }
+
+  .action-buttons {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    text-align: center;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn-action {
+    padding: 0.8rem 2rem;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  .btn-action:hover {
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+
+  .btn-secondary {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    color: white;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+  }
+
+  .btn-secondary:hover {
+    color: white;
+    box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+  }
+
+  .btn-primary {
+    background: var(--success-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+  }
+
+  .btn-primary:hover {
+    color: white;
+    box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+  }
+
+  .btn-warning {
+    background: var(--warning-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+  }
+
+  .btn-warning:hover {
+    color: white;
+    box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
+  }
+
+  .btn-danger {
+    background: var(--danger-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+  }
+
+  .btn-danger:hover {
+    color: white;
+    box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+  }
+
+  @media (max-width: 768px) {
+    .page-title {
+      font-size: 2rem;
+    }
+
+    .detail-sections {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .detail-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.3rem;
+    }
+
+    .detail-value {
+      max-width: 100%;
+      text-align: left;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .btn-action {
+      width: 100%;
+      max-width: 250px;
+    }
+  }
+</style>
+
+<div class="page-hero">
+  <div class="container page-hero-content">
+    <h1 class="page-title">👤 用户详情</h1>
+    <p class="page-subtitle">User Detail Information</p>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 用户资料卡片 -->
+  <div class="user-profile-card">
+    <div class="profile-header">
+      <div class="profile-avatar">
+        {{ user.username[0]|upper }}
+      </div>
+      <div class="profile-name">{{ user.username }}</div>
+      <div class="profile-role role-{{ user.role.name.lower().replace('_', '-') if user.role else 'unknown' }}">
+        {% if user.role %}
+          {% if user.role.name == 'ADMIN' %}
+            👑 管理员
+          {% elif user.role.name == 'FINANCE' %}
+            💼 财务
+          {% elif user.role.name == 'HEAD_MANAGER' %}
+            🏢 店长
+          {% elif user.role.name == 'STAFF' %}
+            👤 员工
+          {% else %}
+            {{ user.role.name }}
+          {% endif %}
+        {% else %}
+          未设置角色
+        {% endif %}
+      </div>
+      <div class="profile-status">
+        <span class="status-badge {{ 'status-active' if user.is_active else 'status-inactive' }}">
+          {{ '✅ 正常' if user.is_active else '❌ 禁用' }}
+        </span>
+        <span class="status-badge {{ 'status-completed' if user.profile_completed else 'status-inactive' }}">
+          {{ '📋 资料完善' if user.profile_completed else '📝 资料待完善' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 详细信息区域 -->
+  <div class="detail-sections">
+    <!-- 基本信息 -->
+    <div class="detail-section">
+      <div class="section-header">
+        <h3 class="section-title">
+          <i class="bi bi-person-fill"></i>
+          基本信息
+        </h3>
+      </div>
+      <div class="section-body">
+        <div class="detail-item">
+          <span class="detail-label">真实姓名</span>
+          <span class="detail-value {{ 'empty' if not user.real_name }}">{{ user.real_name or '未填写' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">员工编号</span>
+          <span class="detail-value {{ 'empty' if not user.employee_number }}">{{ user.employee_number or '未分配' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">身份证号</span>
+          <span class="detail-value {{ 'empty' if not user.id_card_number }}">{{ user.id_card_number or '未填写' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">注册时间</span>
+          <span class="detail-value">{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else '未知' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 工作信息 -->
+    <div class="detail-section">
+      <div class="section-header">
+        <h3 class="section-title">
+          <i class="bi bi-briefcase-fill"></i>
+          工作信息
+        </h3>
+      </div>
+      <div class="section-body">
+        <div class="detail-item">
+          <span class="detail-label">所属门店</span>
+          <span class="detail-value {{ 'empty' if not user.store }}">
+            {{ '🏪 ' + user.store.name if user.store else '未分配' }}
+          </span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">入职日期</span>
+          <span class="detail-value {{ 'empty' if not user.start_date }}">{{ user.start_date or '未填写' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">离职日期</span>
+          <span class="detail-value {{ 'empty' if not user.end_date }}">{{ user.end_date or '在职' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">主要联系人</span>
+          <span class="detail-value">{{ '✅ 是' if user.is_primary_contact else '❌ 否' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 联系方式 -->
+    <div class="detail-section">
+      <div class="section-header">
+        <h3 class="section-title">
+          <i class="bi bi-telephone-fill"></i>
+          联系方式
+        </h3>
+      </div>
+      <div class="section-body">
+        <div class="detail-item">
+          <span class="detail-label">联系电话</span>
+          <span class="detail-value {{ 'empty' if not user.phone }}">{{ user.phone or '未填写' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">电子邮箱</span>
+          <span class="detail-value {{ 'empty' if not user.email }}">{{ user.email or '未填写' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">LINE ID</span>
+          <span class="detail-value {{ 'empty' if not user.line_id }}">{{ user.line_id or '未填写' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 银行信息 -->
+    <div class="detail-section">
+      <div class="section-header">
+        <h3 class="section-title">
+          <i class="bi bi-bank"></i>
+          银行信息
+        </h3>
+      </div>
+      <div class="section-body">
+        <div class="detail-item">
+          <span class="detail-label">银行名称</span>
+          <span class="detail-value {{ 'empty' if not user.bank_name }}">{{ user.bank_name or '未填写' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">银行账号</span>
+          <span class="detail-value {{ 'empty' if not user.bank_account_number }}">{{ user.bank_account_number or '未填写' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 操作按钮 -->
+  <div class="action-buttons">
+    <a href="{{ url_for('admin_user.user_list') }}" class="btn-action btn-secondary">
+      <i class="bi bi-arrow-left"></i> 返回列表
+    </a>
+    <a href="{{ url_for('admin_user.user_edit', user_id=user.user_id) }}" class="btn-action btn-primary">
+      <i class="bi bi-pencil"></i> 编辑用户
+    </a>
     <form action="{{ url_for('admin_user.user_reset_password', user_id=user.user_id) }}" method="post" style="display:inline;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-warning" onclick="return confirm('确定要重置该用户密码吗？');">重置密码</button>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn-action btn-warning" onclick="return confirm('确定要重置该用户密码吗？');">
+        <i class="bi bi-key"></i> 重置密码
+      </button>
     </form>
     <form action="{{ url_for('admin_user.user_delete', user_id=user.user_id) }}" method="post" style="display:inline;" onsubmit="return confirm('确定要删除该用户吗？');">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-danger">删除</button>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn-action btn-danger">
+        <i class="bi bi-trash"></i> 删除用户
+      </button>
     </form>
+  </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 添加滚动动画效果
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    // 为所有区块添加动画
+    document.querySelectorAll('.user-profile-card, .detail-section, .action-buttons').forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px)';
+        card.style.transition = 'all 0.6s ease';
+        observer.observe(card);
+    });
+});
+</script>
 {% endblock %}

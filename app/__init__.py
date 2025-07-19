@@ -108,22 +108,15 @@ def register_blueprints(app: Flask):
     # 导入各功能模块的蓝图
     from app.views.main_views import main_bp           # 主页面相关
     from app.views.root_views import root_bp           # 根路由和通用页面
-    # from app.views.sales_views import sales_bp         # 销售主入口，仅注册 sales 相关主路由（已废弃）
-    from app.views.sales_audit_views import sales_audit_bp   # 销售审核相关（如审核、审核列表等）
-    from app.views.sales_report_views import sales_report_bp  # 日报相关（如日报创建、列表等）
     from app.views.user_views import user_bp           # 用户相关
     from app.views.admin_user_views import admin_user_bp # 管理员相关
     from app.views.reimbursement_views import bp as reimbursement_bp  # 财务报销模块
-    from app.views.sales_manage_views import sales_manage_bp      # 新增：营业信息管理相关
-    # 如有上传相关蓝图，可在此导入并注册
+    from app.views.sales_manage_views import sales_manage_bp      # 营业信息管理相关
 
     # 注册蓝图及其路由前缀
     app.register_blueprint(root_bp)  # 根路由，无前缀
     app.register_blueprint(user_bp, url_prefix="/user")  # 用户模块
     app.register_blueprint(main_bp, url_prefix="/main")  # 主页面模块
-    # app.register_blueprint(sales_bp, url_prefix="/sales")  # 销售主入口（已废弃）
-    app.register_blueprint(sales_audit_bp, url_prefix="/sales/audit")  # 销售审核相关
-    app.register_blueprint(sales_report_bp, url_prefix="/sales/report")  # 日报相关
     app.register_blueprint(admin_user_bp)  # 管理员相关
     app.register_blueprint(reimbursement_bp, url_prefix="/reimbursement")  # 财务报销模块
     app.register_blueprint(sales_manage_bp)  # 注册营业信息管理蓝图

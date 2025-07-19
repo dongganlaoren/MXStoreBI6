@@ -1,28 +1,495 @@
 {% extends "base.html" %}
 {% block title %}用户管理{% endblock %}
 {% block content %}
-<div class="container mt-4">
-    <h2>用户管理</h2>
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>ID</th><th>用户名</th><th>角色</th><th>门店</th><th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for user in users %}
-            <tr>
-                <td>{{ user.user_id }}</td>
-                <td>{{ user.username }}</td>
-                <td>{{ user.role.name }}</td>
-                <td>{{ user.store_id or '-' }}</td>
-                <td>
-                    <a href="{{ url_for('admin_user.user_detail', user_id=user.user_id) }}" class="btn btn-sm btn-info">详情</a>
-                    <a href="{{ url_for('admin_user.user_edit', user_id=user.user_id) }}" class="btn btn-sm btn-primary">编辑</a>
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+<style>
+  :root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
+    --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
+    --border-radius: 20px;
+  }
+
+  .page-hero {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 3rem 0;
+    margin: 0 -15px 3rem -15px;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+    opacity: 0.3;
+  }
+
+  .page-hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+  }
+
+  .page-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    letter-spacing: 2px;
+  }
+
+  .page-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin-bottom: 0;
+  }
+
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .stats-card {
+    background: white;
+    padding: 2rem 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    text-align: center;
+    transition: all 0.3s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--primary-gradient);
+  }
+
+  .stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .stats-card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .stats-card-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+  }
+
+  .stats-card-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .main-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    border: none;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .main-card-header {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #f8f9fa;
+  }
+
+  .main-card-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .main-card-body {
+    padding: 0;
+  }
+
+  .user-table {
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .user-table thead th {
+    background: var(--primary-gradient);
+    color: white;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 1.2rem 1rem;
+    border: none;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+  }
+
+  .user-table tbody td {
+    padding: 1.2rem 1rem;
+    border-bottom: 1px solid #f1f3f4;
+    vertical-align: middle;
+    font-size: 1rem;
+  }
+
+  .user-table tbody tr {
+    transition: all 0.2s ease;
+  }
+
+  .user-table tbody tr:hover {
+    background: rgba(102, 126, 234, 0.05);
+    transform: scale(1.01);
+  }
+
+  .user-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: var(--primary-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-right: 1rem;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+  }
+
+  .user-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.2rem;
+  }
+
+  .user-id {
+    font-size: 0.85rem;
+    color: #6c757d;
+  }
+
+  .role-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: none;
+  }
+
+  .role-admin {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+  }
+
+  .role-finance {
+    background: linear-gradient(135deg, #74b9ff, #0984e3);
+    color: white;
+    box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
+  }
+
+  .role-head-manager {
+    background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+    color: white;
+    box-shadow: 0 4px 15px rgba(162, 155, 254, 0.3);
+  }
+
+  .role-staff {
+    background: linear-gradient(135deg, #55a3ff, #003d82);
+    color: white;
+    box-shadow: 0 4px 15px rgba(85, 163, 255, 0.3);
+  }
+
+  .store-info {
+    color: #2c3e50;
+    font-weight: 500;
+  }
+
+  .store-empty {
+    color: #6c757d;
+    font-style: italic;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .btn-action {
+    padding: 0.6rem 1.2rem;
+    border-radius: 25px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    border: none;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-action:hover {
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+
+  .btn-detail {
+    background: var(--info-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+  }
+
+  .btn-detail:hover {
+    color: white;
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+  }
+
+  .btn-edit {
+    background: var(--success-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+  }
+
+  .btn-edit:hover {
+    color: white;
+    box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6c757d;
+  }
+
+  .empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  .empty-state-text {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state-subtext {
+    opacity: 0.7;
+  }
+
+  @media (max-width: 768px) {
+    .page-title {
+      font-size: 2rem;
+    }
+
+    .stats-cards {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+
+    .stats-card {
+      padding: 1.5rem 1rem;
+    }
+
+    .user-table {
+      font-size: 0.9rem;
+    }
+
+    .user-table thead th,
+    .user-table tbody td {
+      padding: 0.8rem 0.6rem;
+    }
+
+    .user-avatar {
+      width: 35px;
+      height: 35px;
+      font-size: 0.9rem;
+      margin-right: 0.8rem;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .btn-action {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+    }
+  }
+</style>
+
+<div class="page-hero">
+  <div class="container page-hero-content">
+    <h1 class="page-title">👥 用户管理</h1>
+    <p class="page-subtitle">User Management System</p>
+  </div>
 </div>
+
+<div class="container">
+  <!-- 统计卡片 -->
+  <div class="stats-cards">
+    <div class="stats-card">
+      <span class="stats-card-icon">👥</span>
+      <div class="stats-card-number">{{ users|length }}</div>
+      <div class="stats-card-label">总用户数</div>
+    </div>
+    <div class="stats-card">
+      <span class="stats-card-icon">👑</span>
+      <div class="stats-card-number">{{ users|selectattr('role.name', 'equalto', 'ADMIN')|list|length }}</div>
+      <div class="stats-card-label">管理员</div>
+    </div>
+    <div class="stats-card">
+      <span class="stats-card-icon">💼</span>
+      <div class="stats-card-number">{{ users|selectattr('role.name', 'equalto', 'FINANCE')|list|length }}</div>
+      <div class="stats-card-label">财务人员</div>
+    </div>
+    <div class="stats-card">
+      <span class="stats-card-icon">🏪</span>
+      <div class="stats-card-number">{{ users|selectattr('role.name', 'equalto', 'STAFF')|list|length }}</div>
+      <div class="stats-card-label">门店员工</div>
+    </div>
+  </div>
+
+  <!-- 用户列表 -->
+  <div class="main-card">
+    <div class="main-card-header">
+      <h3 class="main-card-title">
+        <i class="bi bi-people-fill"></i>
+        用户列表
+      </h3>
+    </div>
+    <div class="main-card-body">
+      {% if users %}
+      <div class="table-responsive">
+        <table class="table user-table mb-0">
+          <thead>
+            <tr>
+              <th>用户信息</th>
+              <th>角色</th>
+              <th>门店</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td>
+                <div class="user-info">
+                  <div class="user-avatar">
+                    {{ user.username[0]|upper }}
+                  </div>
+                  <div>
+                    <div class="user-name">{{ user.username }}</div>
+                    <div class="user-id">ID: {{ user.user_id }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="role-badge role-{{ user.role.name.lower().replace('_', '-') }}">
+                  {% if user.role.name == 'ADMIN' %}
+                    👑 管理员
+                  {% elif user.role.name == 'FINANCE' %}
+                    💼 财务
+                  {% elif user.role.name == 'HEAD_MANAGER' %}
+                    🏢 店长
+                  {% elif user.role.name == 'STAFF' %}
+                    👤 员工
+                  {% else %}
+                    {{ user.role.name }}
+                  {% endif %}
+                </span>
+              </td>
+              <td>
+                {% if user.store_id %}
+                  <span class="store-info">🏪 {{ user.store_id }}</span>
+                {% else %}
+                  <span class="store-empty">未分配</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <a href="{{ url_for('admin_user.user_detail', user_id=user.user_id) }}" class="btn-action btn-detail">
+                    <i class="bi bi-eye"></i> 详情
+                  </a>
+                  <a href="{{ url_for('admin_user.user_edit', user_id=user.user_id) }}" class="btn-action btn-edit">
+                    <i class="bi bi-pencil"></i> 编辑
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">👤</div>
+        <div class="empty-state-text">暂无用户数据</div>
+        <div class="empty-state-subtext">系统中还没有用户信息</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 添加滚动动画效果
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    // 为统计卡片和主卡片添加动画
+    document.querySelectorAll('.stats-card, .main-card').forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px)';
+        card.style.transition = 'all 0.6s ease';
+        observer.observe(card);
+    });
+});
+</script>
 {% endblock %}

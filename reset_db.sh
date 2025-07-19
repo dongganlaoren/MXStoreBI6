@@ -31,6 +31,13 @@ else
     echo -e "${YELLOW}instance 目录不存在，跳过。${NC}"
 fi
 
+step "删除目录 app/static/uploads"
+if [ -d app/static/uploads ]; then
+    rm -rf app/static/uploads && success "已删除 app/static/uploads 目录。" || fail "删除 app/static/uploads 目录失败！"
+else
+    echo -e "${YELLOW}app/static/uploads 目录不存在，跳过。${NC}"
+fi
+
 step "初始化数据库迁移环境 (flask db init)"
 flask db init && success "flask db init 成功。" || fail "flask db init 失败！"
 

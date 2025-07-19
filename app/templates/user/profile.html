@@ -1,101 +1,647 @@
 {# app/templates/user/profile.html #}
 {% extends "base.html" %}
-
 {% block title %}个人资料{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="page-header d-flex justify-content-between align-items-center mb-4">
-        {# 页面标题 #}
-        <h1>{{ user.username }} 的个人资料</h1>
-        {# 仅当门店组用户未完善档案时显示编辑按钮 #}
-        {% if not (user.role.name in ["EMPLOYEE", "BRANCH_MANAGER"] and user.profile_completed) %}
-        <a href="{{ url_for('user.edit_profile') }}" class="btn btn-primary">
-            {% if staff_info %}
-                编辑员工档案
-            {% else %}
-                完善员工档案
-            {% endif %}
-        </a>
-        {% endif %}
-    </div>
+<style>
+  :root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
+    --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
+    --border-radius: 20px;
+  }
 
-    {# --- 第一部分：基础账户信息 --- #}
-    {# 【核心修正】: 将这部分信息用一个 card 来包裹，使其风格统一 #}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h4>账户信息</h4>
-        </div>
-        <div class="card-body">
-            <dl class="row">
-                <dt class="col-sm-3">用户名:</dt>
-                <dd class="col-sm-9">{{ user.username }}</dd>
+  .page-hero {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 3rem 0;
+    margin: 0 -15px 3rem -15px;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    position: relative;
+    overflow: hidden;
+  }
 
-                <dt class="col-sm-3">员工编号:</dt>
-                <dd class="col-sm-9">{{ user.employee_number or '无' }}</dd>
+  .page-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+    opacity: 0.3;
+  }
 
-                <dt class="col-sm-3">系统角色:</dt>
-                <dd class="col-sm-9">
-                    <span class="badge bg-info">{{ user.role.name }}</span>
-                </dd>
+  .page-hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+  }
 
-                <dt class="col-sm-3">账户状态:</dt>
-                <dd class="col-sm-9">
-                    {% if user.user_status == 1 %}
-                        <span class="badge bg-success">活跃</span>
-                    {% else %}
-                        <span class="badge bg-danger">禁用</span>
-                    {% endif %}
-                </dd>
+  .page-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    letter-spacing: 2px;
+  }
 
-                <dt class="col-sm-3">注册时间:</dt>
-                <dd class="col-sm-9">{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'N/A' }}</dd>
+  .page-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin-bottom: 0;
+  }
 
-                <dt class="col-sm-3">最近登录:</dt>
-                <dd class="col-sm-9">{{ user.last_login_time.strftime('%Y-%m-%d %H:%M') if user.last_login_time else 'N/A' }}</dd>
-            </dl>
-        </div>
-    </div>
+  .profile-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
 
-    {# --- 第二部分：员工详细档案 --- #}
-    {# 【核心逻辑】: 我们在这里判断从视图传来的 staff_info 对象是否存在 #}
-    {% if staff_info %}
-        {# 如果存在，就用另一个 card 来显示员工档案 #}
-        <div class="card">
-            <div class="card-header">
-                <h4>员工档案</h4>
-            </div>
-            <div class="card-body">
-                <dl class="row">
-                    <dt class="col-sm-3">关联店铺ID:</dt>
-                    <dd class="col-sm-9">{{ staff_info.store_id }}</dd>
+  .profile-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 
-                    <dt class="col-sm-3">联系电话:</dt>
-                    <dd class="col-sm-9">{{ staff_info.phone or '未填写' }}</dd>
+  .profile-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    border: none;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
 
-                    <dt class="col-sm-3">电子邮箱:</dt>
-                    <dd class="col-sm-9">{{ staff_info.email or '未填写' }}</dd>
+  .profile-card:hover {
+    box-shadow: var(--shadow-hover);
+  }
 
-                    <dt class="col-sm-3">LINE ID:</dt>
-                    <dd class="col-sm-9">{{ staff_info.line_id or '未填写' }}</dd>
+  .profile-header {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    padding: 2rem;
+    text-align: center;
+    border-bottom: 1px solid #f8f9fa;
+  }
 
-                    <dt class="col-sm-3">银行名称:</dt>
-                    <dd class="col-sm-9">{{ staff_info.bank_name or '未填写' }}</dd>
+  .profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: var(--primary-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 3rem;
+    margin: 0 auto 1rem;
+    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+  }
 
-                    <dt class="col-sm-3">银行账号:</dt>
-                    <dd class="col-sm-9">{{ staff_info.bank_account_number or '未填写' }}</dd>
+  .profile-name {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+  }
 
-                    <dt class="col-sm-3">入职日期:</dt>
-                    <dd class="col-sm-9">{{ staff_info.start_date.strftime('%Y-%m-%d') if staff_info.start_date else '未填写' }}</dd>
-                </dl>
-            </div>
-        </div>
-    {% else %}
-        {# 如果 staff_info 对象不存在，就显示一个提示信息 #}
-        <div class="alert alert-warning" role="alert">
-            您还没有关联的员工档案信息。请点击右上角的“完善员工档案”按钮进行填写。
-        </div>
-    {% endif %}
+  .profile-username {
+    font-size: 1rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+  }
 
+  .profile-role {
+    display: inline-block;
+    padding: 0.5rem 1.2rem;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+  }
+
+  .role-admin {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+  }
+
+  .role-finance {
+    background: linear-gradient(135deg, #74b9ff, #0984e3);
+    color: white;
+    box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
+  }
+
+  .role-head-manager {
+    background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+    color: white;
+    box-shadow: 0 4px 15px rgba(162, 155, 254, 0.3);
+  }
+
+  .role-staff {
+    background: linear-gradient(135deg, #55a3ff, #003d82);
+    color: white;
+    box-shadow: 0 4px 15px rgba(85, 163, 255, 0.3);
+  }
+
+  .profile-stats {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    text-align: center;
+    padding: 0.5rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    display: block;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .quick-actions {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    padding: 1.5rem;
+  }
+
+  .quick-actions-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .action-button {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    margin-bottom: 0.8rem;
+    border: none;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .action-button:hover {
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+
+  .action-edit {
+    background: var(--success-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+  }
+
+  .action-edit:hover {
+    color: white;
+    box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+  }
+
+  .action-password {
+    background: var(--warning-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+  }
+
+  .action-password:hover {
+    color: white;
+    box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
+  }
+
+  .profile-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .info-section {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    border: none;
+    overflow: hidden;
+  }
+
+  .section-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f8f9fa;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  }
+
+  .section-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .section-body {
+    padding: 1.5rem;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .info-label {
+    font-weight: 500;
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .info-value {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 1.1rem;
+    padding: 0.8rem 1rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    border-left: 4px solid #007bff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+
+  .info-value.empty {
+    color: #6c757d;
+    font-style: italic;
+    border-left-color: #6c757d;
+  }
+
+  .completion-progress {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .progress-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .progress-bar-container {
+    background: #f8f9fa;
+    border-radius: 10px;
+    height: 12px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--success-gradient);
+    border-radius: 10px;
+    transition: width 0.5s ease;
+  }
+
+  .progress-text {
+    font-size: 0.9rem;
+    color: #6c757d;
+    text-align: center;
+  }
+
+  @media (max-width: 768px) {
+    .page-title {
+      font-size: 2rem;
+    }
+
+    .profile-container {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
+      font-size: 2.5rem;
+    }
+
+    .info-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .section-body,
+    .profile-header {
+      padding: 1rem;
+    }
+  }
+</style>
+
+<div class="page-hero">
+  <div class="container page-hero-content">
+    <h1 class="page-title">👤 个人资料</h1>
+    <p class="page-subtitle">My Profile</p>
+  </div>
 </div>
+
+<div class="container">
+  <div class="profile-container">
+    <!-- 左侧边栏 -->
+    <div class="profile-sidebar">
+      <!-- 用户卡片 -->
+      <div class="profile-card">
+        <div class="profile-header">
+          <div class="profile-avatar">
+            {{ current_user.username[0]|upper }}
+          </div>
+          <div class="profile-name">
+            {{ current_user.real_name or current_user.username }}
+          </div>
+          <div class="profile-username">@{{ current_user.username }}</div>
+          <div class="profile-role role-{{ current_user.role.name.lower().replace('_', '-') if current_user.role else 'unknown' }}">
+            {% if current_user.role %}
+              {% if current_user.role.name == 'ADMIN' %}
+                👑 管理员
+              {% elif current_user.role.name == 'FINANCE' %}
+                💼 财务
+              {% elif current_user.role.name == 'HEAD_MANAGER' %}
+                🏢 店长
+              {% elif current_user.role.name == 'STAFF' %}
+                👤 员工
+              {% else %}
+                {{ current_user.role.name }}
+              {% endif %}
+            {% else %}
+              未设置角色
+            {% endif %}
+          </div>
+          <div class="profile-stats">
+            <div class="stat-item">
+              <span class="stat-number">{{ current_user.created_at.strftime('%Y') if current_user.created_at else '未知' }}</span>
+              <span class="stat-label">加入年份</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">
+                {% if current_user.store %}1{% else %}0{% endif %}
+              </span>
+              <span class="stat-label">关联门店</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 资料完善度 -->
+      <div class="completion-progress">
+        <div class="progress-title">
+          <i class="bi bi-clipboard-check"></i>
+          资料完善度
+        </div>
+        {% set completion_fields = [
+          current_user.real_name,
+          current_user.phone,
+          current_user.email,
+          current_user.id_card_number,
+          current_user.bank_name,
+          current_user.bank_account_number
+        ] %}
+        {% set completed_count = completion_fields|select|list|length %}
+        {% set total_count = completion_fields|length %}
+        {% set completion_percentage = (completed_count / total_count * 100)|round %}
+
+        <div class="progress-bar-container">
+          <div class="progress-bar" style="width: {{ completion_percentage }}%"></div>
+        </div>
+        <div class="progress-text">
+          {{ completed_count }}/{{ total_count }} 项已完成 ({{ completion_percentage }}%)
+        </div>
+      </div>
+
+      <!-- 快捷操作 -->
+      <div class="quick-actions">
+        <div class="quick-actions-title">
+          <i class="bi bi-lightning-fill"></i>
+          快捷操作
+        </div>
+        <a href="{{ url_for('user.edit_profile') }}" class="action-button action-edit">
+          <i class="bi bi-pencil"></i>
+          编辑资料
+        </a>
+        <a href="#" class="action-button action-password" onclick="alert('密码修改功能待开发');">
+          <i class="bi bi-key"></i>
+          修改密码
+        </a>
+      </div>
+    </div>
+
+    <!-- 右侧内容区 -->
+    <div class="profile-content">
+      <!-- 基本信息 -->
+      <div class="info-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i class="bi bi-person-fill"></i>
+            基本信息
+          </h3>
+        </div>
+        <div class="section-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">真实姓名</div>
+              <div class="info-value {{ 'empty' if not current_user.real_name }}">
+                {{ current_user.real_name or '未填写' }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">员工编号</div>
+              <div class="info-value {{ 'empty' if not current_user.employee_number }}">
+                {{ current_user.employee_number or '未分配' }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">身份证号</div>
+              <div class="info-value {{ 'empty' if not current_user.id_card_number }}">
+                {{ current_user.id_card_number or '未填写' }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">注册时间</div>
+              <div class="info-value">
+                {{ current_user.created_at.strftime('%Y-%m-%d %H:%M:%S') if current_user.created_at else '未知' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 工作信息 -->
+      <div class="info-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i class="bi bi-briefcase-fill"></i>
+            工作信息
+          </h3>
+        </div>
+        <div class="section-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">所属门店</div>
+              <div class="info-value {{ 'empty' if not current_user.store }}">
+                {{ '🏪 ' + current_user.store.name if current_user.store else '未分配' }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">入职日期</div>
+              <div class="info-value {{ 'empty' if not current_user.start_date }}">
+                {{ current_user.start_date or '未填写' }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">离职日期</div>
+              <div class="info-value {{ 'empty' if not current_user.end_date }}">
+                {{ current_user.end_date or '在职' }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">主要联系人</div>
+              <div class="info-value">
+                {{ '✅ 是' if current_user.is_primary_contact else '❌ 否' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 联系方式 -->
+      <div class="info-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i class="bi bi-telephone-fill"></i>
+            联系方式
+          </h3>
+        </div>
+        <div class="section-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">联系电话</div>
+              <div class="info-value {{ 'empty' if not current_user.phone }}">
+                {{ current_user.phone or '未填写' }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">电子邮箱</div>
+              <div class="info-value {{ 'empty' if not current_user.email }}">
+                {{ current_user.email or '未填写' }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">LINE ID</div>
+              <div class="info-value {{ 'empty' if not current_user.line_id }}">
+                {{ current_user.line_id or '未填写' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 银行信息 -->
+      <div class="info-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i class="bi bi-bank"></i>
+            银行信息
+          </h3>
+        </div>
+        <div class="section-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">银行名称</div>
+              <div class="info-value {{ 'empty' if not current_user.bank_name }}">
+                {{ current_user.bank_name or '未填写' }}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">银行账号</div>
+              <div class="info-value {{ 'empty' if not current_user.bank_account_number }}">
+                {{ current_user.bank_account_number or '未填写' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 添加滚动动画效果
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    // 为所有卡片添加动画
+    document.querySelectorAll('.profile-card, .info-section, .quick-actions, .completion-progress').forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px)';
+        card.style.transition = 'all 0.6s ease';
+        observer.observe(card);
+    });
+
+    // 进度条动画
+    setTimeout(() => {
+        const progressBar = document.querySelector('.progress-bar');
+        if (progressBar) {
+            progressBar.style.width = progressBar.style.width;
+        }
+    }, 500);
+});
+</script>
 {% endblock %}

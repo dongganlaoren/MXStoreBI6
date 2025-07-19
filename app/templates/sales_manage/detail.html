@@ -1,248 +1,664 @@
 {% extends "base.html" %}
-{% block title %}营业信息详情{% endblock %}
+{% block title %}营业日报{% endblock %}
 {% block content %}
 <style>
-  .report-section-card {
-    box-shadow: 0 2px 16px #0001;
-    border-radius: 12px;
-    border: none;
-    margin-bottom: 1.5rem;
+  :root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
+    --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
+    --border-radius: 20px;
   }
-  .report-section-card .card-header {
-    font-size: 1.1rem;
+
+  .hero-section {
+    background: var(--primary-gradient);
+    padding: 3rem 0;
+    margin: 0 -15px 3rem -15px;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="90" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    letter-spacing: 2px;
+  }
+
+  .hero-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin-bottom: 2rem;
+  }
+
+  .info-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .info-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    border: none;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .info-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--primary-gradient);
+  }
+
+  .info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .info-card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .info-card-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
     letter-spacing: 1px;
+  }
+
+  .info-card-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0;
+  }
+
+  .section-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    border: none;
+    margin-bottom: 2rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .section-card:hover {
+    box-shadow: var(--shadow-hover);
+  }
+
+  .section-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #f8f9fa;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .section-header.primary {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  }
+
+  .section-header.success {
+    background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+  }
+
+  .section-header.warning {
+    background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
+  }
+
+  .section-header.info {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+  }
+
+  .section-header.secondary {
+    background: linear-gradient(135deg, rgba(108, 117, 125, 0.1) 0%, rgba(52, 58, 64, 0.1) 100%);
+  }
+
+  .section-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0;
     display: flex;
     align-items: center;
-    gap: 0.5em;
+    gap: 0.8rem;
+    color: #2c3e50;
   }
-  .report-section-card .card-body {
-    font-size: 1.05rem;
+
+  .section-icon {
+    font-size: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
   }
-  .report-label {
-    color: #555;
+
+  .section-body {
+    padding: 2rem;
+  }
+
+  .data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .data-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .data-label {
+    color: #6c757d;
+    font-size: 0.9rem;
     font-weight: 500;
-    margin-right: 0.5em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
-  .report-value {
-    font-weight: bold;
-    color: #1a73e8;
+
+  .data-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    padding: 0.8rem 1.2rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    border-left: 4px solid #007bff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   }
-  .report-divider {
-    border-top: 2px dashed #e0e0e0;
-    margin: 2rem 0 1.5rem 0;
+
+  .attachment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
   }
-  .report-icon {
-    font-size: 1.2em;
-    margin-right: 0.3em;
+
+  .attachment-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    border: 1px solid #f1f3f4;
   }
-  .table th, .table td {
-    vertical-align: middle !important;
+
+  .attachment-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
   }
-  .img-zoomable {
-    transition: box-shadow .2s;
+
+  .attachment-image {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: all 0.3s ease;
   }
-  .img-zoomable:hover {
-    box-shadow: 0 4px 32px #0003;
+
+  .attachment-card:hover .attachment-image {
+    transform: scale(1.05);
+  }
+
+  .attachment-info {
+    padding: 1rem;
+    text-align: center;
+    background: #f8f9fa;
+  }
+
+  .attachment-badge {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  .history-table {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+  }
+
+  .history-table thead th {
+    background: var(--primary-gradient);
+    color: white;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 1.2rem 1rem;
+    border: none;
+  }
+
+  .history-table tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f3f4;
+    vertical-align: middle;
+  }
+
+  .history-table tbody tr:hover {
+    background: rgba(102, 126, 234, 0.05);
+  }
+
+  .action-buttons {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-soft);
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  .btn-primary-custom {
+    background: var(--primary-gradient);
+    border: none;
+    color: white;
+    padding: 1rem 3rem;
+    border-radius: 50px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  }
+
+  .btn-primary-custom:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+    color: white;
+  }
+
+  .btn-secondary-custom {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    border: none;
+    color: white;
+    padding: 1rem 3rem;
+    border-radius: 50px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(108, 117, 125, 0.3);
+  }
+
+  .btn-secondary-custom:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(108, 117, 125, 0.4);
+    color: white;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+    font-size: 1.1rem;
+  }
+
+  .empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2rem;
+    }
+
+    .data-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .attachment-grid {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    .section-body {
+      padding: 1.5rem;
+    }
   }
 </style>
-<div class="container mt-4 mb-5">
-    <h2 class="mb-4 text-center fw-bold" style="letter-spacing:2px;"><span class="report-icon">📄</span>营业信息详情</h2>
-    <div class="row mb-3">
-        <div class="col-md-3 mb-2">
-            <span class="report-label">📅 日期：</span><span class="report-value">{{ report.report_date }}</span>
-        </div>
-        <div class="col-md-3 mb-2">
-            <span class="report-label">🏪 门店编号：</span><span class="report-value">{{ report.store_id }}</span>
-        </div>
-        <div class="col-md-3 mb-2">
-            <span class="report-label">👤 上报人：</span>
-            <span class="report-value">
-                {% if report.user and report.user.employee_number %}
-                    {{ report.user.employee_number }}
-                {% elif report.user and report.user.username %}
-                    {{ report.user.username }}
-                {% else %}-{% endif %}
-            </span>
-        </div>
+
+<div class="hero-section">
+  <div class="container hero-content">
+    <div class="text-center">
+      <h1 class="hero-title">📊 营业日报</h1>
+      <p class="hero-subtitle">Business Daily Report</p>
     </div>
-    <div class="report-divider"></div>
-    <div class="card report-section-card mb-3">
-        <div class="card-header bg-primary bg-opacity-10 fw-bold"><span class="report-icon">💳</span>POS机销售信息</div>
-        <div class="card-body">
-            <div class="row mb-2">
-                <div class="col-md-3 mb-2"><span class="report-label">💵 现金收入 (C)：</span><span class="report-value">{{ report.cash_income }}</span></div>
-                <div class="col-md-3 mb-2"><span class="report-label">💸 电子支付收入 (P)：</span><span class="report-value">{{ report.pos_income }}</span></div>
-                <div class="col-md-3 mb-2"><span class="report-label">🎫 代金券使用金额 (R)：</span><span class="report-value">{{ report.voucher_amount }}</span></div>
-            </div>
-            <div class="row mb-2">
-                <div class="col-md-3 mb-2"><span class="report-label">🧾 POS机总营业额（T0）：</span><span class="report-value">{{ report.pos_total }}</span></div>
-            </div>
-        </div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 基本信息卡片 -->
+  <div class="info-cards">
+    <div class="info-card">
+      <span class="info-card-icon">📅</span>
+      <div class="info-card-label">报告日期</div>
+      <div class="info-card-value">{{ report.report_date }}</div>
     </div>
-    {% if report.store and report.store.third_party_platform %}
-    <div class="card report-section-card mb-3">
-        <div class="card-header bg-success bg-opacity-10 fw-bold"><span class="report-icon">🛵</span>第三方外卖平台销售信息</div>
-        <div class="card-body">
-            <div class="row mb-2">
-                <div class="col-md-3 mb-2"><span class="report-label">第三方外卖平台销售额（T1）：</span><span class="report-value">{{ report.takeaway_amount }}</span></div>
-            </div>
-        </div>
+    <div class="info-card">
+      <span class="info-card-icon">🏪</span>
+      <div class="info-card-label">门店编号</div>
+      <div class="info-card-value">{{ report.store_id }}</div>
     </div>
-    {% endif %}
-    <div class="card report-section-card mb-3">
-        <div class="card-header bg-warning bg-opacity-10 fw-bold"><span class="report-icon">🏦</span>实际入账信息</div>
-        <div class="card-body">
-            <div class="row mb-2">
-                <div class="col-md-3 mb-2"><span class="report-label">💸 电子支付实际到账金额：</span><span class="report-value">{{ report.electronic_actual_arrival }}</span></div>
-                <div class="col-md-3 mb-2"><span class="report-label">🏦 银行存款金额(BC)：</span><span class="report-value">{{ report.bank_deposit }}</span></div>
-                <div class="col-md-3 mb-2"><span class="report-label">💰 存款手续费 (BF)：</span><span class="report-value">{{ report.bank_fee }}</span></div>
-            </div>
-            <div class="row mb-2">
-                <div class="col-md-3 mb-2"><span class="report-label">📊 实际到账金额：</span><span class="report-value">{{ report.actual_sales }}</span></div>
-            </div>
-        </div>
+    <div class="info-card">
+      <span class="info-card-icon">👤</span>
+      <div class="info-card-label">上报人</div>
+      <div class="info-card-value">
+        {% if report.user and report.user.employee_number %}
+          {{ report.user.employee_number }}
+        {% elif report.user and report.user.username %}
+          {{ report.user.username }}
+        {% else %}
+          -
+        {% endif %}
+      </div>
     </div>
-    <div class="card report-section-card mb-3">
-        <div class="card-header bg-info bg-opacity-10 fw-bold"><span class="report-icon">📝</span>审核备注</div>
-        <div class="card-body">
-            <div class="ps-2">{{ report.remark or '-' }}</div>
-        </div>
+  </div>
+
+  <!-- POS机销售信息 -->
+  <div class="section-card">
+    <div class="section-header primary">
+      <h3 class="section-title">
+        <span class="section-icon">💳</span>
+        POS机销售信息
+      </h3>
     </div>
-    <div class="card report-section-card mb-3">
-        <div class="card-header bg-secondary bg-opacity-10 fw-bold"><span class="report-icon">📷</span>历史凭证图片</div>
-        <div class="card-body">
-            <div class="row">
-                {% if report.attachments and report.attachments.count() > 0 %}
-                    {% for att in report.attachments %}
-                        <div class="col-md-3 mb-3">
-                            <div class="card shadow-sm border-0">
-                                <a href="{{ url_for('static', filename=att.file_path.replace('\\', '/')) }}" class="attachment-link preview-attachment" data-filename="{{ att.file_path }}" data-type="{{ att.attachment_type.value }}">
-                                    {% set ext = att.file_path.split('.')[-1]|lower %}
-                                    {% if ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] %}
-                                        <img src="{{ url_for('static', filename=att.file_path.replace('\\', '/')) }}" class="card-img-top" alt="凭证图片" style="cursor:zoom-in;border-radius:8px;max-height:160px;object-fit:contain;">
-                                    {% elif ext == 'pdf' %}
-                                        <div class="d-flex flex-column align-items-center justify-content-center" style="height:160px;">
-                                            <i class="bi bi-file-earmark-pdf text-danger" style="font-size:3rem;"></i>
-                                            <span class="text-secondary small mt-2">PDF预览</span>
-                                        </div>
-                                    {% else %}
-                                        <div class="d-flex flex-column align-items-center justify-content-center" style="height:160px;">
-                                            <i class="bi bi-file-earmark-text text-info" style="font-size:3rem;"></i>
-                                            <span class="text-secondary small mt-2">文件</span>
-                                        </div>
-                                    {% endif %}
-                                </a>
-                                <div class="card-body p-2 text-center">
-                                    <span class="badge bg-info">{{ att.attachment_type.label if att.attachment_type else '' }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="col-12 text-muted">暂无凭证图片</div>
-                {% endif %}
-            </div>
+    <div class="section-body">
+      <div class="data-grid">
+        <div class="data-item">
+          <div class="data-label">现金收入 (C)</div>
+          <div class="data-value">¥{{ report.cash_income }}</div>
         </div>
-    </div>
-    <!-- 附件预览Modal -->
-    <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="previewModalLabel">附件预览</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
-          </div>
-          <div class="modal-body" id="previewBody" style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>
+        <div class="data-item">
+          <div class="data-label">电子支付收入 (P)</div>
+          <div class="data-value">¥{{ report.pos_income }}</div>
+        </div>
+        <div class="data-item">
+          <div class="data-label">代金券使用金额 (R)</div>
+          <div class="data-value">¥{{ report.voucher_amount }}</div>
+        </div>
+        <div class="data-item">
+          <div class="data-label">POS机总营业额（T0）</div>
+          <div class="data-value" style="border-left-color: #28a745;">¥{{ report.pos_total }}</div>
         </div>
       </div>
     </div>
-    <div class="card report-section-card mb-3">
-        <div class="card-header bg-warning bg-opacity-10 fw-bold"><span class="report-icon">📝</span>关键字段修改历史</div>
-        <div class="card-body">
-            {% if history_list and history_list|length > 0 %}
-            <div class="table-responsive">
-              <table class="table table-bordered table-hover align-middle">
-                <thead class="table-light text-center">
-                  <tr>
-                    <th>字段</th>
-                    <th>原值</th>
-                    <th>新值</th>
-                    <th>操作人</th>
-                    <th>角色</th>
-                    <th>理由</th>
-                    <th>时间</th>
-                  </tr>
-                </thead>
-                <tbody class="text-center">
-                  {% for h in history_list %}
-                  <tr>
-                    <td>{{ h.field_name }}</td>
-                    <td>{{ h.old_value if h.old_value is not none else '-' }}</td>
-                    <td class="fw-bold text-primary">{{ h.new_value }}</td>
-                    <td>{{ h.operator_id }}</td>
-                    <td>{{ h.operator_role }}</td>
-                    <td>{{ h.remark }}</td>
-                    <td>{{ h.created_at.strftime('%Y-%m-%d %H:%M:%S') if h.created_at else '' }}</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            {% else %}
-              <div class="text-muted">暂无关键字段修改历史</div>
-            {% endif %}
+  </div>
+
+  <!-- 第三方外卖平台销售信息 -->
+  {% if report.store and report.store.third_party_platform %}
+  <div class="section-card">
+    <div class="section-header success">
+      <h3 class="section-title">
+        <span class="section-icon">🛵</span>
+        第三方外卖平台销售信息
+      </h3>
+    </div>
+    <div class="section-body">
+      <div class="data-grid">
+        <div class="data-item">
+          <div class="data-label">第三方外卖平台销售额（T1）</div>
+          <div class="data-value" style="border-left-color: #28a745;">¥{{ report.takeaway_amount }}</div>
         </div>
+      </div>
     </div>
-    <div class="mt-4 text-center">
-        {% if current_user.role.name in ['ADMIN', 'FINANCE'] %}
-            <a href="{{ url_for('sales_audit.sales_check_edit', report_id=report.report_id) }}" class="btn btn-success btn-lg px-5 me-3">进入核对</a>
-        {% endif %}
-        <a href="{{ url_for('sales_manage.manage_list') }}" class="btn btn-lg btn-outline-secondary px-5">返回列表</a>
+  </div>
+  {% endif %}
+
+  <!-- 实际入账信息 -->
+  <div class="section-card">
+    <div class="section-header warning">
+      <h3 class="section-title">
+        <span class="section-icon">🏦</span>
+        实际入账信息
+      </h3>
     </div>
-    <script>
-    // 简单图片放大弹窗（支持多图）
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.img-zoomable').forEach(function(link) {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                var imgUrl = this.getAttribute('href');
-                var modal = document.createElement('div');
-                modal.style.position = 'fixed';
-                modal.style.left = 0;
-                modal.style.top = 0;
-                modal.style.width = '100vw';
-                modal.style.height = '100vh';
-                modal.style.background = 'rgba(0,0,0,0.8)';
-                modal.style.display = 'flex';
-                modal.style.alignItems = 'center';
-                modal.style.justifyContent = 'center';
-                modal.style.zIndex = 9999;
-                modal.innerHTML = '<img src="' + imgUrl + '" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 4px 32px #0008;">';
-                modal.onclick = function() { document.body.removeChild(modal); };
-                document.body.appendChild(modal);
-            });
-        });
-    });
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.preview-attachment').forEach(function(link) {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                var fileUrl = this.getAttribute('href');
-                var ext = fileUrl.split('.').pop().toLowerCase();
-                var modal = new bootstrap.Modal(document.getElementById('previewModal'));
-                var previewBody = document.getElementById('previewBody');
-                previewBody.innerHTML = '';
-                if (["jpg","jpeg","png","gif","bmp","webp"].includes(ext)) {
-                    previewBody.innerHTML = '<img src="' + fileUrl + '" style="max-width:90vw;max-height:80vh;border-radius:8px;box-shadow:0 4px 32px #0008;">';
-                } else if (ext === 'pdf') {
-                    previewBody.innerHTML = '<iframe src="' + fileUrl + '" style="width:90vw;height:80vh;border:none;"></iframe>';
-                } else {
-                    previewBody.innerHTML = '<div class="text-center text-muted">暂不支持该文件类型预览，可<a href="' + fileUrl + '" target="_blank">下载查看</a></div>';
-                }
-                modal.show();
-            });
-        });
-    });
-    </script>
+    <div class="section-body">
+      <div class="data-grid">
+        <div class="data-item">
+          <div class="data-label">电子支付实际到账金额</div>
+          <div class="data-value" style="border-left-color: #ffc107;">¥{{ report.electronic_actual_arrival }}</div>
+        </div>
+        <div class="data-item">
+          <div class="data-label">银行存款金额(BC)</div>
+          <div class="data-value" style="border-left-color: #ffc107;">¥{{ report.bank_deposit }}</div>
+        </div>
+        <div class="data-item">
+          <div class="data-label">存款手续费 (BF)</div>
+          <div class="data-value" style="border-left-color: #ffc107;">¥{{ report.bank_fee }}</div>
+        </div>
+        <div class="data-item">
+          <div class="data-label">实际到账金额</div>
+          <div class="data-value" style="border-left-color: #dc3545; font-size: 1.8rem;">¥{{ report.actual_sales }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 审核备注 -->
+  {% if report.financial_check_status and (report.financial_check_status.value == 'APPROVED' or report.financial_check_status == 'APPROVED') %}
+  <div class="section-card">
+    <div class="section-header info">
+      <h3 class="section-title">
+        <span class="section-icon">📝</span>
+        审核备注
+      </h3>
+    </div>
+    <div class="section-body">
+      <div style="padding: 1.5rem; background: #f8f9fa; border-radius: 12px; font-size: 1.1rem; line-height: 1.6;">
+        {{ report.remark or '暂无备注' }}
+      </div>
+    </div>
+  </div>
+
+  <!-- 关键字段修改历史 -->
+  <div class="section-card">
+    <div class="section-header warning">
+      <h3 class="section-title">
+        <span class="section-icon">📋</span>
+        关键字段修改历史
+      </h3>
+    </div>
+    <div class="section-body">
+      {% if history_list and history_list|length > 0 %}
+      <div class="table-responsive">
+        <table class="table history-table mb-0">
+          <thead>
+            <tr>
+              <th>字段</th>
+              <th>原值</th>
+              <th>新值</th>
+              <th>操作人</th>
+              <th>角色</th>
+              <th>理由</th>
+              <th>时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for h in history_list %}
+            <tr>
+              <td><strong>{{ h.field_name }}</strong></td>
+              <td>{{ h.old_value if h.old_value is not none else '-' }}</td>
+              <td><strong style="color: #007bff;">{{ h.new_value }}</strong></td>
+              <td>{{ h.operator_id }}</td>
+              <td>{{ h.operator_role }}</td>
+              <td>{{ h.remark }}</td>
+              <td>{{ h.created_at.strftime('%Y-%m-%d %H:%M:%S') if h.created_at else '' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">📊</div>
+        <div>暂无关键字段修改历史</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 日报凭证 -->
+  <div class="section-card">
+    <div class="section-header secondary">
+      <h3 class="section-title">
+        <span class="section-icon">📷</span>
+        日报凭证
+      </h3>
+    </div>
+    <div class="section-body">
+      {% if report.attachments and report.attachments.count() > 0 %}
+      <div class="attachment-grid">
+        {% for att in report.attachments %}
+        <div class="attachment-card">
+          <a href="{{ url_for('static', filename=att.file_path.replace('\\', '/')) }}" class="preview-attachment" data-filename="{{ att.file_path }}" data-type="{{ att.attachment_type.value }}">
+            {% set ext = att.file_path.split('.')[-1]|lower %}
+            {% if ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] %}
+              <img src="{{ url_for('static', filename=att.file_path.replace('\\', '/')) }}" class="attachment-image" alt="凭证图片">
+            {% elif ext == 'pdf' %}
+              <div class="d-flex flex-column align-items-center justify-content-center" style="height:160px; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white;">
+                <i class="bi bi-file-earmark-pdf" style="font-size:3rem;"></i>
+                <span class="mt-2 font-weight-bold">PDF预览</span>
+              </div>
+            {% else %}
+              <div class="d-flex flex-column align-items-center justify-content-center" style="height:160px; background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); color: white;">
+                <i class="bi bi-file-earmark-text" style="font-size:3rem;"></i>
+                <span class="mt-2 font-weight-bold">文件</span>
+              </div>
+            {% endif %}
+          </a>
+          <div class="attachment-info">
+            <span class="attachment-badge">{{ att.attachment_type.label if att.attachment_type else '' }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">📎</div>
+        <div>暂无凭证图片</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 操作按钮 -->
+  <div class="action-buttons">
+    {% if current_user.role.name in ['ADMIN', 'FINANCE'] %}
+      <a href="{{ url_for('sales_manage.manage_check_edit', report_id=report.report_id) }}" class="btn btn-primary-custom me-3">
+        <i class="bi bi-check-circle me-2"></i>开始核对
+      </a>
+    {% endif %}
+    <a href="{{ url_for('sales_manage.manage_list') }}" class="btn btn-secondary-custom">
+      <i class="bi bi-arrow-left me-2"></i>返回列表
+    </a>
+  </div>
 </div>
+
+<!-- 附件预览Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; overflow: hidden;">
+      <div class="modal-header" style="background: var(--primary-gradient); color: white; border: none;">
+        <h5 class="modal-title" id="previewModalLabel">
+          <i class="bi bi-eye me-2"></i>附件预览
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body" id="previewBody" style="min-height:60vh;display:flex;align-items:center;justify-content:center;background:#f8f9fa;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 附件预览功能
+    document.querySelectorAll('.preview-attachment').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            var fileUrl = this.getAttribute('href');
+            var ext = fileUrl.split('.').pop().toLowerCase();
+            var modal = new bootstrap.Modal(document.getElementById('previewModal'));
+            var previewBody = document.getElementById('previewBody');
+
+            previewBody.innerHTML = '';
+
+            if (["jpg","jpeg","png","gif","bmp","webp"].includes(ext)) {
+                previewBody.innerHTML = '<img src="' + fileUrl + '" style="max-width:90vw;max-height:80vh;border-radius:15px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">';
+            } else if (ext === 'pdf') {
+                previewBody.innerHTML = '<iframe src="' + fileUrl + '" style="width:90vw;height:80vh;border:none;border-radius:15px;"></iframe>';
+            } else {
+                previewBody.innerHTML = '<div class="text-center text-muted"><i class="bi bi-file-earmark-text" style="font-size:4rem;margin-bottom:1rem;"></i><br>暂不支持该文件类型预览<br><a href="' + fileUrl + '" target="_blank" class="btn btn-primary mt-3">下载查看</a></div>';
+            }
+
+            modal.show();
+        });
+    });
+
+    // 添加滚动动画效果
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    // 为所有卡片添加动画
+    document.querySelectorAll('.section-card, .info-card').forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px)';
+        card.style.transition = 'all 0.6s ease';
+        observer.observe(card);
+    });
+});
+</script>
 {% endblock %}
