@@ -50,13 +50,27 @@ def list_requests():
 
     # 查询条件
     query = ReimbursementRequest.query
-    if category == 'todo':
-        query = query.filter(ReimbursementRequest.approver_id == current_user.user_id)
-    elif category == 'done':
-        query = query.filter(ReimbursementRequest.approver_id == current_user.user_id)
-        query = query.filter(ReimbursementRequest.status == ReimbursementStatus.APPROVED)
-    else:  # mine
+    role = getattr(current_user.role, 'value', None)
+    if role in ['BRANCH_MANAGER', 'EMPLOYEE', 'HEAD_MANAGER']:
+        # 只能看自己发起的
         query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
+    elif role == 'FINANCE':
+        if category == 'done':
+            # 财务能看所有审批通过的
+            query = query.filter(ReimbursementRequest.status == ReimbursementStatus.APPROVED)
+        else:  # mine
+            query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
+    else:  # ADMIN
+        if category == 'todo':
+            query = query.filter(
+                ReimbursementRequest.approver_id == current_user.user_id,
+                ReimbursementRequest.status == ReimbursementStatus.PENDING
+            )
+        elif category == 'done':
+            query = query.filter(ReimbursementRequest.approver_id == current_user.user_id)
+            query = query.filter(ReimbursementRequest.status == ReimbursementStatus.APPROVED)
+        else:  # mine
+            query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
     if status != 'all':
         query = query.filter(ReimbursementRequest.status == getattr(ReimbursementStatus, status))
     query = query.filter(ReimbursementRequest.created_at >= begin, ReimbursementRequest.created_at < end)
@@ -86,6 +100,7 @@ def create():
                 store_id=store_id,
                 description=form.reason.data,  # 保证字段一致，模型字段为description
                 amount=form.amount.data,
+                currency=form.currency.data,  # 新增：保存货币单位
                 status=ReimbursementStatus.PENDING,
                 submitter_id=current_user.user_id,
                 approver_id=approver_id

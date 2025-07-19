@@ -196,68 +196,68 @@ def generate_fake_data():
         db.session.commit()
 
         # --- 阶段二：生成100条合理的日报数据 ---
-        print("开始生成日报数据...")
-        today = date.today()
-        all_users = users  # admin + simple_users
-        num_reports = 1000
-        store_no_t1 = {"92", "76", "191"}
-        for i in range(num_reports):
-            store = random.choice(stores)
-            user = random.choice(all_users)
-            report_date = today - timedelta(days=random.randint(0, 29))
-            # 状态分布更均匀
-            status = random.choice([FinancialCheckStatus.PENDING, FinancialCheckStatus.APPROVED])
-            # 这三家门店不生成T1
-            if store.store_id in store_no_t1:
-                t1 = None
-            else:
-                t1 = round(random.uniform(100, 400), 2)
-            cash_income = round(random.uniform(100, 500), 2)
-            pos_income = round(random.uniform(200, 800), 2)
-            day_pass_income = round(random.uniform(50, 300), 2)
-            voucher_amount = round(random.uniform(0, 50), 2)
-            electronic_actual_arrival = round(random.uniform(200, 800), 2)
-            bank_deposit = round(random.uniform(100, 500), 2)
-            bank_fee = round(random.uniform(0, 10), 2)
-            cash_difference = round(random.uniform(-10, 10), 2)
-            electronic_difference = round(random.uniform(-10, 10), 2)
-            pos_total = round(cash_income + pos_income + day_pass_income + voucher_amount, 2)
-            actual_sales = round((t1 or 0) + day_pass_income + electronic_actual_arrival + bank_deposit, 2)
-            total_error = round(electronic_actual_arrival + bank_deposit + bank_fee - pos_income - cash_income, 2)
-            sales = DailySales(
-                user_id=user.user_id,
-                store_id=store.store_id,
-                report_date=report_date,
-                cash_income=cash_income,
-                pos_income=pos_income,
-                day_pass_income=day_pass_income,
-                voucher_amount=voucher_amount,
-                pos_total=pos_total,
-                electronic_actual_arrival=electronic_actual_arrival,
-                bank_deposit=bank_deposit,
-                bank_fee=bank_fee,
-                takeaway_amount=t1,
-                actual_sales=actual_sales,
-                total_error=total_error,
-                cash_difference=cash_difference,
-                electronic_difference=electronic_difference,
-                remark=fake.sentence(),
-                pos_info_completed=True,
-                takeaway_info_completed=True,
-                actual_arrival_info_completed=True,
-                is_submitted=True,
-                financial_check_status=status,
-                created_at=datetime.now() - timedelta(days=random.randint(0, 29)),
-                updated_at=datetime.now() - timedelta(days=random.randint(0, 29))
-            )
-            db.session.add(sales)
-            db.session.flush()  # 确保sales.report_id有值
-            # 附件
-            for _ in range(random.randint(1, 2)):
-                att = create_daily_sales_attachment(sales, fake)
-                db.session.add(att)
-        db.session.commit()
-        print("✅ 日报数据生成完成")
+        # print("开始生成日报数据...")
+        # today = date.today()
+        # all_users = users  # admin + simple_users
+        # num_reports = 1000
+        # store_no_t1 = {"92", "76", "191"}
+        # for i in range(num_reports):
+        #     store = random.choice(stores)
+        #     user = random.choice(all_users)
+        #     report_date = today - timedelta(days=random.randint(0, 29))
+        #     # 状态分布更均匀
+        #     status = random.choice([FinancialCheckStatus.PENDING, FinancialCheckStatus.APPROVED])
+        #     # 这三家门店不生成T1
+        #     if store.store_id in store_no_t1:
+        #         t1 = None
+        #     else:
+        #         t1 = round(random.uniform(100, 400), 2)
+        #     cash_income = round(random.uniform(100, 500), 2)
+        #     pos_income = round(random.uniform(200, 800), 2)
+        #     day_pass_income = round(random.uniform(50, 300), 2)
+        #     voucher_amount = round(random.uniform(0, 50), 2)
+        #     electronic_actual_arrival = round(random.uniform(200, 800), 2)
+        #     bank_deposit = round(random.uniform(100, 500), 2)
+        #     bank_fee = round(random.uniform(0, 10), 2)
+        #     cash_difference = round(random.uniform(-10, 10), 2)
+        #     electronic_difference = round(random.uniform(-10, 10), 2)
+        #     pos_total = round(cash_income + pos_income + day_pass_income + voucher_amount, 2)
+        #     actual_sales = round((t1 or 0) + day_pass_income + electronic_actual_arrival + bank_deposit, 2)
+        #     total_error = round(electronic_actual_arrival + bank_deposit + bank_fee - pos_income - cash_income, 2)
+        #     sales = DailySales(
+        #         user_id=user.user_id,
+        #         store_id=store.store_id,
+        #         report_date=report_date,
+        #         cash_income=cash_income,
+        #         pos_income=pos_income,
+        #         day_pass_income=day_pass_income,
+        #         voucher_amount=voucher_amount,
+        #         pos_total=pos_total,
+        #         electronic_actual_arrival=electronic_actual_arrival,
+        #         bank_deposit=bank_deposit,
+        #         bank_fee=bank_fee,
+        #         takeaway_amount=t1,
+        #         actual_sales=actual_sales,
+        #         total_error=total_error,
+        #         cash_difference=cash_difference,
+        #         electronic_difference=electronic_difference,
+        #         remark=fake.sentence(),
+        #         pos_info_completed=True,
+        #         takeaway_info_completed=True,
+        #         actual_arrival_info_completed=True,
+        #         is_submitted=True,
+        #         financial_check_status=status,
+        #         created_at=datetime.now() - timedelta(days=random.randint(0, 29)),
+        #         updated_at=datetime.now() - timedelta(days=random.randint(0, 29))
+        #     )
+        #     db.session.add(sales)
+        #     db.session.flush()  # 确保sales.report_id有值
+        #     # 附件
+        #     for _ in range(random.randint(1, 2)):
+        #         att = create_daily_sales_attachment(sales, fake)
+        #         db.session.add(att)
+        # db.session.commit()
+        # print("✅ 日报数据生成完成")
 
     except Exception as e:
         db.session.rollback()

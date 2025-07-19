@@ -1,8 +1,8 @@
 """init
 
-Revision ID: 154a8711a85c
+Revision ID: f7bb2c6fbcd3
 Revises: 
-Create Date: 2025-07-18 22:45:04.850394
+Create Date: 2025-07-19 15:43:22.711010
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '154a8711a85c'
+revision = 'f7bb2c6fbcd3'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -94,8 +94,9 @@ def upgrade():
     sa.Column('primary_category', sa.Enum('SHARED_COST', 'STORE_COST', name='reimbursementprimarycategory'), nullable=False, comment='一级分类'),
     sa.Column('secondary_category', sa.Enum('SHARED_REIMBURSEMENT', 'AGENCY_ACCOUNTING', 'TAXES', 'EMPLOYEE_SOCIAL_SECURITY', 'OTHER_SHARED_COST', 'MIXTURE_MATERIAL', 'MATERIAL_TRANSPORT', 'FIXED_SALARY', 'TEMPORARY_SALARY', 'EXTERNAL_LEMON', 'STORE_PETTY_CASH', 'RENTAL_TAX', 'UTILITIES', 'STORE_RENT', 'WAREHOUSE_RENT', 'OTHER_COST', name='reimbursementsecondarycategory'), nullable=False, comment='二级分类'),
     sa.Column('amount', sa.Numeric(precision=12, scale=2), nullable=False, comment='报销金额'),
+    sa.Column('currency', sa.String(length=8), nullable=False, comment='货币单位'),
     sa.Column('description', sa.Text(), nullable=True, comment='报销说明'),
-    sa.Column('status', sa.Enum('PENDING', 'APPROVED', name='reimbursementstatus'), nullable=False, comment='审批状态'),
+    sa.Column('status', sa.Enum('PENDING', 'APPROVED', 'REJECTED', name='reimbursementstatus'), nullable=False, comment='审批状态'),
     sa.Column('approval_comments', sa.Text(), nullable=True, comment='审批意见'),
     sa.Column('created_at', sa.DateTime(), nullable=False, comment='创建时间'),
     sa.Column('updated_at', sa.DateTime(), nullable=False, comment='更新时间'),

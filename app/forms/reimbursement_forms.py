@@ -31,6 +31,7 @@ class ReimbursementCreateForm(FlaskForm):
                 ('AGENCY_ACCOUNTING', '代理记账'),
                 ('TAXES', '各种税费'),
                 ('EMPLOYEE_SOCIAL_SECURITY', '员工社保'),
+                ('STORE_MANAGEMENT', '店铺管理'),
                 ('OTHER_SHARED_COST', '其它公摊')
             ],
             'STORE_COST': [

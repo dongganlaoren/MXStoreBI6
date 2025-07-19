@@ -12,6 +12,7 @@ class ReimbursementRequest(db.Model):
     primary_category = db.Column(db.Enum(ReimbursementPrimaryCategory), nullable=False, comment="一级分类")
     secondary_category = db.Column(db.Enum(ReimbursementSecondaryCategory), nullable=False, comment="二级分类")
     amount = db.Column(db.Numeric(12, 2), nullable=False, comment="报销金额")
+    currency = db.Column(db.String(8), nullable=False, default='THB', comment="货币单位")
     description = db.Column(db.Text, nullable=True, comment="报销说明")
     status = db.Column(db.Enum(ReimbursementStatus), default=ReimbursementStatus.PENDING, nullable=False, comment="审批状态")
     approval_comments = db.Column(db.Text, nullable=True, comment="审批意见")
