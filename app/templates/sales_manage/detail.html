@@ -396,6 +396,8 @@
     </div>
   </div>
 
+  {% set currency = '฿' %}
+
   <!-- POS机销售信息 -->
   <div class="section-card">
     <div class="section-header primary">
@@ -408,19 +410,19 @@
       <div class="data-grid">
         <div class="data-item">
           <div class="data-label">{{ lang_dict['cash_income'] if lang_dict.get('cash_income') else '现金收入 (C)' }}</div>
-          <div class="data-value">¥{{ report.cash_income }}</div>
+          <div class="data-value">{{ currency }}{{ report.cash_income }}</div>
         </div>
         <div class="data-item">
           <div class="data-label">{{ lang_dict['pos_income'] if lang_dict.get('pos_income') else '电子支付收入 (P)' }}</div>
-          <div class="data-value">¥{{ report.pos_income }}</div>
+          <div class="data-value">{{ currency }}{{ report.pos_income }}</div>
         </div>
         <div class="data-item">
           <div class="data-label">{{ lang_dict['voucher_amount'] if lang_dict.get('voucher_amount') else '代金券使用金额 (R)' }}</div>
-          <div class="data-value">¥{{ report.voucher_amount }}</div>
+          <div class="data-value">{{ currency }}{{ report.voucher_amount }}</div>
         </div>
         <div class="data-item">
           <div class="data-label">{{ lang_dict['pos_total'] if lang_dict.get('pos_total') else 'POS机总营业额（T0）' }}</div>
-          <div class="data-value" style="border-left-color: #28a745;">¥{{ report.pos_total }}</div>
+          <div class="data-value" style="border-left-color: #28a745;">{{ currency }}{{ report.pos_total }}</div>
         </div>
       </div>
     </div>
@@ -439,7 +441,7 @@
       <div class="data-grid">
         <div class="data-item">
           <div class="data-label">{{ lang_dict['takeaway_amount'] if lang_dict.get('takeaway_amount') else '第三方外卖平台销售额（T1）' }}</div>
-          <div class="data-value" style="border-left-color: #28a745;">¥{{ report.takeaway_amount }}</div>
+          <div class="data-value" style="border-left-color: #28a745;">{{ currency }}{{ report.takeaway_amount }}</div>
         </div>
       </div>
     </div>
@@ -458,19 +460,19 @@
       <div class="data-grid">
         <div class="data-item">
           <div class="data-label">{{ lang_dict['electronic_actual_arrival'] if lang_dict.get('electronic_actual_arrival') else '电子支付实际到账金额' }}</div>
-          <div class="data-value" style="border-left-color: #ffc107;">¥{{ report.electronic_actual_arrival }}</div>
+          <div class="data-value" style="border-left-color: #ffc107;">{{ currency }}{{ report.electronic_actual_arrival }}</div>
         </div>
         <div class="data-item">
           <div class="data-label">{{ lang_dict['bank_deposit'] if lang_dict.get('bank_deposit') else '银行存款金额(BC)' }}</div>
-          <div class="data-value" style="border-left-color: #ffc107;">¥{{ report.bank_deposit }}</div>
+          <div class="data-value" style="border-left-color: #ffc107;">{{ currency }}{{ report.bank_deposit }}</div>
         </div>
         <div class="data-item">
           <div class="data-label">{{ lang_dict['bank_fee'] if lang_dict.get('bank_fee') else '存款手续费 (BF)' }}</div>
-          <div class="data-value" style="border-left-color: #ffc107;">¥{{ report.bank_fee }}</div>
+          <div class="data-value" style="border-left-color: #ffc107;">{{ currency }}{{ report.bank_fee }}</div>
         </div>
         <div class="data-item">
           <div class="data-label">{{ lang_dict['actual_sales'] if lang_dict.get('actual_sales') else '实际到账金额' }}</div>
-          <div class="data-value" style="border-left-color: #dc3545; font-size: 1.8rem;">¥{{ report.actual_sales }}</div>
+          <div class="data-value" style="border-left-color: #dc3545; font-size: 1.8rem;">{{ currency }}{{ report.actual_sales }}</div>
         </div>
       </div>
     </div>
@@ -497,7 +499,7 @@
     <div class="section-header warning">
       <h3 class="section-title">
         <span class="section-icon">📋</span>
-        {{ lang_dict['key_change_history'] if lang_dict.get('key_change_history') else '关键字段修改历史' }}
+        {{ lang_dict['key_change_history'] if lang_dict.get('key_change_history') else '关键字段��改历史' }}
       </h3>
     </div>
     <div class="section-body">
@@ -586,13 +588,8 @@
 
   <!-- 操作按钮 -->
   <div class="action-buttons">
-    {% if current_user.role.name in ['ADMIN', 'FINANCE'] %}
-      <a href="{{ url_for('sales_manage.manage_check_edit', report_id=report.report_id) }}" class="btn btn-primary-custom me-3">
-        <i class="bi bi-check-circle me-2"></i>开始核对
-      </a>
-    {% endif %}
     <a href="{{ url_for('sales_manage.manage_list') }}" class="btn btn-secondary-custom">
-      <i class="bi bi-arrow-left me-2"></i>返回列表
+      <i class="bi bi-arrow-left me-2"></i>{{ lang_dict['back_to_list'] if lang_dict.get('back_to_list') else '返回列表' }}
     </a>
   </div>
 </div>

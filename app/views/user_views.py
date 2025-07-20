@@ -196,3 +196,21 @@ def logout():
     logout_user()
     flash('您已成功登出。', 'success')
     return redirect(url_for('main.index'))
+
+
+@user_bp.route('/staff/view')
+@login_required
+def staff_view():
+    """
+    员工信息查看页面，适配 user/staff_view.html。
+    """
+    # staff_info 直接用 current_user
+    # lang_dict 直接传递
+    # current_lang 从请求参数获取
+    current_lang = request.args.get('lang', 'zh')
+    return render_template(
+        'user/staff_view.html',
+        staff_info=current_user,
+        lang_dict=lang_dict.get(current_lang, {}),
+        current_lang=current_lang
+    )

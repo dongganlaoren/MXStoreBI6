@@ -164,7 +164,7 @@
             {% if daily_sales.financial_check_status != 'APPROVED' and daily_sales.financial_check_status != 2 %}
                 <button type="submit" id="btn-save" class="btn btn-primary btn-lg px-5" disabled>{{ lang_dict['save'] if lang_dict.get('save') else '保存' }}</button>
             {% endif %}
-            <a href="{{ url_for('sales_audit.sales_check_list', initial_load='true') }}" class="btn btn-secondary ms-2">{{ lang_dict['back_to_list'] if lang_dict.get('back_to_list') else '返回列表' }}</a>
+            <a href="{{ url_for('sales_manage.manage_list', initial_load='true') }}" class="btn btn-secondary ms-2">{{ lang_dict['back_to_list'] if lang_dict.get('back_to_list') else '返回列表' }}</a>
         </div>
     </form>
     <hr class="my-4">

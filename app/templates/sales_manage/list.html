@@ -57,6 +57,7 @@
             </tr>
         </thead>
         <tbody class="text-center">
+        {% set user_role = current_user.role.value if current_user.role and current_user.role.value else current_user.role|string %}
         {% for r in pagination.items %}
             <tr style="font-size:0.98rem;">
                 <td>{{ r.report_date }}</td>
@@ -73,6 +74,9 @@
                 </td>
                 <td>
                     <a href="{{ url_for('sales_manage.detail', report_id=r.report_id) }}" class="btn btn-sm btn-outline-primary px-3 shadow-sm">{{ lang_dict['detail'] if lang_dict.get('detail') else '详情' }}</a>
+                    {% if (r.financial_check_status and r.financial_check_status.value == 'PENDING') and (user_role in ['ADMIN', 'FINANCE']) %}
+                        <a href="{{ url_for('sales_manage.manage_check_edit', report_id=r.report_id) }}" class="btn btn-sm btn-warning px-3 ms-1 shadow-sm">{{ lang_dict['check'] if lang_dict.get('check') else '核对' }}</a>
+                    {% endif %}
                 </td>
             </tr>
         {% endfor %}

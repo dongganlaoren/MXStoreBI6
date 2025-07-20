@@ -80,7 +80,12 @@
         <td>{{ req.submitter.real_name or req.submitter.username }}</td>
         <td>{{ req.approver.real_name if req.approver else '' }}</td>
         <td>{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else '' }}</td>
-        <td><a href="{{ url_for('reimbursement.detail', request_id=req.request_id) }}" class="btn btn-sm btn-outline-primary">详情</a></td>
+        <td>
+          <a href="{{ url_for('reimbursement.detail', request_id=req.request_id) }}" class="btn btn-sm btn-outline-primary">详情</a>
+          {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
+            <a href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}" class="btn btn-sm btn-success ms-1">审批</a>
+          {% endif %}
+        </td>
       </tr>
       {% else %}
       <tr><td colspan="8" class="text-center">暂无数据</td></tr>

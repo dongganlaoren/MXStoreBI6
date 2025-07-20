@@ -25,14 +25,14 @@ def user_list():
     if q:
         users = users.filter(User.username.contains(q))
     users = users.order_by(User.user_id.desc()).all()
-    return render_template('admin/user_list.html', users=users, q=q)
+    return render_template('user/user_list.html', users=users, q=q)
 
 @admin_user_bp.route('/<int:user_id>')
 @login_required
 @admin_required
 def user_detail(user_id):
     user = User.query.get_or_404(user_id)
-    return render_template('admin/user_detail.html', user=user)
+    return render_template('user/user_detail.html', user=user)
 
 @admin_user_bp.route('/<int:user_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -48,7 +48,7 @@ def user_edit(user_id):
         db.session.commit()
         flash('用户资料已更新', 'success')
         return redirect(url_for('admin_user.user_detail', user_id=user.user_id))
-    return render_template('admin/user_edit.html', form=form, user=user)
+    return render_template('user/user_edit.html', form=form, user=user)
 
 @admin_user_bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -69,7 +69,7 @@ def user_create():
         db.session.commit()
         flash('新用户已创建', 'success')
         return redirect(url_for('admin_user.user_list'))
-    return render_template('admin/user_create.html', form=form)
+    return render_template('user/user_create.html', form=form)
 
 @admin_user_bp.route('/<int:user_id>/delete', methods=['POST'])
 @login_required
