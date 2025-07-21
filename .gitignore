@@ -7,7 +7,7 @@ __pycache__/
 *.pyo
 *.so
 
-# 虚拟环境目录（无论你是否用 .venv 命名）
+# 虚拟环境目录（无论你是否用 .venv ���名）
 .venv/
 venv/
 env/
@@ -45,3 +45,4 @@ build/
 
 # 用户上传文件目录
 uploads/
+app/static/uploads/

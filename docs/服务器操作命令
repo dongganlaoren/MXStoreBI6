@@ -1,0 +1,68 @@
+ubuntu@ip-172-31-84-212:~$ cat ~/.ssh/id_ed25519.pub
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKc3d5iKMOt8DJJhdVFJIlJLiZTUIkG1YLCil0sZAVVp renweimin@gmail.com
+ubuntu@ip-172-31-84-212:~$ git clone git@github.com:dongganlaoren/MXStoreBI6.git
+Cloning into 'MXStoreBI6'...
+remote: Enumerating objects: 555, done.
+remote: Counting objects: 100% (555/555), done.
+remote: Compressing objects: 100% (349/349), done.
+remote: Total 555 (delta 283), reused 449 (delta 180), pack-reused 0 (from 0)
+Receiving objects: 100% (555/555), 5.73 MiB | 17.48 MiB/s, done.
+Resolving deltas: 100% (283/283), done.
+ubuntu@ip-172-31-84-212:~$ cd MXStoreBI6
+ubuntu@ip-172-31-84-212:~/MXStoreBI6$ python3 -m venv venv
+ubuntu@ip-172-31-84-212:~/MXStoreBI6$ source venv/bin/activate
+(venv) ubuntu@ip-172-31-84-212:~/MXStoreBI6$ pip install --upgrade pip
+Requirement already satisfied: pip in ./venv/lib/python3.12/site-packages (24.0)
+Collecting pip
+  Downloading pip-25.1.1-py3-none-any.whl.metadata (3.6 kB)
+Downloading pip-25.1.1-py3-none-any.whl (1.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 35.7 MB/s eta 0:00:00
+Installing collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 24.0
+    Uninstalling pip-24.0:
+      Successfully uninstalled pip-24.0
+Successfully installed pip-25.1.1
+(venv) ubuntu@ip-172-31-84-212:~/MXStoreBI6$ pip install -r requirements.txt
+
+
+app/templates/sales_manage/list.html
+列表页权限说明
+1，门店编号下拉框：店铺组（BRANCH_MANAGER、EMPLOYEE）只能看到当前用户所属店铺；ADMIN、FINANCE、HEAD_MANAGER）可以看到所有店铺
+
+http://127.0.0.1:5000/reimbursement/
+列表页，在操作列，增加“审批”按钮，点击后进入approve；审批按钮的权限
+========================================================================================================================
+数据库初始化脚本
+
+1，上传到服务器
+scp -i "/Users/renweimin/Programer/ServerKeys/renKeyForMac.pem" /Users/renweimin/PycharmProjects/FlaskProject/Git/071801/MXStoreBI6/reset_all.sh ubuntu@ec2-44-210-118-87.compute-1.amazonaws.com:/home/ubuntu/MXStoreBI6/reset_all.sh
+
+执行后，服务器上的 reset_all.sh 就会被你本地最新版覆盖。
+如需进一步操作（如赋予执行权限），可在服务器执行：
+2，授权
+chmod +x /home/ubuntu/MXStoreBI6/reset_all.sh
+3，执行
+./reset_all.sh
+========================================================================================================================
+
+
+========================================================================================================================
+
+
+========================================================================================================================
+
+
+========================================================================================================================
+
+
+========================================================================================================================
+
+
+========================================================================================================================
+
+
+========================================================================================================================
+
+
+========================================================================================================================
