@@ -13,12 +13,14 @@ from app import commands
 from app.extensions import csrf, db, login_manager, migrate
 
 # -------------------- Jinja2 过滤器 --------------------
+
 def nl2br_filter(value: Optional[str]) -> Markup:
     """将换行符转换为 <br>，用于模板安全换行显示"""
     if value is None:
         return Markup("")
     escaped = escape(str(value))
     return Markup(re.sub(r"(\r\n|\r|\n)", "<br>\n", escaped))
+
 
 def date_filter(value, fmt="%Y"):
     """自定义Jinja2日期格式化过滤器，支持 'now' 字符串、datetime对象、ISO日期字符串"""
@@ -33,13 +35,16 @@ def date_filter(value, fmt="%Y"):
             return value
     return dt.strftime(fmt)
 
+
 def strftime_filter(value, format='%Y-%m-%d %H:%M:%S'):
     """Jinja2 filter to format datetime objects using strftime."""
     if isinstance(value, datetime):
         return value.strftime(format)
     return value  # 如果不是 datetime 对象，则原样返回
 
+
 # -------------------- Flask 应用工厂 --------------------
+
 def create_app(config: object) -> Flask:
     """Flask应用工厂函数"""
     app = Flask(__name__)
@@ -59,7 +64,7 @@ def create_app(config: object) -> Flask:
     # 注册自定义 Jinja2 过滤器
     app.jinja_env.filters["date"] = date_filter
     app.jinja_env.filters["nl2br"] = nl2br_filter
-    app.jinja_env.filters["strftime"] = strftime_filter # 注册 strftime 过滤器
+    app.jinja_env.filters["strftime"] = strftime_filter  # 注册 strftime 过滤器
 
     # 注入当前时间到模板
     @app.context_processor
@@ -93,12 +98,14 @@ def create_app(config: object) -> Flask:
     # 用户加载回调
     @login_manager.user_loader
     def load_user(user_id: int) -> Optional["User"]:
-        from app.models import User  # 本地导入解决循环引用
+        from app.models.user import User  # 本地导入解决循环引用
         return User.query.get(user_id)
 
     return app
 
+
 # -------------------- 日志配置 --------------------
+
 def configure_logging(app: Flask):
     """配置日志文件滚动"""
     handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3, encoding='utf-8')
@@ -108,7 +115,9 @@ def configure_logging(app: Flask):
     app.logger.addHandler(handler)
     app.logger.setLevel(logging.INFO)
 
+
 # -------------------- 生产环境配置校验 --------------------
+
 def validate_production_config(app: Flask):
     """生产环境下必须配置的关键参数校验"""
     REQUIRED_KEYS = ["SECRET_KEY", "SQLALCHEMY_DATABASE_URI"]
@@ -118,7 +127,9 @@ def validate_production_config(app: Flask):
                 app.logger.error(f"生产环境必须配置 {key}")
                 raise ValueError(f"生产环境必须配置 {key}")
 
+
 # -------------------- 蓝图注册 --------------------
+
 def register_blueprints(app: Flask):
     """注册所有蓝图"""
     # 导入各功能模块的蓝图
@@ -137,7 +148,9 @@ def register_blueprints(app: Flask):
     app.register_blueprint(reimbursement_bp, url_prefix="/reimbursement")  # 财务报销模块
     app.register_blueprint(sales_manage_bp)  # 注册营业信息管理蓝图
 
+
 # -------------------- 错误处理 --------------------
+
 def handle_app_error(app: Flask, error: Exception, code: int) -> tuple:
     """统一错误处理"""
     app.logger.error(f"错误 {code}: {error}", exc_info=True)
