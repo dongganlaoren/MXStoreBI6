@@ -1,25 +1,36 @@
 # app/commands.py
 import click
-from flask import current_app
 from flask.cli import with_appcontext
 
-from app.utils.fake_data import generate_fake_data
+from app.extensions import db
+from app.utils.fake_data import (
+    create_fake_daily_sales,
+    create_fake_reimbursements,
+    create_fake_stores,
+    create_fake_users,
+)
 
 
-@click.command("fake-data")
+@click.command()
 @with_appcontext
-def fake_data_command():
-    """
-    生成测试数据，并清理重复归档日报。
-    """
-    click.echo("开始生成测试数据...")
-    generate_fake_data()
-    click.echo("测试数据生成完毕！")
+def init_db():
+    """初始化数据库"""
+    db.create_all()
+    click.echo("Initialized the database.")
 
 
-def register_commands(app):
-    app.cli.add_command(fake_data_command)
+@click.command()
+@with_appcontext
+def create_fake_data():
+    """创建测试数据"""
+    create_fake_users()
+    create_fake_stores()
+    create_fake_daily_sales()
+    create_fake_reimbursements()
+    click.echo("Created fake data.")
 
 
-# 兼容旧用法，提供init_app别名
-init_app = register_commands
+def init_app(app):
+    """初始化命令"""
+    app.cli.add_command(init_db)
+    app.cli.add_command(create_fake_data)

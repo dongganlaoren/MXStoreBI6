@@ -1,18 +1,20 @@
 # app/__init__.py
 
 import logging
+import os
 import re
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 
-from flask import Flask, render_template, g, request, session
+from flask import Flask, g, render_template, request
 from markupsafe import Markup, escape
 
 from app import commands
 from app.extensions import csrf, db, login_manager, migrate
 
 # -------------------- Jinja2 过滤器 --------------------
+
 
 def nl2br_filter(value: Optional[str]) -> Markup:
     """将换行符转换为 <br>，用于模板安全换行显示"""
@@ -36,7 +38,7 @@ def date_filter(value, fmt="%Y"):
     return dt.strftime(fmt)
 
 
-def strftime_filter(value, format='%Y-%m-%d %H:%M:%S'):
+def strftime_filter(value, format="%Y-%m-%d %H:%M:%S"):
     """Jinja2 filter to format datetime objects using strftime."""
     if isinstance(value, datetime):
         return value.strftime(format)
@@ -44,6 +46,7 @@ def strftime_filter(value, format='%Y-%m-%d %H:%M:%S'):
 
 
 # -------------------- Flask 应用工厂 --------------------
+
 
 def create_app(config: object) -> Flask:
     """Flask应用工厂函数"""
@@ -64,7 +67,7 @@ def create_app(config: object) -> Flask:
     # 注册自定义 Jinja2 过滤器
     app.jinja_env.filters["date"] = date_filter
     app.jinja_env.filters["nl2br"] = nl2br_filter
-    app.jinja_env.filters["strftime"] = strftime_filter  # 注册 strftime 过滤器
+    app.jinja_env.filters["strftime"] = strftime_filter
 
     # 注入当前时间到模板
     @app.context_processor
@@ -73,85 +76,90 @@ def create_app(config: object) -> Flask:
         向所有模板注入 'now' 变量，其值为当前UTC时间。
         用法：{{ now.year }}
         """
-        return {'now': datetime.utcnow()}
+        return {"now": datetime.utcnow()}
 
+    @app.context_processor
     def inject_lang_dict():
-        lang = request.args.get('lang')
-        if lang:
-            session['lang'] = lang
-        else:
-            lang = session.get('lang', None)
-        if not lang:
-            lang = getattr(g, 'lang', None) or 'zh'
-        from app.utils.lang_dict import lang_dict
-        # 设置g.lang，方便后续代码使用
-        g.lang = lang
-        return {'lang_dict': lang_dict.get(lang, lang_dict['zh']), 'current_lang': lang}
+        from app.utils.lang_dict import get_lang_dict
 
-    # 注册全局模板变量
-    app.context_processor(inject_lang_dict)
+        lang = request.args.get("lang")
+        g.lang_dict = get_lang_dict(lang)
+        return {"lang_dict": g.lang_dict}
+
+    # 配置用户加载函数
+    @login_manager.user_loader
+    def load_user(user_id):
+        from app.models.user import User
+
+        return User.query.get(int(user_id))
 
     # 注册蓝图
-    with app.app_context():
-        register_blueprints(app)
+    from app.views.admin_user_views import admin_user_bp
+    from app.views.main_views import main_bp
+    from app.views.reimbursement_views import reimbursement_bp
+    from app.views.root_views import root_bp
+    from app.views.sales_manage_views import sales_manage_bp
+    from app.views.user_views import user_bp
 
-    # 用户加载回调
-    @login_manager.user_loader
-    def load_user(user_id: int) -> Optional["User"]:
-        from app.models.user import User  # 本地导入解决循环引用
-        return User.query.get(user_id)
+    app.register_blueprint(root_bp)
+    app.register_blueprint(user_bp, url_prefix="/user")
+    app.register_blueprint(admin_user_bp, url_prefix="/admin")
+    app.register_blueprint(main_bp, url_prefix="/main")
+    app.register_blueprint(sales_manage_bp, url_prefix="/sales")
+    app.register_blueprint(reimbursement_bp, url_prefix="/reimbursement")
+
+    # 错误处理
+    @app.errorhandler(404)
+    def not_found_error(error):
+        return render_template("errors/404.html"), 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        db.session.rollback()
+        return render_template("errors/500.html"), 500
+
+    # 全局请求处理器
+    @app.before_request
+    def before_request():
+        g.request_start_time = datetime.utcnow()
 
     return app
 
 
-# -------------------- 日志配置 --------------------
+def configure_logging(app):
+    """配置日志"""
+    if not app.debug and not app.testing:
+        if app.config["LOG_TO_STDOUT"]:
+            stream_handler = logging.StreamHandler()
+            stream_handler.setLevel(logging.INFO)
+            app.logger.addHandler(stream_handler)
+        else:
+            if not os.path.exists("logs"):
+                os.mkdir("logs")
+            file_handler = RotatingFileHandler(
+                "logs/mixue_bi.log", maxBytes=10240, backupCount=10
+            )
+            file_handler.setFormatter(
+                logging.Formatter(
+                    "%(asctime)s %(levelname)s: %(message)s "
+                    "[in %(pathname)s:%(lineno)d]"
+                )
+            )
+            file_handler.setLevel(logging.INFO)
+            app.logger.addHandler(file_handler)
 
-def configure_logging(app: Flask):
-    """配置日志文件滚动"""
-    handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3, encoding='utf-8')
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    app.logger.addHandler(handler)
-    app.logger.setLevel(logging.INFO)
-
-
-# -------------------- 生产环境配置校验 --------------------
-
-def validate_production_config(app: Flask):
-    """生产环境下必须配置的关键参数校验"""
-    REQUIRED_KEYS = ["SECRET_KEY", "SQLALCHEMY_DATABASE_URI"]
-    if app.config.get('ENV') == "production":
-        for key in REQUIRED_KEYS:
-            if not app.config.get(key):
-                app.logger.error(f"生产环境必须配置 {key}")
-                raise ValueError(f"生产环境必须配置 {key}")
-
-
-# -------------------- 蓝图注册 --------------------
-
-def register_blueprints(app: Flask):
-    """注册所有蓝图"""
-    # 导入各功能模块的蓝图
-    from app.views.main_views import main_bp           # 主页面相关
-    from app.views.root_views import root_bp           # 根路由和通用页面
-    from app.views.user_views import user_bp           # 用户相关
-    from app.views.admin_user_views import admin_user_bp # 管理员相关
-    from app.views.reimbursement_views import bp as reimbursement_bp  # 财务报销模块
-    from app.views.sales_manage_views import sales_manage_bp      # 营业信息管理相关
-
-    # 注册蓝图及其路由前缀
-    app.register_blueprint(root_bp)  # 根路由，无前缀
-    app.register_blueprint(user_bp, url_prefix="/user")  # 用户模块
-    app.register_blueprint(main_bp, url_prefix="/main")  # 主页面模块
-    app.register_blueprint(admin_user_bp)  # 管理员相关
-    app.register_blueprint(reimbursement_bp, url_prefix="/reimbursement")  # 财务报销模块
-    app.register_blueprint(sales_manage_bp)  # 注册营业信息管理蓝图
+        app.logger.setLevel(logging.INFO)
+        app.logger.info("MixueBI startup")
 
 
-# -------------------- 错误处理 --------------------
-
-def handle_app_error(app: Flask, error: Exception, code: int) -> tuple:
-    """统一错误处理"""
-    app.logger.error(f"错误 {code}: {error}", exc_info=True)
-    return render_template(f"errors/{code}.html", error=str(error)), code
+def validate_production_config(app):
+    """验证生产环境配置"""
+    if app.config.get("ENV") == "production":
+        required_configs = ["SECRET_KEY", "DATABASE_URL"]
+        missing_configs = [
+            config for config in required_configs if not app.config.get(config)
+        ]
+        if missing_configs:
+            raise RuntimeError(
+                f"生产环境缺少必要配置: {', '.join(missing_configs)}"
+            )

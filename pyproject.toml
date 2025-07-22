@@ -1,0 +1,43 @@
+## pyproject.toml
+#
+#[tool.flake8]
+## 忽略的错误码列表。
+## E501: 行太长 (超过 max-line-length)。black 会自动处理，所以这里可以忽略。
+## W503: 在二元运算符前换行。这与 black 的风格冲突，black 会在运算符后换行。
+## F401: 未使用的导入。在 __init__.py 文件中为了暴露接口而导入是常见做法，可以局部忽略。
+#ignore = ["E501", "W503"]
+#
+## 每行的最大字符数。88 是 black 的默认值，保持一致可以避免冲突。
+#max-line-length = 88
+#
+## 需要排除检查的目录或文件列表。
+## 排除虚拟环境、数据库迁移、缓存和测试产生的文件等。
+#exclude = [
+#    ".git",
+#    ".idea",
+#    ".vscode",
+#    "__pycache__",
+#    "venv",
+#    ".venv",
+#    "env",
+#    "migrations",
+#    "settings",
+#    "build",
+#    "dist",
+#]
+#
+## 针对特定文件忽略特定的错误。
+## 例如，在项目根目录的 __init__.py 和 app/__init__.py 中，我们经常导入模块以供外部使用，
+## 但这些导入在本文件中可能显示为 "未使用"，所以我们忽略 F401 错误。
+#per-file-ignores = [
+#    "__init__.py:F401",
+#    "app/__init__.py:F401",
+#    "manage.py:E402"  # manage.py 中有时需要动态导入，忽略 E402 (模块级导入不在文件顶部)
+#]
+#
+## (可选) 推荐安装和使用的插件，以增强 flake8 的检查能力。
+## 你需要在你的虚拟环境中通过 pip install flake8-bugbear flake8-comprehensions 来安装它们。
+## flake8-bugbear: 查找可能的 bug 和设计问题。
+## flake8-comprehensions: 强制使用更 Pythonic 的列表/字典/集合推导式。
+## select: 默认是检查所有 E, F, W, C90 错误。你可以在这里添加插件的错误码前缀，例如 B (bugbear)。
+#select = "E,F,W,C,B"

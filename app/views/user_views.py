@@ -1,12 +1,5 @@
 # app/views/user_views.py
 
-from app.extensions import db
-
-# 导入我们更新后的表单
-from app.forms.user_forms import EditProfileForm, LoginForm, RegistrationForm
-
-# 导入我们需要的模型和枚举
-from app.models import RoleType, User
 from flask import (
     Blueprint,
     current_app,
@@ -17,12 +10,20 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
+
+from app.extensions import db
+
+# 导入我们更新后的表单
+from app.forms.user_forms import EditProfileForm, LoginForm, RegistrationForm
+
+# 导入我们需要的模型和枚举
+from app.models import RoleType, User
 from app.utils.lang_dict import lang_dict
 
-user_bp = Blueprint('user', __name__)
+user_bp = Blueprint("user", __name__)
 
 
-@user_bp.route('/profile')
+@user_bp.route("/profile")
 @login_required
 def profile():
     """
@@ -32,14 +33,14 @@ def profile():
     # 去除无用 info 日志
     # 传递 staff_info=current_user，模板可直接用 staff_info.xxx
     return render_template(
-        'user/profile.html',
+        "user/profile.html",
         user=current_user,
         staff_info=current_user,
-        title="我的资料"
+        title="我的资料",
     )
 
 
-@user_bp.route('/profile/edit', methods=['GET', 'POST'])
+@user_bp.route("/profile/edit", methods=["GET", "POST"])
 @login_required
 def edit_profile():
     """
@@ -47,44 +48,52 @@ def edit_profile():
     门店组用户只能一次性完善，完善后不可再编辑。
     """
     # 仅门店组用户受限
-    if current_user.role in [RoleType.EMPLOYEE, RoleType.BRANCH_MANAGER] and current_user.profile_completed:
-        flash(
-            '您的员工档案已完善，无法再次修改。',
-            'warning'
-        )
-        return redirect(url_for('user.profile'))
+    if (
+        current_user.role in [RoleType.EMPLOYEE, RoleType.BRANCH_MANAGER]
+        and current_user.profile_completed
+    ):
+        flash("您的员工档案已完善，无法再次修改。", "warning")
+        return redirect(url_for("user.profile"))
 
     # 1. 使用我们全新的 EditProfileForm
-    role_choices = [(role.value, role.name.replace('_', ' ').title()) for role in RoleType]
-    form = EditProfileForm(data={
-        'role': current_user.role.value if current_user.role else '',
-        'real_name': current_user.real_name or '',
-        'employee_number': str(current_user.employee_number) if current_user.employee_number else '',
-        'id_card_number': current_user.id_card_number or '',
-        'bank_name': current_user.bank_name or '',
-        'bank_account_number': current_user.bank_account_number or '',
-        'phone': current_user.phone or '',
-        'line_id': current_user.line_id or '',
-        'email': current_user.email or '',
-        'start_date': current_user.start_date,
-        'is_primary_contact': current_user.is_primary_contact,
-        'store_id': current_user.store_id or ''
-    })
+    role_choices = [
+        (role.value, role.name.replace("_", " ").title()) for role in RoleType
+    ]
+    form = EditProfileForm(
+        data={
+            "role": current_user.role.value if current_user.role else "",
+            "real_name": current_user.real_name or "",
+            "employee_number": (
+                str(current_user.employee_number)
+                if current_user.employee_number
+                else ""
+            ),
+            "id_card_number": current_user.id_card_number or "",
+            "bank_name": current_user.bank_name or "",
+            "bank_account_number": current_user.bank_account_number or "",
+            "phone": current_user.phone or "",
+            "line_id": current_user.line_id or "",
+            "email": current_user.email or "",
+            "start_date": current_user.start_date,
+            "is_primary_contact": current_user.is_primary_contact,
+            "store_id": current_user.store_id or "",
+        }
+    )
     form.role.choices = role_choices
 
     # 2. 处理表单提交
     if form.validate_on_submit():
         try:
             form.populate_obj(current_user)
-            if hasattr(form, 'store_id'):
+            if hasattr(form, "store_id"):
                 store_id_val = form.store_id.data
-                if store_id_val == '' or store_id_val is None:
+                if store_id_val == "" or store_id_val is None:
                     current_user.store_id = None
                 else:
                     current_user.store_id = str(store_id_val)
-            if hasattr(form, 'role'):
+            if hasattr(form, "role"):
                 role_val = form.role.data
-                if role_val == '' or role_val is None:
+                if role_val == "" or role_val is None:
                     current_user.role = None
                 else:
                     try:
@@ -97,50 +106,44 @@ def edit_profile():
             # 员工编号不允许编辑，编辑时不保存
             # 保存前输出所有字段调试
             # 去除无用 info 日志
-            if current_user.role in [RoleType.EMPLOYEE, RoleType.BRANCH_MANAGER]:
+            if current_user.role in [
+                RoleType.EMPLOYEE,
+                RoleType.BRANCH_MANAGER,
+            ]:
                 current_user.profile_completed = True
             db.session.commit()
             # 去除无用 info 日志
-            flash(
-                '您的个人资料已成功更新！',
-                'success'
-            )
+            flash("您的个人资料已成功更新！", "success")
 
             # 操作成功后，重定向回个人资料查看页面
-            return redirect(url_for('user.profile'))
+            return redirect(url_for("user.profile"))
 
         except Exception as e:
             db.session.rollback()
-            current_app.logger.error(
-                f"保存用户资料时发生错误: {e}"
-            )
-            flash(
-                '保存资料时发生未知错误，请联系管理员。',
-                'danger'
-            )
+            current_app.logger.error(f"保存用户资料时发生错误: {e}")
+            flash("保存资料时发生未知错误，请联系管理员。", "danger")
 
     # 如果是GET请求或表单验证失败，渲染编辑页面
     if form.errors:
         pass
     return render_template(
-        'user/edit_profile.html',
-        form=form,
-        title="编辑我的资料"
+        "user/edit_profile.html", form=form, title="编辑我的资料"
     )
 
 
-@user_bp.route('/register', methods=['GET', 'POST'])
+@user_bp.route("/register", methods=["GET", "POST"])
 def register():
     """
     用户注册视图（已更新，处理店铺ID，支持中泰双语）
     """
-    lang = request.args.get('lang', 'zh')
+    lang = request.args.get("lang", "zh")
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for("main.index"))
 
     form = RegistrationForm()
     # 动态设置店铺下拉框选项，确保每次渲染页面都能获取到最新店铺
     from app.models import Store
+
     form.store_id.choices = [
         (s.store_id, f"{s.store_id} - {s.store_name}")
         for s in Store.query.order_by(Store.store_name).all()
@@ -174,54 +177,56 @@ def register():
             db.session.commit()
 
             login_user(new_user)  # 注册后自动登录
-            flash('恭喜您，注册成功，已自动登录！', 'success')
-            return redirect(url_for('main.index'))
+            flash("恭喜您，注册成功，已自动登录！", "success")
+            return redirect(url_for("main.index"))
 
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"用户注册数据库错误: {e}")
-            flash('注册时发生未知错误，请稍后重试。', 'danger')
+            flash("注册时发生未知错误，请稍后重试。", "danger")
 
     return render_template(
-        'user/register.html',
-        form=form,
-        lang=lang,
-        lang_dict=lang_dict[lang]
+        "user/register.html", form=form, lang=lang, lang_dict=lang_dict[lang]
     )
 
 
 # --- 登录和登出视图保持不变 ---
 
-@user_bp.route('/login', methods=['GET', 'POST'])
+
+@user_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for("main.index"))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
-        if user and user.user_status == 1 and user.check_password(form.password.data):
+        if (
+            user
+            and user.user_status == 1
+            and user.check_password(form.password.data)
+        ):
             login_user(user, remember=form.remember_me.data)
             user.last_login_time = db.func.now()  # 更新最后登录时间
             db.session.commit()
             # 去除无用 info 日志
-            return redirect(request.args.get('next') or url_for('main.index'))
+            return redirect(request.args.get("next") or url_for("main.index"))
 
         # 去除无用 warning 日志
-        flash('用户名或密码无效，或账户已被禁用。', 'warning')
+        flash("用户名或密码无效，或账户已被禁用。", "warning")
 
-    return render_template('user/login.html', form=form, title="登录")
+    return render_template("user/login.html", form=form, title="登录")
 
 
-@user_bp.route('/logout')
+@user_bp.route("/logout")
 @login_required
 def logout():
     # 去除无用 info 日志
     logout_user()
-    flash('您已成功登出。', 'success')
-    return redirect(url_for('main.index'))
+    flash("您已成功登出。", "success")
+    return redirect(url_for("main.index"))
 
 
-@user_bp.route('/staff/view')
+@user_bp.route("/staff/view")
 @login_required
 def staff_view():
     """
@@ -230,10 +235,10 @@ def staff_view():
     # staff_info 直接用 current_user
     # lang_dict 直接传递
     # current_lang 从请求参数获取
-    current_lang = request.args.get('lang', 'zh')
+    current_lang = request.args.get("lang", "zh")
     return render_template(
-        'user/staff_view.html',
+        "user/staff_view.html",
         staff_info=current_user,
         lang_dict=lang_dict.get(current_lang, {}),
-        current_lang=current_lang
+        current_lang=current_lang,
     )

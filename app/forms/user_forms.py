@@ -1,10 +1,7 @@
 # app/forms/user_forms.py
 
 # 正确导入模型
-from app.models import RoleType, Store, User
 from flask_wtf import FlaskForm
-
-# 导入所有需要的字段类型和验证器
 from wtforms import (
     BooleanField,
     DateField,
@@ -16,14 +13,29 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional
 
+from app.models import RoleType, Store, User
+
 
 class LoginForm(FlaskForm):
     """
     用户登录表单 (此表单保持不变)
     """
-    username = StringField("用户名", validators=[DataRequired()])
-    password = PasswordField("密码", validators=[DataRequired()])
-    remember_me = BooleanField('记住我')
+
+    username = StringField(
+        "用户名",
+        validators=[
+            DataRequired(message="用户名不能为空"),
+            Length(min=4, max=20, message="用户名长度必须在4-20字符之间"),
+        ],
+    )
+    password = PasswordField(
+        "密码",
+        validators=[
+            DataRequired(message="密码不能为空"),
+            Length(min=6, max=20, message="密码长度必须在6-20字符之间"),
+        ],
+    )
+    remember_me = BooleanField("记住我")
     submit = SubmitField("登录")
 
 
@@ -33,65 +45,96 @@ class RegistrationForm(FlaskForm):
     """
     用户注册表单 (已更新，包含店铺选择)
     """
-    username = StringField("用户名", validators=[DataRequired(), Length(min=4, max=64)])
-    password = PasswordField("密码", validators=[DataRequired(), Length(min=6)])
+    username = StringField(
+        "用户名",
+        validators=[
+            DataRequired(message="用户名不能为空"),
+            Length(min=4, max=20, message="用户名长度必须在4-20字符之间"),
+        ],
+    )
+    password = PasswordField(
+        "密码",
+        validators=[
+            DataRequired(message="密码不能为空"),
+            Length(min=6, max=20, message="密码长度必须在6-20字符之间"),
+        ],
+    )
     confirm_password = PasswordField(
         "确认密码",
-        validators=[DataRequired(), EqualTo("password", message="两次输入的密码必须一致！")]
+        validators=[
+            DataRequired(message="请确认密码"),
+            EqualTo("password", message="两次输入的密码必须一致！"),
+        ],
     )
     role = SelectField(
         "角色",
         # 从 RoleType 枚举动态生成选项
-        choices=[(role.value, role.name.replace('_', ' ').title()) for role in RoleType],
-        validators=[DataRequired("请选择一个角色")]
+        choices=[
+            (role.value, role.name.replace("_", " ").title())
+            for role in RoleType
+        ],
+        validators=[DataRequired("请选择一个角色")],
     )
     # 新增：所属店铺字段。设为 Optional，因为管理组用户不需要选择店铺。
-    # 具体的验证逻辑（如“店员必须选店”）将在视图函数中处理。
-    store_id = SelectField("所属店铺", choices=[], validators=[Optional()], coerce=str)
+    # 具体的验证逻辑（如"店员必须选店"）将在视图函数中处理。
+    store_id = SelectField(
+        "所属店铺", choices=[], validators=[Optional()], coerce=str
+    )
 
     submit = SubmitField("注册")
 
     def __init__(self, *args, **kwargs):
         """
-        在表单初始化时，动态填充“所属店铺”的下拉选项。
+        在表单初始化时，动态填充"所属店铺"的下拉选项。
         """
         super(RegistrationForm, self).__init__(*args, **kwargs)
         # 从数据库中查询所有店铺，并将其设置为下拉菜单的选项
-        self.store_id.choices = [("", "--- (仅门店组人员需要选择) ---")] + \
-                                [(store.store_id, f"{store.store_id} - {store.store_name}")
-                                 for store in Store.query.order_by(Store.store_name).all()]
+        self.store_id.choices = [("", "--- (仅门店组人员需要选择) ---")] + [
+            (store.store_id, f"{store.store_id} - {store.store_name}")
+            for store in Store.query.order_by(Store.store_name).all()
+        ]
 
     def validate_username(self, field):
         """自定义验证器，确保用户名在注册时不重复"""
         if User.query.filter_by(username=field.data).first():
-            raise ValidationError('该用户名已被使用，请换一个。')
+            raise ValidationError("该用户名已被使用，请换一个。")
 
     def validate_employee_number(self, field):
         # 仅分店长/员工角色需要员工编号
-        if self.role.data in ['BRANCH_MANAGER', 'EMPLOYEE']:
+        if self.role.data in ["BRANCH_MANAGER", "EMPLOYEE"]:
             if not field.data:
-                raise ValidationError('分店长和员工必须填写员工编号。')
+                raise ValidationError("分店长和员工必须填写员工编号。")
 
-            store_id = str(self.store_id.data or '')
+            store_id = str(self.store_id.data or "")
             if not store_id:
                 # 如果没有选择店铺，这个错误会由 validate_store_id 处理
                 return
 
             val = str(field.data)
             # 校验格式：店铺编号+三位序号
-            if not (val.startswith(store_id) and len(val) == len(store_id) + 3 and val[len(store_id):].isdigit()):
-                raise ValidationError('员工编号格式应为"店铺编号+三位序号"，如91001。')
+            if not (
+                val.startswith(store_id)
+                and len(val) == len(store_id) + 3
+                and val[len(store_id):].isdigit()
+            ):
+                raise ValidationError(
+                    '员工编号格式应为"店铺编号+三位序号"，如91001。'
+                )
 
             # 唯一性校验
-            existing_user = User.query.filter_by(employee_number=int(val)).first()
+            existing_user = User.query.filter_by(
+                employee_number=int(val)
+            ).first()
             if existing_user:
-                raise ValidationError('该员工编号已被使用，请换一个序号。')
+                raise ValidationError("该员工编号已被使用，请换一个序号。")
 
     def validate_store_id(self, field):
         # 仅分店长/员工角色必须选择店铺
-        if self.role.data in ['BRANCH_MANAGER', 'EMPLOYEE']:
-            if not field.data or field.data == '':
-                raise ValidationError('作为门店组成员，您必须选择一个所属店铺。')
+        if self.role.data in ["BRANCH_MANAGER", "EMPLOYEE"]:
+            if not field.data or field.data == "":
+                raise ValidationError(
+                    "作为门店组成员，您必须选择一个所属店铺。"
+                )
 
     def validate(self, extra_validators=None):
         initial_validation = super().validate(extra_validators)
@@ -102,10 +145,13 @@ class RegistrationForm(FlaskForm):
         # 需要选择店铺和员工编号的角色
         must_choose_store = ["BRANCH_MANAGER", "EMPLOYEE"]
         if role in must_choose_store:
-            if not self.store_id.data or self.store_id.data == '':
+            if not self.store_id.data or self.store_id.data == "":
                 self.store_id.errors.append("该角色必须选择所属店铺")
                 return False
-            if not self.employee_number.data or self.employee_number.data.strip() == '':
+            if (
+                not self.employee_number.data
+                or self.employee_number.data.strip() == ""
+            ):
                 self.employee_number.errors.append("该角色必须填写员工编号")
                 return False
         return True
@@ -116,52 +162,78 @@ class EditProfileForm(FlaskForm):
     【全新】供所有用户编辑自己个人档案的表单。
     这些字段直接对应 User 模型中新增的字段。
     """
-    real_name = StringField("真实姓名", validators=[DataRequired("请输入真实姓名"), Length(max=100)])
+
+    real_name = StringField(
+        "真实姓名",
+        validators=[
+            DataRequired("请输入真实姓名"),
+            Length(max=100, message="真实姓名不能超过100字符"),
+        ],
+    )
     employee_number = StringField("员工编号", validators=[Optional()])
-    id_card_number = StringField("身份证号", validators=[Optional(), Length(max=100)])
-
-    # 银行信息
-    bank_name = StringField("银行名称", validators=[Optional(), Length(max=100)])
-    bank_account_number = StringField("银行账号", validators=[Optional(), Length(max=100)])
-
-    # 联系方式
-    phone = StringField("联系电话", validators=[Optional(), Length(max=50)])
-    line_id = StringField("LINE ID", validators=[Optional(), Length(max=100)])
-    email = StringField("电子邮箱", validators=[Optional(), Email("请输入有效的邮箱地址"), Length(max=100)])
-
-    # 在职信息
-    start_date = DateField("入职日期", validators=[Optional()], format='%Y-%m-%d')
-    end_date = DateField("离职日期", validators=[Optional()], format='%Y-%m-%d')
-
-    # 店铺主要联系人
-    is_primary_contact = BooleanField("我是店铺的主要联系人", default=False)
-
-    # 新增：所属门店字段，和注册表单一致
-    store_id = SelectField("所属门店", coerce=str, validators=[Optional()])
-    # 新增：角色字段，和注册表单一致
-    role = SelectField(
-        "角色",
-        choices=[(role.value, role.name.replace('_', ' ').title()) for role in RoleType],
-        validators=[DataRequired("请选择一个角色")]
+    id_card_number = StringField(
+        "身份证号",
+        validators=[
+            Optional(),
+            Length(max=100, message="身份证号不能超过100字符"),
+        ],
     )
 
-    submit = SubmitField("保存我的资料")
+    # 银行信息
+    bank_name = StringField(
+        "银行名称",
+        validators=[
+            Optional(),
+            Length(max=100, message="银行名称不能超过100字符"),
+        ],
+    )
+    bank_account_number = StringField(
+        "银行账号",
+        validators=[
+            Optional(),
+            Length(max=100, message="银行账号不能超过100字符"),
+        ],
+    )
 
-    def __init__(self, *args, **kwargs):
-        super(EditProfileForm, self).__init__(*args, **kwargs)
-        self.store_id.choices = [("", "--- (仅门店组人员需要选择) ---")] + \
-            [(str(store.store_id), f"{store.store_id} - {store.store_name}")
-             for store in Store.query.order_by(Store.store_name).all()]
-        self.role.choices = [(role.value, role.name.replace('_', ' ').title()) for role in RoleType]
+    # 紧急联系人信息
+    emergency_contact_name = StringField(
+        "紧急联系人姓名",
+        validators=[
+            Optional(),
+            Length(max=100, message="紧急联系人姓名不能超过100字符"),
+        ],
+    )
+    emergency_contact_phone = StringField(
+        "紧急联系人电话",
+        validators=[
+            Optional(),
+            Length(max=20, message="紧急联系人电话不能超过20字符"),
+        ],
+    )
 
-    def validate_employee_number(self, field):
-        # 只校验唯一性，不限制格式
-        if field.data:
-            val = str(field.data)
-            try:
-                emp_num = int(val)
-            except Exception:
-                raise ValidationError('员工编号必须为数字。')
-            existing_user = User.query.filter_by(employee_number=emp_num).first()
-            if existing_user and (not hasattr(self, 'user_id') or existing_user.id != getattr(self, 'user_id', None)):
-                raise ValidationError('该员工编号已被使用，请换一个序号。')
+    # 个人信息
+    birth_date = DateField("出生日期", validators=[Optional()])
+    address = StringField(
+        "住址",
+        validators=[
+            Optional(),
+            Length(max=200, message="住址不能超过200字符"),
+        ],
+    )
+    phone = StringField(
+        "电话号码",
+        validators=[
+            Optional(),
+            Length(max=20, message="电话号码不能超过20字符"),
+        ],
+    )
+    email = StringField(
+        "邮箱",
+        validators=[
+            Optional(),
+            Email(message="请输入有效的邮箱地址"),
+            Length(max=120, message="邮箱不能超过120字符"),
+        ],
+    )
+
+    submit = SubmitField("保存")

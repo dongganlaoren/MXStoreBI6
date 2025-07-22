@@ -1,0 +1,36 @@
+# .flake8
+
+[flake8]
+# 忽略的错误码列表，用逗号分隔
+# E501: 行太长 (由 black 工具处理)
+# W503: 在二元运算符前换行 (与 black 风格冲突)
+ignore = E501, W503
+
+# 每行的最大字符数，与 black 保持一致
+max-line-length = 88
+
+# 需要排除检查的目录或文件列表，用逗号分隔
+exclude =
+    .git,
+    .idea,
+    .vscode,
+    __pycache__,
+    venv,
+    .venv,
+    env,
+    migrations,
+    settings,
+    build,
+    dist,
+    docs
+
+# 针对特定文件忽略特定的错误，用逗号分隔
+per-file-ignores =
+    __init__.py:F401,
+    app/__init__.py:F401,
+    manage.py:E402,
+    app/tests/test_*.py:E402
+
+# 选择要启用的错误/警告类别
+# E,F,W 是 flake8 默认, C 是 mccabe 复杂度, B 是 bugbear 插件
+select = E,F,W,C,B
