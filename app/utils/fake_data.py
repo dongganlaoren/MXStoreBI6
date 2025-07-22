@@ -1,48 +1,4 @@
 import random
-from datetime import date, timedelta
-from app.extensions import db
-from app.models import Store, DailySales, RoleType, user
-from app.models.enums import FinancialCheckStatus
-
-def generate_no_takeaway_store_test_data():
-    """
-    生成部分未开通外卖平台的门店及其近一周日报（无T1），以及部分正常门店（有T1），用于首页展示测试。
-    """
-    # 创建2个未开通外卖平台的门店
-    for i in range(2):
-        store = Store(store_id=f"NO_T1_{i+1}", store_name=f"无外卖门店{i+1}", third_party_platform=False)
-        db.session.add(store)
-    # 创建2个正常门店
-    for i in range(2):
-        store = Store(store_id=f"T1_{i+1}", store_name=f"有外卖门店{i+1}", third_party_platform=True)
-        db.session.add(store)
-    db.session.commit()
-
-    today = date.today()
-    # 为每个门店生成近7天日报
-    for store in Store.query.all():
-        for d in range(7):
-            report_date = today - timedelta(days=d)
-            # 随机生成营业额，金额保留2位小数
-            t0 = round(random.uniform(1000, 3000), 2)
-            t1 = round(random.uniform(500, 1500), 2) if store.third_party_platform else 0.0
-            s = round(t0 + t1 + random.uniform(100, 500), 2)
-            daily = DailySales(
-                store_id=store.store_id,
-                user_id=1,
-                report_date=report_date,
-                pos_total=t0,
-                takeaway_amount=t1,
-                actual_sales=s,
-                financial_check_status=FinancialCheckStatus.APPROVED
-            )
-            db.session.add(daily)
-    db.session.commit()
-
-if __name__ == "__main__":
-    generate_no_takeaway_store_test_data()
-# app/utils/fake_data.py
-import random
 from datetime import date, datetime, timedelta
 
 from app.extensions import db

@@ -13,3 +13,5 @@ Faker
 Werkzeug
 click
 email_validator
+pytest
+flake8

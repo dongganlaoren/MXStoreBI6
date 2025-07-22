@@ -45,14 +45,22 @@ chmod +x /home/ubuntu/MXStoreBI6/reset_all.sh
 3，执行
 ./reset_all.sh
 ========================================================================================================================
-
-
-========================================================================================================================
-
+scp -i "/Users/renweimin/Library/Mobile Documents/com~apple~CloudDocs/ServerKeys/renwm-mac-alibaba-ecs.pem" /Users/renweimin/PycharmProjects/FlaskProject/Git/071801/MXStoreBI6/config_templates/.env.production root@gothaieasy.fun:/root/.env
 
 ========================================================================================================================
 
+scp -i "/Users/renweimin/Library/Mobile Documents/com~apple~CloudDocs/ServerKeys/renwm-mac-alibaba-ecs.pem" /Users/renweimin/PycharmProjects/FlaskProject/Git/071801/MXStoreBI6/config_templates/nginx.conf.example root@gothaieasy.fun:/etc/nginx/sites-available/MXStoreBI6
 
+参数说明：
+scp：安全复制命令，用于在本地和远程服务器之间传输文件。
+-i "..."：指定 SSH 私钥文件，用于身份验证。
+/Users/renweimin/PycharmProjects/FlaskProject/Git/071801/MXStoreBI6/config_templates/nginx.conf.example：本地要上传的文件路径。
+root@gothaieasy.fun：服务器的登录用户名和域名。
+/etc/nginx/sites-available/MXStoreBI6：服务器上的目标路径和文件名。
+
+========================================================================================================================
+
+➜  ~ scp -i "/Users/renweimin/Library/Mobile Documents/com~apple~CloudDocs/ServerKeys/renwm-mac-alibaba-ecs.pem" /Users/renweimin/PycharmProjects/FlaskProject/Git/071801/MXStoreBI6/config_templates/supervisor.conf.example root@gothaieasy.fun:/etc/supervisor/conf.d/MXStoreBI6.conf
 ========================================================================================================================
 
 

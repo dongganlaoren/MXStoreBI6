@@ -1,14 +1,11 @@
 [program:MXStoreBI6]
-command=/home/ubuntu/MXStoreBI6/venv/bin/gunicorn --workers 4 --bind 0.0.0.0:8000 run:app
-# 或者使用 sock 文件方式：
-# command=/home/ubuntu/MXStoreBI6/venv/bin/gunicorn --workers 4 --bind unix:/home/ubuntu/MXStoreBI6/mixuebi.sock -m 007 run:app
-
-directory=/home/ubuntu/MXStoreBI6
-user=ubuntu
+command=/root/MXStoreBI6/venv/bin/gunicorn --workers 4 --bind 0.0.0.0:8000 run:app
+directory=/root/MXStoreBI6
+user=root
 autostart=true
 autorestart=true
 stderr_logfile=/var/log/supervisor/MXStoreBI6_err.log
 stdout_logfile=/var/log/supervisor/MXStoreBI6_out.log
 environment=FLASK_APP="run.py",FLASK_ENV="production"
 # 如需设置更多环境变量，可在此添加
-# environment=FLASK_APP="run.py",FLASK_ENV="production",SECRET_KEY="b7e4c9f1-MyBI-2025-ProductionKey!@#",DATABASE_URL="mysql+pymysql://mixuebi_user:J7#p2Qm9!Lx$5vR*@localhost:3306/MXStoreBI_Production"
+# environment=FLASK_APP="run.py",FLASK_ENV="production",SECRET_KEY="b7e4c9f1-MyBI-2025-ProductionKey!@#",DATABASE_URL="mysql+pymysql://mixuebi_user:J7#p2Qm9!Lx$5vR*@/MXStoreBI_Production?unix_socket=/var/run/mysqld/mysqld.sock"

@@ -1,0 +1,45 @@
+name: CI/CD Deploy
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 代码质量检查（flake8）
+        run: flake8 app
+
+      - name: 自动化测试（pytest）
+        run: pytest
+
+      - name: 部署到服务器
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            cd /root/MXStoreBI6
+            git pull
+            source venv/bin/activate
+            pip install -r requirements.txt
+            sudo supervisorctl restart MXStoreBI6
