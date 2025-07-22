@@ -1,7 +1,6 @@
 # MXStoreBI/app/models/daily_sales.py
 
 from datetime import datetime
-from flask import current_app
 
 from app.extensions import db
 from .enums import FinancialCheckStatus
@@ -72,8 +71,12 @@ class DailySales(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')
 
     # 附件关联
-    attachments = db.relationship('DailySalesAttachments', backref='daily_sale', lazy='dynamic',
-                                  cascade="all, delete-orphan")
+    attachments = db.relationship(
+        'DailySalesAttachments',
+        backref='daily_sale',
+        lazy='dynamic',
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f'<DailySales {self.report_id} for Store {self.store_id} on {self.report_date}>'
@@ -86,18 +89,36 @@ class DailySales(db.Model):
         - 理论营收总金额（T2）= 店铺理论营业额（T0） + 第三方外卖平台收入（T1） - POS机小票里显示的代金券总金额 - 银行存款手续费
         - 实际总营业额(S)=第三方外卖平台收入(T1)+外卖收入+电子支付实际入账金额+银行存款金额
         - 总误差 = 电子支付实际入账金额 + 银行存款金额 + 银行存款手续费 - POS机小票电子支付收入 - POS机小票现金收入
-        
         """
         # 店铺理论营业额 T0 = 现金收入 + 电子支付收入 + 外卖收入 + 代金券使用金额
-        self.pos_total = (self.cash_income or 0) + (self.pos_income or 0) + (self.day_pass_income or 0) + (self.voucher_amount or 0)
+        self.pos_total = (
+            (self.cash_income or 0)
+            + (self.pos_income or 0)
+            + (self.day_pass_income or 0)
+            + (self.voucher_amount or 0)
+        )
         # 理论营收总金额 T2
-        self.theoretical_total = self.pos_total + (self.takeaway_amount or 0) - (self.voucher_amount or 0) - (self.bank_fee or 0)
-        # 电子支付实际入账金额 EA 由用户填写，不再自动计算
-        # self.electronic_actual_arrival = (self.pos_income or 0) + (self.electronic_difference or 0)
+        self.theoretical_total = (
+            self.pos_total
+            + (self.takeaway_amount or 0)
+            - (self.voucher_amount or 0)
+            - (self.bank_fee or 0)
+        )
         # 实际总营业额 S = 第三方外卖平台收入(T1) + 外卖收入 + 电子支付实际入账金额 + 银行存款金额
-        self.actual_sales = (self.takeaway_amount or 0) + (self.day_pass_income or 0) + (self.electronic_actual_arrival or 0) + (self.bank_deposit or 0)
+        self.actual_sales = (
+            (self.takeaway_amount or 0)
+            + (self.day_pass_income or 0)
+            + (self.electronic_actual_arrival or 0)
+            + (self.bank_deposit or 0)
+        )
         # 总误差 E = 电子支付实际入账金额 + 银行存款金额 + 银行存款手续费 - POS机小票电子支付总金额 - POS机小票现金总金额
-        self.total_error = (self.electronic_actual_arrival or 0) + (self.bank_deposit or 0) + (self.bank_fee or 0) - (self.pos_income or 0) - (self.cash_income or 0)
+        self.total_error = (
+            (self.electronic_actual_arrival or 0)
+            + (self.bank_deposit or 0)
+            + (self.bank_fee or 0)
+            - (self.pos_income or 0)
+            - (self.cash_income or 0)
+        )
 
     def to_dict(self):
         """

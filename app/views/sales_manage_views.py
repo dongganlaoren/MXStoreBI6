@@ -129,7 +129,11 @@ def create():
         db.session.commit()
         flash('日报创建成功！', 'success')
         return redirect(url_for('sales_manage.manage_list'))
-    return render_template('sales_manage/create.html', form=form, show_takeaway=show_takeaway)
+    return render_template(
+        'sales_manage/create.html',
+        form=form,
+        show_takeaway=show_takeaway
+    )
 
 # 日报审核/编辑
 @sales_manage_bp.route('/manage/check/<int:report_id>', methods=['GET', 'POST'])
@@ -340,4 +344,8 @@ def manage_report_create():
         db.session.commit()
         flash('日报创建成功！', 'success')
         return redirect(url_for('sales_manage.manage_report_list'))
-    return render_template('sales_manage/create.html', form=form, show_takeaway=show_takeaway)
+    return render_template(
+        'sales_manage/create.html',
+        form=form,
+        show_takeaway=show_takeaway
+    )

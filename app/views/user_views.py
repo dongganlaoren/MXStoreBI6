@@ -31,7 +31,12 @@ def profile():
     """
     # 去除无用 info 日志
     # 传递 staff_info=current_user，模板可直接用 staff_info.xxx
-    return render_template('user/profile.html', user=current_user, staff_info=current_user, title="我的资料")
+    return render_template(
+        'user/profile.html',
+        user=current_user,
+        staff_info=current_user,
+        title="我的资料"
+    )
 
 
 @user_bp.route('/profile/edit', methods=['GET', 'POST'])
@@ -43,7 +48,10 @@ def edit_profile():
     """
     # 仅门店组用户受限
     if current_user.role in [RoleType.EMPLOYEE, RoleType.BRANCH_MANAGER] and current_user.profile_completed:
-        flash('您的员工档案已完善，无法再次修改。', 'warning')
+        flash(
+            '您的员工档案已完善，无法再次修改。',
+            'warning'
+        )
         return redirect(url_for('user.profile'))
 
     # 1. 使用我们全新的 EditProfileForm
@@ -82,7 +90,9 @@ def edit_profile():
                     try:
                         current_user.role = RoleType(role_val)
                     except Exception as err:
-                        current_app.logger.error(f"非法role值: {role_val}, 错误: {err}")
+                        current_app.logger.error(
+                            f"非法role值: {role_val}, 错误: {err}"
+                        )
                         current_user.role = None
             # 员工编号不允许编辑，编辑时不保存
             # 保存前输出所有字段调试
@@ -91,21 +101,32 @@ def edit_profile():
                 current_user.profile_completed = True
             db.session.commit()
             # 去除无用 info 日志
-            flash('您的个人资料已成功更新！', 'success')
+            flash(
+                '您的个人资料已成功更新！',
+                'success'
+            )
 
             # 操作成功后，重定向回个人资料查看页面
             return redirect(url_for('user.profile'))
 
         except Exception as e:
-            import traceback
             db.session.rollback()
-            current_app.logger.error(f"保存用户资料时发生错误: {e}")
-            flash('保存资料时发生未知错误，请联系管理员。', 'danger')
+            current_app.logger.error(
+                f"保存用户资料时发生错误: {e}"
+            )
+            flash(
+                '保存资料时发生未知错误，请联系管理员。',
+                'danger'
+            )
 
     # 如果是GET请求或表单验证失败，渲染编辑页面
     if form.errors:
         pass
-    return render_template('user/edit_profile.html', form=form, title="编辑我的资料")
+    return render_template(
+        'user/edit_profile.html',
+        form=form,
+        title="编辑我的资料"
+    )
 
 
 @user_bp.route('/register', methods=['GET', 'POST'])
@@ -120,7 +141,10 @@ def register():
     form = RegistrationForm()
     # 动态设置店铺下拉框选项，确保每次渲染页面都能获取到最新店铺
     from app.models import Store
-    form.store_id.choices = [(s.store_id, f"{s.store_id} - {s.store_name}") for s in Store.query.order_by(Store.store_name).all()]
+    form.store_id.choices = [
+        (s.store_id, f"{s.store_id} - {s.store_name}")
+        for s in Store.query.order_by(Store.store_name).all()
+    ]
 
     if form.validate_on_submit():
         # 根据角色决定是否需要店铺ID
@@ -138,13 +162,12 @@ def register():
                 if form.employee_number.data:  # 确保数据存在且不为空
                     employee_number = int(form.employee_number.data)
 
-            # 创建用户实例
-            new_user = User(
-                username=form.username.data,
-                role=role,
-                store_id=store_id,
-                employee_number=employee_number
-            )
+            # 创建用户实例（改为属性赋值方式）
+            new_user = User()
+            new_user.username = form.username.data
+            new_user.role = role
+            new_user.store_id = store_id
+            new_user.employee_number = employee_number
             new_user.set_password(form.password.data)
 
             db.session.add(new_user)
