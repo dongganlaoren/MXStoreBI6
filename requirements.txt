@@ -12,4 +12,7 @@ isort
 Faker
 Werkzeug
 click
+flake8
 email_validator
+black
+gunicorn
