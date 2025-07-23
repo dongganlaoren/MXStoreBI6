@@ -110,3 +110,6 @@ class ReimbursementAttachment(db.Model):
         nullable=False,
         comment="上传时间",
     )
+
+# 兼容性导出 Reimbursement
+Reimbursement = ReimbursementRequest
