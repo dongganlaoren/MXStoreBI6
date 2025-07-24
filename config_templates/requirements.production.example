@@ -1,0 +1,17 @@
+Flask
+python-dotenv
+Flask-Migrate
+WTForms
+SQLAlchemy
+MarkupSafe
+alembic
+PyMySQL
+Flask-WTF
+flask-login
+Werkzeug
+click
+email_validator
+gunicorn
+faker
+
+
