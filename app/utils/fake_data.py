@@ -1,64 +1,28 @@
+"""
+fake_data.py
+
+功能说明：
+本模块用于开发和测试环境下，自动生成基础测试数据。
+主要功能：
+1. 自动清空当前数据库下所有业务表（排除 alembic_version），并根据数据库类型自动处理外键约束。
+2. 生成门店、用户等基础数据。
+3. 可扩展生成日报等业务数据（示例代码已注释）。
+
+注意事项：
+- 清空表数据时不会影响 alembic_version 表，确保数据库迁移版本管理正常。
+- 仅建议在开发或测试环境下使用，勿在生产环境运行。
+"""
+
 import random
-from datetime import date, timedelta
-from app.extensions import db
-from app.models import Store, DailySales, RoleType, user
-from app.models.enums import FinancialCheckStatus
+from datetime import datetime
 
-def generate_no_takeaway_store_test_data():
-    """
-    生成部分未开通外卖平台的门店及其近一周日报（无T1），以及部分正常门店（有T1），用于首页展示测试。
-    """
-    # 创建2个未开通外卖平台的门店
-    for i in range(2):
-        store = Store(store_id=f"NO_T1_{i+1}", store_name=f"无外卖门店{i+1}", third_party_platform=False)
-        db.session.add(store)
-    # 创建2个正常门店
-    for i in range(2):
-        store = Store(store_id=f"T1_{i+1}", store_name=f"有外卖门店{i+1}", third_party_platform=True)
-        db.session.add(store)
-    db.session.commit()
-
-    today = date.today()
-    # 为每个门店生成近7天日报
-    for store in Store.query.all():
-        for d in range(7):
-            report_date = today - timedelta(days=d)
-            # 随机生成营业额，金额保留2位小数
-            t0 = round(random.uniform(1000, 3000), 2)
-            t1 = round(random.uniform(500, 1500), 2) if store.third_party_platform else 0.0
-            s = round(t0 + t1 + random.uniform(100, 500), 2)
-            daily = DailySales(
-                store_id=store.store_id,
-                user_id=1,
-                report_date=report_date,
-                pos_total=t0,
-                takeaway_amount=t1,
-                actual_sales=s,
-                financial_check_status=FinancialCheckStatus.APPROVED
-            )
-            db.session.add(daily)
-    db.session.commit()
-
-if __name__ == "__main__":
-    generate_no_takeaway_store_test_data()
-# app/utils/fake_data.py
-import random
-from datetime import date, datetime, timedelta
-
-from app.extensions import db
-
-# 不再导入 StoreStaff
-from app.models import (
-    AttachmentType,
-    DailySales,
-    DailySalesAttachments,
-    FinancialCheckStatus,
-    RoleType,
-    Store,
-    User,
-)
 from faker import Faker
 from sqlalchemy import text
+
+from app.extensions import db
+# 不再导入 StoreStaff
+from app.models import (AttachmentType, DailySalesAttachments,
+                        RoleType, Store, User)
 
 # 初始化 Faker
 fake = Faker("zh_CN")  # 使用中文数据，可以生成更逼真的中文名等
@@ -83,14 +47,27 @@ def generate_fake_data():
     """
 
     try:
-        # --- 阶段一：清空并创建基础数据 (门店、用户) ---
+        # --- 阶段一：清空并创建基础数据 (自动查询所有表并清空) ---
         with db.session.begin_nested():
-            print("开始清空旧数据...")
-            db.session.execute(text('DELETE FROM daily_sales_attachments'))
-            db.session.execute(text('DELETE FROM daily_sales'))
-            db.session.execute(text('DELETE FROM users'))
-            db.session.execute(text('DELETE FROM stores'))
-            print("旧数据已清空。")
+            print("开始清空所有表数据...")
+            # 查询所有表名
+            table_names = db.engine.table_names() if hasattr(db.engine, 'table_names') else db.inspect(
+                db.engine).get_table_names()
+            # 根据数据库类型判断外键约束语句
+            db_url = db.engine.url.drivername
+            if 'sqlite' in db_url:
+                db.session.execute(text('PRAGMA foreign_keys = OFF'))
+            elif 'mysql' in db_url:
+                db.session.execute(text('SET FOREIGN_KEY_CHECKS=0'))
+            for table in table_names:
+                if table == "alembic_version":
+                    continue
+                db.session.execute(text(f'DELETE FROM {table}'))
+            if 'sqlite' in db_url:
+                db.session.execute(text('PRAGMA foreign_keys = ON'))
+            elif 'mysql' in db_url:
+                db.session.execute(text('SET FOREIGN_KEY_CHECKS=1'))
+            print("所有表数据已清空。")
 
             print("开始生成基础数据 (门店和用户)...")
             # 1. 门店数据
@@ -140,7 +117,7 @@ def generate_fake_data():
             simple_users = []
             role_list = [RoleType.ADMIN, RoleType.FINANCE, RoleType.HEAD_MANAGER]
             for idx, role in enumerate(role_list):
-                uname = chr(97+idx)*3  # aaa, bbb, ccc
+                uname = chr(97 + idx) * 3  # aaa, bbb, ccc
                 user = User(
                     username=uname,
                     role=role,

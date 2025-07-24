@@ -4,644 +4,682 @@
 
 {% block content %}
 <style>
-  :root {
-    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-    --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
-    --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
-    --border-radius: 20px;
-  }
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
+      --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
+      --border-radius: 20px;
+    }
 
-  .page-hero {
-    background: var(--primary-gradient);
-    color: white;
-    padding: 3rem 0;
-    margin: 0 -15px 3rem -15px;
-    border-radius: 0 0 var(--border-radius) var(--border-radius);
-    position: relative;
-    overflow: hidden;
-  }
+    .page-hero {
+      background: var(--primary-gradient);
+      color: white;
+      padding: 3rem 0;
+      margin: 0 -15px 3rem -15px;
+      border-radius: 0 0 var(--border-radius) var(--border-radius);
+      position: relative;
+      overflow: hidden;
+    }
 
-  .page-hero::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
-    opacity: 0.3;
-  }
+    .page-hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+      opacity: 0.3;
+    }
 
-  .page-hero-content {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-  }
+    .page-hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
 
-  .page-title {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    letter-spacing: 2px;
-  }
-
-  .page-subtitle {
-    font-size: 1.2rem;
-    opacity: 0.9;
-    margin-bottom: 0;
-  }
-
-  .profile-container {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 2rem;
-    margin-bottom: 2rem;
-  }
-
-  .profile-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .profile-card {
-    background: white;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-soft);
-    border: none;
-    overflow: hidden;
-    transition: all 0.3s ease;
-  }
-
-  .profile-card:hover {
-    box-shadow: var(--shadow-hover);
-  }
-
-  .profile-header {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-    padding: 2rem;
-    text-align: center;
-    border-bottom: 1px solid #f8f9fa;
-  }
-
-  .profile-avatar {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: var(--primary-gradient);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 3rem;
-    margin: 0 auto 1rem;
-    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
-  }
-
-  .profile-name {
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 0.5rem;
-  }
-
-  .profile-username {
-    font-size: 1rem;
-    color: #6c757d;
-    margin-bottom: 1rem;
-  }
-
-  .profile-role {
-    display: inline-block;
-    padding: 0.5rem 1.2rem;
-    border-radius: 25px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 1rem;
-  }
-
-  .role-admin {
-    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-    color: white;
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-  }
-
-  .role-finance {
-    background: linear-gradient(135deg, #74b9ff, #0984e3);
-    color: white;
-    box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
-  }
-
-  .role-head-manager {
-    background: linear-gradient(135deg, #a29bfe, #6c5ce7);
-    color: white;
-    box-shadow: 0 4px 15px rgba(162, 155, 254, 0.3);
-  }
-
-  .role-staff {
-    background: linear-gradient(135deg, #55a3ff, #003d82);
-    color: white;
-    box-shadow: 0 4px 15px rgba(85, 163, 255, 0.3);
-  }
-
-  .profile-stats {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .stat-item {
-    text-align: center;
-    padding: 0.5rem;
-  }
-
-  .stat-number {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #2c3e50;
-    display: block;
-  }
-
-  .stat-label {
-    font-size: 0.8rem;
-    color: #6c757d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .quick-actions {
-    background: white;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-soft);
-    padding: 1.5rem;
-  }
-
-  .quick-actions-title {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .action-button {
-    display: block;
-    width: 100%;
-    padding: 1rem;
-    margin-bottom: 0.8rem;
-    border: none;
-    border-radius: 12px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-  }
-
-  .action-button:hover {
-    transform: translateY(-2px);
-    text-decoration: none;
-  }
-
-  .action-edit {
-    background: var(--success-gradient);
-    color: white;
-    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
-  }
-
-  .action-edit:hover {
-    color: white;
-    box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
-  }
-
-  .action-password {
-    background: var(--warning-gradient);
-    color: white;
-    box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
-  }
-
-  .action-password:hover {
-    color: white;
-    box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
-  }
-
-  .profile-content {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  .info-section {
-    background: white;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-soft);
-    border: none;
-    overflow: hidden;
-  }
-
-  .section-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid #f8f9fa;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-  }
-
-  .section-title {
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin: 0;
-    color: #2c3e50;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .section-body {
-    padding: 1.5rem;
-  }
-
-  .info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .info-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .info-label {
-    font-weight: 500;
-    color: #6c757d;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .info-value {
-    font-weight: 600;
-    color: #2c3e50;
-    font-size: 1.1rem;
-    padding: 0.8rem 1rem;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-radius: 10px;
-    border-left: 4px solid #007bff;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  }
-
-  .info-value.empty {
-    color: #6c757d;
-    font-style: italic;
-    border-left-color: #6c757d;
-  }
-
-  .completion-progress {
-    background: white;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-soft);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .progress-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .progress-bar-container {
-    background: #f8f9fa;
-    border-radius: 10px;
-    height: 12px;
-    overflow: hidden;
-    margin-bottom: 0.5rem;
-  }
-
-  .progress-bar {
-    height: 100%;
-    background: var(--success-gradient);
-    border-radius: 10px;
-    transition: width 0.5s ease;
-  }
-
-  .progress-text {
-    font-size: 0.9rem;
-    color: #6c757d;
-    text-align: center;
-  }
-
-  @media (max-width: 768px) {
     .page-title {
-      font-size: 2rem;
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      letter-spacing: 2px;
+    }
+
+    .page-subtitle {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      margin-bottom: 0;
     }
 
     .profile-container {
-      grid-template-columns: 1fr;
-      gap: 1rem;
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .profile-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .profile-card {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-soft);
+      border: none;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .profile-card:hover {
+      box-shadow: var(--shadow-hover);
+    }
+
+    .profile-header {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+      padding: 2rem;
+      text-align: center;
+      border-bottom: 1px solid #f8f9fa;
     }
 
     .profile-avatar {
-      width: 100px;
-      height: 100px;
-      font-size: 2.5rem;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 3rem;
+      margin: 0 auto 1rem;
+      box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .profile-name {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 0.5rem;
+    }
+
+    .profile-username {
+      font-size: 1rem;
+      color: #6c757d;
+      margin-bottom: 1rem;
+    }
+
+    .profile-role {
+      display: inline-block;
+      padding: 0.5rem 1.2rem;
+      border-radius: 25px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 1rem;
+    }
+
+    .role-admin {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+      color: white;
+      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    }
+
+    .role-finance {
+      background: linear-gradient(135deg, #74b9ff, #0984e3);
+      color: white;
+      box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
+    }
+
+    .role-head-manager {
+      background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+      color: white;
+      box-shadow: 0 4px 15px rgba(162, 155, 254, 0.3);
+    }
+
+    .role-staff {
+      background: linear-gradient(135deg, #55a3ff, #003d82);
+      color: white;
+      box-shadow: 0 4px 15px rgba(85, 163, 255, 0.3);
+    }
+
+    .profile-stats {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 0.5rem;
+    }
+
+    .stat-number {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #2c3e50;
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .quick-actions {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-soft);
+      padding: 1.5rem;
+    }
+
+    .quick-actions-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .action-button {
+      display: block;
+      width: 100%;
+      padding: 1rem;
+      margin-bottom: 0.8rem;
+      border: none;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .action-button:hover {
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
+
+    .action-edit {
+      background: var(--success-gradient);
+      color: white;
+      box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+    }
+
+    .action-edit:hover {
+      color: white;
+      box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+    }
+
+    .action-password {
+      background: var(--warning-gradient);
+      color: white;
+      box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+    }
+
+    .action-password:hover {
+      color: white;
+      box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
+    }
+
+    .profile-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .info-section {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-soft);
+      border: none;
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #f8f9fa;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin: 0;
+      color: #2c3e50;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-body {
+      padding: 1.5rem;
     }
 
     .info-grid {
-      grid-template-columns: 1fr;
-      gap: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
     }
 
-    .section-body,
-    .profile-header {
-      padding: 1rem;
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
     }
-  }
+
+    .info-label {
+      font-weight: 500;
+      color: #6c757d;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-value {
+      font-weight: 600;
+      color: #2c3e50;
+      font-size: 1.1rem;
+      padding: 0.8rem 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 10px;
+      border-left: 4px solid #007bff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .info-value.empty {
+      color: #6c757d;
+      font-style: italic;
+      border-left-color: #6c757d;
+    }
+
+    .completion-progress {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-soft);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .progress-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .progress-bar-container {
+      background: #f8f9fa;
+      border-radius: 10px;
+      height: 12px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--success-gradient);
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
+
+    .progress-text {
+      font-size: 0.9rem;
+      color: #6c757d;
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      .page-title {
+        font-size: 2rem;
+      }
+
+      .profile-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .profile-avatar {
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .section-body,
+      .profile-header {
+        padding: 1rem;
+      }
+    }
 </style>
 
 <div class="page-hero">
-  <div class="container page-hero-content">
-    <h1 class="page-title">👤 {{ lang_dict['profile_title'] if lang_dict.get('profile_title') else '个人资料' }}</h1>
-    <p class="page-subtitle">{{ lang_dict['profile_subtitle'] if lang_dict.get('profile_subtitle') else 'My Profile' }}</p>
-  </div>
+    <div class="container page-hero-content">
+        <h1 class="page-title">👤 {{ lang_dict['profile_title'] if lang_dict.get('profile_title') else '个人资料' }}</h1>
+        <p class="page-subtitle">{{ lang_dict['profile_subtitle'] if lang_dict.get('profile_subtitle') else 'My Profile'
+            }}</p>
+    </div>
 </div>
 
 <div class="container">
-  <div class="profile-container">
-    <!-- 左侧边栏 -->
-    <div class="profile-sidebar">
-      <!-- 用户卡片 -->
-      <div class="profile-card">
-        <div class="profile-header">
-          <div class="profile-avatar">
-            {{ current_user.username[0]|upper }}
-          </div>
-          <div class="profile-name">
-            {{ current_user.real_name or current_user.username }}
-          </div>
-          <div class="profile-username">@{{ current_user.username }}</div>
-          <div class="profile-role role-{{ current_user.role.name.lower().replace('_', '-') if current_user.role else 'unknown' }}">
-            {% if current_user.role %}
-              {% if current_user.role.name == 'ADMIN' %}
-                👑 {{ lang_dict['role_admin'] if lang_dict.get('role_admin') else '管理员' }}
-              {% elif current_user.role.name == 'FINANCE' %}
-                💼 {{ lang_dict['role_finance'] if lang_dict.get('role_finance') else '财务' }}
-              {% elif current_user.role.name == 'HEAD_MANAGER' %}
-                🏢 {{ lang_dict['role_head_manager'] if lang_dict.get('role_head_manager') else '店长' }}
-              {% elif current_user.role.name == 'STAFF' %}
-                👤 {{ lang_dict['role_staff'] if lang_dict.get('role_staff') else '员工' }}
-              {% else %}
-                {{ current_user.role.name }}
-              {% endif %}
-            {% else %}
-              {{ lang_dict['role_unset'] if lang_dict.get('role_unset') else '未设置角色' }}
-            {% endif %}
-          </div>
-          <div class="profile-stats">
-            <div class="stat-item">
-              <span class="stat-number">{{ current_user.created_at.strftime('%Y') if current_user.created_at else lang_dict['unknown'] if lang_dict.get('unknown') else '未知' }}</span>
-              <span class="stat-label">{{ lang_dict['join_year'] if lang_dict.get('join_year') else '加入年份' }}</span>
-            </div>
-            <div class="stat-item">
+    <div class="profile-container">
+        <!-- 左侧边栏 -->
+        <div class="profile-sidebar">
+            <!-- 用户卡片 -->
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        {{ current_user.username[0]|upper }}
+                    </div>
+                    <div class="profile-name">
+                        {{ current_user.real_name or current_user.username }}
+                    </div>
+                    <div class="profile-username">@{{ current_user.username }}</div>
+                    <div class="profile-role role-{{ current_user.role.name.lower().replace('_', '-') if current_user.role else 'unknown' }}">
+                        {% if current_user.role %}
+                        {% if current_user.role.name == 'ADMIN' %}
+                        👑 {{ lang_dict['role_admin'] if lang_dict.get('role_admin') else '管理员' }}
+                        {% elif current_user.role.name == 'FINANCE' %}
+                        💼 {{ lang_dict['role_finance'] if lang_dict.get('role_finance') else '财务' }}
+                        {% elif current_user.role.name == 'HEAD_MANAGER' %}
+                        🏢 {{ lang_dict['role_head_manager'] if lang_dict.get('role_head_manager') else '店长' }}
+                        {% elif current_user.role.name == 'STAFF' %}
+                        👤 {{ lang_dict['role_staff'] if lang_dict.get('role_staff') else '员工' }}
+                        {% else %}
+                        {{ current_user.role.name }}
+                        {% endif %}
+                        {% else %}
+                        {{ lang_dict['role_unset'] if lang_dict.get('role_unset') else '未设置角色' }}
+                        {% endif %}
+                    </div>
+                    <div class="profile-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">{{ current_user.created_at.strftime('%Y') if current_user.created_at else lang_dict['unknown'] if lang_dict.get('unknown') else '未知' }}</span>
+                            <span class="stat-label">{{ lang_dict['join_year'] if lang_dict.get('join_year') else '加入年份' }}</span>
+                        </div>
+                        <div class="stat-item">
               <span class="stat-number">
                 {% if current_user.store %}1{% else %}0{% endif %}
               </span>
-              <span class="stat-label">{{ lang_dict['related_store'] if lang_dict.get('related_store') else '关联门店' }}</span>
+                            <span class="stat-label">{{ lang_dict['related_store'] if lang_dict.get('related_store') else '关联门店' }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- 资料完善度 -->
-      <div class="completion-progress">
-        <div class="progress-title">
-          <i class="bi bi-clipboard-check"></i>
-          {{ lang_dict['profile_completion'] if lang_dict.get('profile_completion') else '资料完善度' }}
-        </div>
-        {% set completion_fields = [
-          current_user.real_name,
-          current_user.phone,
-          current_user.email,
-          current_user.id_card_number,
-          current_user.bank_name,
-          current_user.bank_account_number
-        ] %}
-        {% set completed_count = completion_fields|select|list|length %}
-        {% set total_count = completion_fields|length %}
-        {% set completion_percentage = (completed_count / total_count * 100)|round %}
+            <!-- 资料完善度 -->
+            <div class="completion-progress">
+                <div class="progress-title">
+                    <i class="bi bi-clipboard-check"></i>
+                    {{ lang_dict['profile_completion'] if lang_dict.get('profile_completion') else '资料完善度' }}
+                </div>
+                {% set completion_fields = [
+                current_user.real_name,
+                current_user.phone,
+                current_user.email,
+                current_user.id_card_number,
+                current_user.bank_name,
+                current_user.bank_account_number
+                ] %}
+                {% set completed_count = completion_fields|select|list|length %}
+                {% set total_count = completion_fields|length %}
+                {% set completion_percentage = (completed_count / total_count * 100)|round %}
 
-        <div class="progress-bar-container">
-          <div class="progress-bar" style="width: {{ completion_percentage }}%"></div>
-        </div>
-        <div class="progress-text">
-          {{ completed_count }}/{{ total_count }} {{ lang_dict['completed'] if lang_dict.get('completed') else '项已完成' }} ({{ completion_percentage }}%)
-        </div>
-      </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: {{ completion_percentage }}%"></div>
+                </div>
+                <div class="progress-text">
+                    {{ completed_count }}/{{ total_count }} {{ lang_dict['completed'] if lang_dict.get('completed') else
+                    '项已完成' }} ({{ completion_percentage }}%)
+                </div>
+            </div>
 
-      <!-- 快捷操作 -->
-      <div class="quick-actions">
-        <div class="quick-actions-title">
-          <i class="bi bi-lightning-fill"></i>
-          {{ lang_dict['quick_actions'] if lang_dict.get('quick_actions') else '快捷操作' }}
+            <!-- 快捷操作 -->
+            <div class="quick-actions">
+                <div class="quick-actions-title">
+                    <i class="bi bi-lightning-fill"></i>
+                    {{ lang_dict['quick_actions'] if lang_dict.get('quick_actions') else '快捷操作' }}
+                </div>
+                <a href="{{ url_for('user.edit_profile') }}" class="action-button action-edit">
+                    <i class="bi bi-pencil"></i>
+                    {{ lang_dict['edit_profile'] if lang_dict.get('edit_profile') else '编辑资料' }}
+                </a>
+                <a href="#" class="action-button action-password"
+                   onclick="alert('{{ lang_dict['change_password_tip'] if lang_dict.get('change_password_tip') else '密码修改功能待开发' }}');">
+                    <i class="bi bi-key"></i>
+                    {{ lang_dict['change_password'] if lang_dict.get('change_password') else '修改密码' }}
+                </a>
+            </div>
         </div>
-        <a href="{{ url_for('user.edit_profile') }}" class="action-button action-edit">
-          <i class="bi bi-pencil"></i>
-          {{ lang_dict['edit_profile'] if lang_dict.get('edit_profile') else '编辑资料' }}
-        </a>
-        <a href="#" class="action-button action-password" onclick="alert('{{ lang_dict['change_password_tip'] if lang_dict.get('change_password_tip') else '密码修改功能待开发' }}');">
-          <i class="bi bi-key"></i>
-          {{ lang_dict['change_password'] if lang_dict.get('change_password') else '修改密码' }}
-        </a>
-      </div>
+
+        <!-- 右侧内容区 -->
+        <div class="profile-content">
+            <!-- 基本信息 -->
+            <div class="info-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="bi bi-person-fill"></i>
+                        {{ lang_dict['basic_info'] if lang_dict.get('basic_info') else '基本信息' }}
+                    </h3>
+                </div>
+                <div class="section-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['real_name'] if lang_dict.get('real_name') else '真实姓名'
+                                }}
+                            </div>
+                            <div class="info-value {{ 'empty' if not current_user.real_name }}">
+                                {{ current_user.real_name or lang_dict['not_filled'] if lang_dict.get('not_filled') else
+                                '未填写' }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['employee_number'] if lang_dict.get('employee_number')
+                                else '员工编号' }}
+                            </div>
+                            <div class="info-value {{ 'empty' if not current_user.employee_number }}">
+                                {{ current_user.employee_number or lang_dict['not_assigned'] if
+                                lang_dict.get('not_assigned') else '未分配' }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['id_card_number'] if lang_dict.get('id_card_number')
+                                else '身份证号' }}
+                            </div>
+                            <div class="info-value {{ 'empty' if not current_user.id_card_number }}">
+                                {{ current_user.id_card_number or lang_dict['not_filled'] if lang_dict.get('not_filled')
+                                else '未填写' }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['register_time'] if lang_dict.get('register_time') else
+                                '注册时间' }}
+                            </div>
+                            <div class="info-value">
+                                {{ current_user.created_at.strftime('%Y-%m-%d %H:%M:%S') if current_user.created_at else
+                                lang_dict['unknown'] if lang_dict.get('unknown') else '未知' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 工作信息 -->
+            <div class="info-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="bi bi-briefcase-fill"></i>
+                        {{ lang_dict['work_info'] if lang_dict.get('work_info') else '工作信息' }}
+                    </h3>
+                </div>
+                <div class="section-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['store_id'] if lang_dict.get('store_id') else '所属门店'
+                                }}
+                            </div>
+                            <div class="info-value {{ 'empty' if not current_user.store_id }}">
+                                {{ current_user.store_id or (lang_dict['not_assigned'] if lang_dict.get('not_assigned')
+                                else '未分配') }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['start_date'] if lang_dict.get('start_date') else
+                                '入职日期' }}
+                            </div>
+                            <div class="info-value {{ 'empty' if not current_user.start_date }}">
+                                {{ current_user.start_date or lang_dict['not_filled'] if lang_dict.get('not_filled')
+                                else '未填写' }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['end_date'] if lang_dict.get('end_date') else '离职日期'
+                                }}
+                            </div>
+                            <div class="info-value {{ 'empty' if not current_user.end_date }}">
+                                {{ current_user.end_date or lang_dict['on_job'] if lang_dict.get('on_job') else '在职'
+                                }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['is_primary_contact'] if
+                                lang_dict.get('is_primary_contact') else '主要联系人' }}
+                            </div>
+                            <div class="info-value">
+                                {{ lang_dict['yes'] if current_user.is_primary_contact and lang_dict.get('yes') else
+                                (lang_dict['no'] if lang_dict.get('no') else '❌ 否') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 联系方式 -->
+            <div class="info-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="bi bi-telephone-fill"></i>
+                        {{ lang_dict['contact_info'] if lang_dict.get('contact_info') else '联系方式' }}
+                    </h3>
+                </div>
+                <div class="section-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['phone'] if lang_dict.get('phone') else '联系电话' }}
+                            </div>
+                            <div class="info-value {{ 'empty' if not current_user.phone }}">
+                                {{ current_user.phone or lang_dict['not_filled'] if lang_dict.get('not_filled') else
+                                '未填写' }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['email'] if lang_dict.get('email') else '电子邮箱' }}
+                            </div>
+                            <div class="info-value {{ 'empty' if not current_user.email }}">
+                                {{ current_user.email or lang_dict['not_filled'] if lang_dict.get('not_filled') else
+                                '未填写' }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">LINE ID</div>
+                            <div class="info-value {{ 'empty' if not current_user.line_id }}">
+                                {{ current_user.line_id or lang_dict['not_filled'] if lang_dict.get('not_filled') else
+                                '未填写' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 银行信息 -->
+            <div class="info-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="bi bi-bank"></i>
+                        {{ lang_dict['bank_info'] if lang_dict.get('bank_info') else '银行信息' }}
+                    </h3>
+                </div>
+                <div class="section-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['bank_name'] if lang_dict.get('bank_name') else '银行名称'
+                                }}
+                            </div>
+                            <div class="info-value {{ 'empty' if not current_user.bank_name }}">
+                                {{ current_user.bank_name or lang_dict['not_filled'] if lang_dict.get('not_filled') else
+                                '未填写' }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">{{ lang_dict['bank_account_number'] if
+                                lang_dict.get('bank_account_number') else '银行账号' }}
+                            </div>
+                            <div class="info-value {{ 'empty' if not current_user.bank_account_number }}">
+                                {{ current_user.bank_account_number or lang_dict['not_filled'] if
+                                lang_dict.get('not_filled') else '未填写' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <!-- 右侧内容区 -->
-    <div class="profile-content">
-      <!-- 基本信息 -->
-      <div class="info-section">
-        <div class="section-header">
-          <h3 class="section-title">
-            <i class="bi bi-person-fill"></i>
-            {{ lang_dict['basic_info'] if lang_dict.get('basic_info') else '基本信息' }}
-          </h3>
-        </div>
-        <div class="section-body">
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['real_name'] if lang_dict.get('real_name') else '真实姓名' }}</div>
-              <div class="info-value {{ 'empty' if not current_user.real_name }}">
-                {{ current_user.real_name or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['employee_number'] if lang_dict.get('employee_number') else '员工编号' }}</div>
-              <div class="info-value {{ 'empty' if not current_user.employee_number }}">
-                {{ current_user.employee_number or lang_dict['not_assigned'] if lang_dict.get('not_assigned') else '未分配' }}
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['id_card_number'] if lang_dict.get('id_card_number') else '身份证号' }}</div>
-              <div class="info-value {{ 'empty' if not current_user.id_card_number }}">
-                {{ current_user.id_card_number or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['register_time'] if lang_dict.get('register_time') else '注册时间' }}</div>
-              <div class="info-value">
-                {{ current_user.created_at.strftime('%Y-%m-%d %H:%M:%S') if current_user.created_at else lang_dict['unknown'] if lang_dict.get('unknown') else '未知' }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 工作信息 -->
-      <div class="info-section">
-        <div class="section-header">
-          <h3 class="section-title">
-            <i class="bi bi-briefcase-fill"></i>
-            {{ lang_dict['work_info'] if lang_dict.get('work_info') else '工作信息' }}
-          </h3>
-        </div>
-        <div class="section-body">
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['store_id'] if lang_dict.get('store_id') else '所属门店' }}</div>
-              <div class="info-value {{ 'empty' if not current_user.store }}">
-                {{ '🏪 ' + current_user.store.name if current_user.store else lang_dict['not_assigned'] if lang_dict.get('not_assigned') else '未分配' }}
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['start_date'] if lang_dict.get('start_date') else '入职日期' }}</div>
-              <div class="info-value {{ 'empty' if not current_user.start_date }}">
-                {{ current_user.start_date or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['end_date'] if lang_dict.get('end_date') else '离职日期' }}</div>
-              <div class="info-value {{ 'empty' if not current_user.end_date }}">
-                {{ current_user.end_date or lang_dict['on_job'] if lang_dict.get('on_job') else '在职' }}
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['is_primary_contact'] if lang_dict.get('is_primary_contact') else '主要联系人' }}</div>
-              <div class="info-value">
-                {{ lang_dict['yes'] if current_user.is_primary_contact and lang_dict.get('yes') else (lang_dict['no'] if lang_dict.get('no') else '❌ 否') }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 联系方式 -->
-      <div class="info-section">
-        <div class="section-header">
-          <h3 class="section-title">
-            <i class="bi bi-telephone-fill"></i>
-            {{ lang_dict['contact_info'] if lang_dict.get('contact_info') else '联系方式' }}
-          </h3>
-        </div>
-        <div class="section-body">
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['phone'] if lang_dict.get('phone') else '联系电话' }}</div>
-              <div class="info-value {{ 'empty' if not current_user.phone }}">
-                {{ current_user.phone or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['email'] if lang_dict.get('email') else '电子邮箱' }}</div>
-              <div class="info-value {{ 'empty' if not current_user.email }}">
-                {{ current_user.email or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">LINE ID</div>
-              <div class="info-value {{ 'empty' if not current_user.line_id }}">
-                {{ current_user.line_id or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 银行信息 -->
-      <div class="info-section">
-        <div class="section-header">
-          <h3 class="section-title">
-            <i class="bi bi-bank"></i>
-            {{ lang_dict['bank_info'] if lang_dict.get('bank_info') else '银行信息' }}
-          </h3>
-        </div>
-        <div class="section-body">
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['bank_name'] if lang_dict.get('bank_name') else '银行名称' }}</div>
-              <div class="info-value {{ 'empty' if not current_user.bank_name }}">
-                {{ current_user.bank_name or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">{{ lang_dict['bank_account_number'] if lang_dict.get('bank_account_number') else '银行账号' }}</div>
-              <div class="info-value {{ 'empty' if not current_user.bank_account_number }}">
-                {{ current_user.bank_account_number or lang_dict['not_filled'] if lang_dict.get('not_filled') else '未填写' }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 添加滚动动画效果
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
+    document.addEventListener('DOMContentLoaded', function() {
+        // 添加滚动动画效果
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
 
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // 为所有卡片添加动画
+        document.querySelectorAll('.profile-card, .info-section, .quick-actions, .completion-progress').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'all 0.6s ease';
+            observer.observe(card);
         });
-    }, observerOptions);
 
-    // 为所有卡片添加动画
-    document.querySelectorAll('.profile-card, .info-section, .quick-actions, .completion-progress').forEach(card => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(30px)';
-        card.style.transition = 'all 0.6s ease';
-        observer.observe(card);
+        // 进度条动画
+        setTimeout(() => {
+            const progressBar = document.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.style.width = progressBar.style.width;
+            }
+        }, 500);
     });
-
-    // 进度条动画
-    setTimeout(() => {
-        const progressBar = document.querySelector('.progress-bar');
-        if (progressBar) {
-            progressBar.style.width = progressBar.style.width;
-        }
-    }, 500);
-});
 </script>
 {% endblock %}

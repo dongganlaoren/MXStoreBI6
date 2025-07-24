@@ -1,20 +1,23 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
-from flask_login import login_required, current_user
-from app.forms.reimbursement_forms import ReimbursementCreateForm, ReimbursementApproveForm
-from app.models.reimbursement import ReimbursementRequest, ReimbursementAttachment
-from app.extensions import db
-from app.models.enums import ReimbursementStatus
-from app.models.user import User
-from sqlalchemy import or_
 import logging
-import traceback
 import os
-from werkzeug.utils import secure_filename
-from app.models.enums import ReimbursementAttachmentType
-from flask import current_app
+import traceback
 from datetime import datetime, timedelta
 
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask import current_app
+from flask_login import login_required, current_user
+from sqlalchemy import or_
+from werkzeug.utils import secure_filename
+
+from app.extensions import db
+from app.forms.reimbursement_forms import ReimbursementCreateForm, ReimbursementApproveForm
+from app.models.enums import ReimbursementAttachmentType
+from app.models.enums import ReimbursementStatus
+from app.models.reimbursement import ReimbursementRequest, ReimbursementAttachment
+from app.models.user import User
+
 bp = Blueprint('reimbursement', __name__, url_prefix='/reimbursement')
+
 
 @bp.route('/')
 @login_required
@@ -77,13 +80,14 @@ def list_requests():
     requests = query.order_by(ReimbursementRequest.created_at.desc()).all()
 
     return render_template('reimbursement/list.html',
-        requests=requests,
-        category=category,
-        status=status,
-        time_range=time_range,
-        start_date=start_date,
-        end_date=end_date
-    )
+                           requests=requests,
+                           category=category,
+                           status=status,
+                           time_range=time_range,
+                           start_date=start_date,
+                           end_date=end_date
+                           )
+
 
 @bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -92,7 +96,11 @@ def create():
     if form.validate_on_submit():
         try:
             # 类型转换，确保与模型一致
-            store_id = form.store_id.data or None
+            # 如果是公摊成本，store_id强制为None
+            if form.primary_category.data == 'SHARED_COST':
+                store_id = None
+            else:
+                store_id = form.store_id.data or None
             approver_id = int(form.approver_id.data) if form.approver_id.data else None
             req = ReimbursementRequest(
                 primary_category=form.primary_category.data,
@@ -143,12 +151,14 @@ def create():
         print("表单校验失败:", form.errors)
     return render_template('reimbursement/create.html', form=form)
 
+
 @bp.route('/<int:request_id>')
 @login_required
 def detail(request_id):
     req = ReimbursementRequest.query.get_or_404(request_id)
     attachments = req.attachments.all()
     return render_template('reimbursement/detail.html', req=req, attachments=attachments)
+
 
 @bp.route('/<int:request_id>/approve', methods=['GET', 'POST'])
 @login_required
@@ -187,6 +197,7 @@ def approve(request_id):
         return redirect(url_for('reimbursement.detail', request_id=request_id))
     return render_template('reimbursement/approve.html', form=form, req=req)
 
+
 @bp.route('/approver_search')
 @login_required
 def approver_search():
@@ -221,11 +232,13 @@ def approver_search():
     ]
     return jsonify(result)
 
+
 @bp.route('/all')
 @login_required
 def list_all():
     # 只允许admin/ADMIN访问
-    if not (current_user.is_authenticated and current_user.username == 'admin' and getattr(current_user.role, 'name', None) == 'ADMIN'):
+    if not (current_user.is_authenticated and current_user.username == 'admin' and getattr(current_user.role, 'name',
+                                                                                           None) == 'ADMIN'):
         flash('无权限访问', 'danger')
         return redirect(url_for('main.index'))
     submitter = request.args.get('submitter', '').strip()

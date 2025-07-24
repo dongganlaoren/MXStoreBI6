@@ -2,210 +2,235 @@
 {% block title %}发起申请{% endblock %}
 {% block content %}
 <div class="container mt-4">
-  <div class="d-flex align-items-center mb-3">
-    <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">发起申请</h2>
-    <span class="badge bg-success bg-opacity-75 fs-6">财务报销</span>
-  </div>
-  <div class="card shadow-sm mb-4">
-    <div class="card-body">
-      <form method="post" enctype="multipart/form-data">
-        {{ form.hidden_tag() }}
-        <div class="row g-3">
-          <div class="col-md-6">
-            <div class="mb-3">
-              {{ form.primary_category.label(class="form-label fw-bold") }}
-              {{ form.primary_category(class="form-select", id="primary_category") }}
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-3">
-              {{ form.secondary_category.label(class="form-label fw-bold") }}
-              {{ form.secondary_category(class="form-select", id="secondary_category") }}
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-3">
-              {{ form.store_id.label(class="form-label fw-bold") }}
-              {{ form.store_id(class="form-select") }}
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-3">
-              <label class="form-label fw-bold">申请日期</label>
-              {{ form.submission_date(class="form-control") }}
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-3">
-              {{ form.amount.label(class="form-label fw-bold") }}
-              {{ form.amount(class="form-control") }}
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-3">
-              {{ form.currency.label(class="form-label fw-bold") }}
-              {{ form.currency(class="form-select") }}
-            </div>
-          </div>
-        </div>
-        <div class="mb-3">
-          {{ form.reason.label(class="form-label fw-bold") }}
-          {{ form.reason(class="form-control", rows=3) }}
-        </div>
-        <div class="mb-3 position-relative">
-          <label for="approver_id" class="form-label fw-bold">审批人</label>
-          <input type="text" id="approver_search" class="form-control" placeholder="输入姓名/工号/手机号等关键词搜索审批人" autocomplete="off">
-          {{ form.approver_id(type="hidden", id="approver_id") }}
-          <div id="approver_suggest" class="list-group position-absolute w-100" style="z-index:1000;"></div>
-          {% if form.approver_id.errors %}
-            <div class="text-danger small mt-1">{{ form.approver_id.errors[0] }}</div>
-          {% endif %}
-        </div>
-        <div class="mb-3">
-          {{ form.attachments.label(class="form-label fw-bold") }}
-          {{ form.attachments(class="form-control", multiple=True, id="attachmentInput") }}
-          <div class="form-text">可上传多个附件，支持直接粘贴截图</div>
-        </div>
-        <div class="d-flex justify-content-end">
-          <button type="submit" class="btn btn-success px-4 py-2"><i class="bi bi-send"></i> 发起申请</button>
-        </div>
-      </form>
+    <div class="d-flex align-items-center mb-3">
+        <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">发起申请</h2>
+        <span class="badge bg-success bg-opacity-75 fs-6">财务报销</span>
     </div>
-  </div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.primary_category.label(class="form-label fw-bold") }}
+                            {{ form.primary_category(class="form-select", id="primary_category") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.secondary_category.label(class="form-label fw-bold") }}
+                            {{ form.secondary_category(class="form-select", id="secondary_category") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.store_id.label(class="form-label fw-bold", id="store-id-label") }}
+                            {{ form.store_id(class="form-select", id="store-id-select") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">申请日期</label>
+                            {{ form.submission_date(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.amount.label(class="form-label fw-bold") }}
+                            {{ form.amount(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.currency.label(class="form-label fw-bold") }}
+                            {{ form.currency(class="form-select") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    {{ form.reason.label(class="form-label fw-bold") }}
+                    {{ form.reason(class="form-control", rows=3) }}
+                </div>
+                <div class="mb-3 position-relative">
+                    <label for="approver_id" class="form-label fw-bold">审批人</label>
+                    <input type="text" id="approver_search" class="form-control"
+                           placeholder="输入姓名/工号/手机号等关键词搜索审批人" autocomplete="off">
+                    {{ form.approver_id(type="hidden", id="approver_id") }}
+                    <div id="approver_suggest" class="list-group position-absolute w-100" style="z-index:1000;"></div>
+                    {% if form.approver_id.errors %}
+                    <div class="text-danger small mt-1">{{ form.approver_id.errors[0] }}</div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    {{ form.attachments.label(class="form-label fw-bold") }}
+                    {{ form.attachments(class="form-control", multiple=True, id="attachmentInput") }}
+                    <div class="form-text">可上传多个附件，支持直接粘贴截图</div>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success px-4 py-2"><i class="bi bi-send"></i> 发起申请</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 一级分类与二级分类联动配置
-    const secondaryOptions = {
-        'SHARED_COST': [
-            {value: 'SHARED_REIMBURSEMENT', text: '公摊报销'},
-            {value: 'AGENCY_ACCOUNTING', text: '代理记账'},
-            {value: 'TAXES', text: '各种税费'},
-            {value: 'EMPLOYEE_SOCIAL_SECURITY', text: '员工社保'},
-            {value: 'STORE_MANAGEMENT', text: '店铺管理'},
-            {value: 'OTHER_SHARED_COST', text: '其它公摊'}
-        ],
-        'STORE_COST': [
-            {value: 'MIXTURE_MATERIAL', text: '蜜雪物料'},
-            {value: 'MATERIAL_TRANSPORT', text: '物料运输'},
-            {value: 'FIXED_SALARY', text: '固定工资'},
-            {value: 'TEMPORARY_SALARY', text: '临时工工资'},
-            {value: 'EXTERNAL_LEMON', text: '外部柠檬'},
-            {value: 'STORE_PETTY_CASH', text: '店铺备用金'},
-            {value: 'RENTAL_TAX', text: '租房税'},
-            {value: 'UTILITIES', text: '水电费'},
-            {value: 'STORE_RENT', text: '店铺房租'},
-            {value: 'WAREHOUSE_RENT', text: '仓库房租'},
-            {value: 'OTHER_COST', text: '其它成本'}
-        ]
-    };
+    document.addEventListener('DOMContentLoaded', function() {
+        // 一级分类与二级分类联动配置
+        const secondaryOptions = {
+            'SHARED_COST': [
+                {value: 'SHARED_REIMBURSEMENT', text: '公摊报销'},
+                {value: 'AGENCY_ACCOUNTING', text: '代理记账'},
+                {value: 'TAXES', text: '各种税费'},
+                {value: 'EMPLOYEE_SOCIAL_SECURITY', text: '员工社保'},
+                {value: 'STORE_MANAGEMENT', text: '店铺管理'},
+                {value: 'OTHER_SHARED_COST', text: '其它公摊'}
+            ],
+            'STORE_COST': [
+                {value: 'MIXTURE_MATERIAL', text: '蜜雪物料'},
+                {value: 'MATERIAL_TRANSPORT', text: '物料运输'},
+                {value: 'FIXED_SALARY', text: '固定工资'},
+                {value: 'TEMPORARY_SALARY', text: '临时工工资'},
+                {value: 'EXTERNAL_LEMON', text: '外部柠檬'},
+                {value: 'STORE_PETTY_CASH', text: '店铺备用金'},
+                {value: 'RENTAL_TAX', text: '租房税'},
+                {value: 'UTILITIES', text: '水电费'},
+                {value: 'STORE_RENT', text: '店铺房租'},
+                {value: 'WAREHOUSE_RENT', text: '仓库房租'},
+                {value: 'OTHER_COST', text: '其它成本'}
+            ]
+        };
 
-    const primarySelect = document.getElementById('primary_category');
-    const secondarySelect = document.getElementById('secondary_category');
+        const primarySelect = document.getElementById('primary_category');
+        const secondarySelect = document.getElementById('secondary_category');
 
-    function updateSecondaryOptions() {
-        if (!primarySelect || !secondarySelect) return;
+        function updateSecondaryOptions() {
+            if (!primarySelect || !secondarySelect) return;
 
-        const selectedPrimary = primarySelect.value;
-        const options = secondaryOptions[selectedPrimary] || [];
+            const selectedPrimary = primarySelect.value;
+            const options = secondaryOptions[selectedPrimary] || [];
 
-        // 清空二级分类选项
-        secondarySelect.innerHTML = '';
+            // 清空二级分类选项
+            secondarySelect.innerHTML = '';
 
-        // 添加新的二级分类选项
-        options.forEach(function(option) {
-            const optionElement = document.createElement('option');
-            optionElement.value = option.value;
-            optionElement.textContent = option.text;
-            secondarySelect.appendChild(optionElement);
-        });
-    }
+            // 添加新的二级分类选项
+            options.forEach(function(option) {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.textContent = option.text;
+                secondarySelect.appendChild(optionElement);
+            });
+        }
 
-    // 页面加载时初始化二级分类
-    updateSecondaryOptions();
+        // 页面加载时初始化二级分类
+        updateSecondaryOptions();
 
-    // 监听一级分类变化
-    if (primarySelect) {
-        primarySelect.addEventListener('change', updateSecondaryOptions);
-    }
+        // 监听一级分类变化
+        if (primarySelect) {
+            primarySelect.addEventListener('change', updateSecondaryOptions);
+        }
 
-    // 审批人自动补全
-    const approverInput = document.getElementById('approver_search');
-    const approverIdField = document.getElementById('approver_id');
-    const suggestBox = document.getElementById('approver_suggest');
-    let searchTimer = null;
+        // 审批人自动补全
+        const approverInput = document.getElementById('approver_search');
+        const approverIdField = document.getElementById('approver_id');
+        const suggestBox = document.getElementById('approver_suggest');
+        let searchTimer = null;
 
-    if (approverInput && approverIdField && suggestBox) {
-        approverInput.addEventListener('input', function() {
-            clearTimeout(searchTimer);
-            const query = this.value.trim();
+        if (approverInput && approverIdField && suggestBox) {
+            approverInput.addEventListener('input', function() {
+                clearTimeout(searchTimer);
+                const query = this.value.trim();
 
-            if (!query) {
-                suggestBox.innerHTML = '';
-                return;
-            }
-
-            searchTimer = setTimeout(function() {
-                fetch('/reimbursement/approver_search?q=' + encodeURIComponent(query))
-                    .then(function(response) {
-                        return response.json();
-                    })
-                    .then(function(data) {
-                        suggestBox.innerHTML = '';
-                        data.forEach(function(user) {
-                            const item = document.createElement('a');
-                            item.className = 'list-group-item list-group-item-action';
-                            item.textContent = user.label;
-                            item.href = '#';
-                            item.addEventListener('click', function(e) {
-                                e.preventDefault();
-                                approverInput.value = user.label;
-                                approverIdField.value = user.user_id;
-                                suggestBox.innerHTML = '';
-                            });
-                            suggestBox.appendChild(item);
-                        });
-                    })
-                    .catch(function(error) {
-                        console.error('搜索审批人失败:', error);
-                    });
-            }, 300);
-        });
-
-        // 失焦时隐藏建议列表
-        approverInput.addEventListener('blur', function() {
-            setTimeout(function() {
-                suggestBox.innerHTML = '';
-            }, 200);
-        });
-    }
-
-    // 粘贴图片支持
-    const attachmentInput = document.getElementById('attachmentInput');
-    if (attachmentInput) {
-        attachmentInput.addEventListener('paste', function(event) {
-            const items = (event.clipboardData || event.originalEvent.clipboardData).items;
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-                if (item.kind === 'file' && item.type.startsWith('image/')) {
-                    const file = item.getAsFile();
-                    const dataTransfer = new DataTransfer();
-
-                    // 保留现有文件
-                    for (let j = 0; j < attachmentInput.files.length; j++) {
-                        dataTransfer.items.add(attachmentInput.files[j]);
-                    }
-
-                    // 添加粘贴的文件
-                    dataTransfer.items.add(file);
-                    attachmentInput.files = dataTransfer.files;
+                if (!query) {
+                    suggestBox.innerHTML = '';
+                    return;
                 }
+
+                searchTimer = setTimeout(function() {
+                    fetch('/reimbursement/approver_search?q=' + encodeURIComponent(query))
+                        .then(function(response) {
+                            return response.json();
+                        })
+                        .then(function(data) {
+                            suggestBox.innerHTML = '';
+                            data.forEach(function(user) {
+                                const item = document.createElement('a');
+                                item.className = 'list-group-item list-group-item-action';
+                                item.textContent = user.label;
+                                item.href = '#';
+                                item.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    approverInput.value = user.label;
+                                    approverIdField.value = user.user_id;
+                                    suggestBox.innerHTML = '';
+                                });
+                                suggestBox.appendChild(item);
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error('搜索审批人失败:', error);
+                        });
+                }, 300);
+            });
+
+            // 失焦时隐藏建议列表
+            approverInput.addEventListener('blur', function() {
+                setTimeout(function() {
+                    suggestBox.innerHTML = '';
+                }, 200);
+            });
+        }
+
+        // 粘贴图片支持
+        const attachmentInput = document.getElementById('attachmentInput');
+        if (attachmentInput) {
+            attachmentInput.addEventListener('paste', function(event) {
+                const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    if (item.kind === 'file' && item.type.startsWith('image/')) {
+                        const file = item.getAsFile();
+                        const dataTransfer = new DataTransfer();
+
+                        // 保留现有文件
+                        for (let j = 0; j < attachmentInput.files.length; j++) {
+                            dataTransfer.items.add(attachmentInput.files[j]);
+                        }
+
+                        // 添加粘贴的文件
+                        dataTransfer.items.add(file);
+                        attachmentInput.files = dataTransfer.files;
+                    }
+                }
+            });
+        }
+
+        // 一级分类变化时，控制所属店铺下拉框显示/隐藏
+        const storeIdLabel = document.getElementById('store-id-label');
+        const storeIdSelect = document.getElementById('store-id-select');
+        function updateStoreIdVisibility() {
+            if (!primarySelect || !storeIdLabel || !storeIdSelect) return;
+            // "公摊成本"的值通常为 SHARED_COST（请根据实际表单值调整）
+            if (primarySelect.value === 'SHARED_COST') {
+                storeIdLabel.style.display = 'none';
+                storeIdSelect.style.display = 'none';
+                storeIdSelect.value = '';
+            } else {
+                storeIdLabel.style.display = '';
+                storeIdSelect.style.display = '';
             }
-        });
-    }
-});
+        }
+        // 页面加载和一级分类变化时都执行
+        updateStoreIdVisibility();
+        if (primarySelect) {
+            primarySelect.addEventListener('change', function() {
+                updateSecondaryOptions();
+                updateStoreIdVisibility();
+            });
+        }
+    });
 </script>
 {% endblock %}

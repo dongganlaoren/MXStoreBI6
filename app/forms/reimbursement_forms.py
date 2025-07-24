@@ -1,18 +1,22 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, DecimalField, DateField, FileField, IntegerField, SubmitField, HiddenField, MultipleFileField
+from wtforms import StringField, TextAreaField, SelectField, DecimalField, DateField, FileField, SubmitField, \
+    MultipleFileField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
-from app.models.enums import ReimbursementPrimaryCategory, ReimbursementSecondaryCategory, ReimbursementStatus
+
+from app.models.enums import ReimbursementPrimaryCategory, ReimbursementStatus
 from app.models.store import Store
-from app.models.user import User
+
 
 class ReimbursementCreateForm(FlaskForm):
-    primary_category = SelectField('一级分类', choices=[(c.name, c.value) for c in ReimbursementPrimaryCategory], validators=[DataRequired()])
+    primary_category = SelectField('一级分类', choices=[(c.name, c.value) for c in ReimbursementPrimaryCategory],
+                                   validators=[DataRequired()])
     secondary_category = SelectField('二级分类', choices=[], validators=[DataRequired()])
     store_id = SelectField('所属店铺', choices=[], validators=[Optional()])
     reason = TextAreaField('报销事由', validators=[DataRequired(), Length(max=500)])
     submission_date = DateField('日期', validators=[DataRequired()])
     amount = DecimalField('报销金额', validators=[DataRequired(), NumberRange(min=0.01)], places=2)
-    currency = SelectField('货币单位', choices=[('THB', '泰铢'), ('CNY', '人民币')], default='THB', validators=[DataRequired()])
+    currency = SelectField('货币单位', choices=[('THB', '泰铢'), ('CNY', '人民币')], default='THB',
+                           validators=[DataRequired()])
     approver_id = StringField('审批人', validators=[DataRequired(message='请选择审批人')])
     attachments = MultipleFileField('报销附件', validators=[Optional()])
     submit = SubmitField('提交申请')
@@ -24,7 +28,8 @@ class ReimbursementCreateForm(FlaskForm):
             self.submission_date.data = datetime.date.today()
         self.store_id.choices = [(s.store_id, s.store_name) for s in Store.query.order_by(Store.store_name).all()]
         # 动态设置二级分类choices，保证POST校验通过
-        primary = self.primary_category.data or (self.primary_category.choices[0][0] if self.primary_category.choices else None)
+        primary = self.primary_category.data or (
+            self.primary_category.choices[0][0] if self.primary_category.choices else None)
         secondary_map = {
             'SHARED_COST': [
                 ('SHARED_REIMBURSEMENT', '公摊报销'),
@@ -49,6 +54,15 @@ class ReimbursementCreateForm(FlaskForm):
             ]
         }
         self.secondary_category.choices = secondary_map.get(primary, [])
+
+    def validate_store_id(self, field):
+        # 如果一级分类为公摊成本，store_id必须为空
+        if self.primary_category.data == 'SHARED_COST' and field.data:
+            raise ValueError('公摊成本无需选择所属店铺')
+        # 其他分类必须选择店铺
+        if self.primary_category.data == 'STORE_COST' and not field.data:
+            raise ValueError('店铺成本必须选择所属店铺')
+
 
 class ReimbursementApproveForm(FlaskForm):
     approval_comments = TextAreaField('审批意见', validators=[Optional(), Length(max=500)])
