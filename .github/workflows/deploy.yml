@@ -1,0 +1,105 @@
+name: CI/CD Deploy with Backup, Tag, and Slack Notify
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  BACKUP_DIR_BASE: /var/backups/MXStoreBI6
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate version tag
+        id: tag_version
+        run: |
+          VERSION="v$(date +'%Y.%m.%d.%H%M%S')"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create and push Git tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git tag ${{ steps.tag_version.outputs.version }}
+          git push origin ${{ steps.tag_version.outputs.version }}
+
+      - name: Backup database and static files on server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: mxuser
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
+            BACKUP_DIR="${BACKUP_DIR_BASE}/$TIMESTAMP"
+            mkdir -p $BACKUP_DIR
+            echo "[Backup] Backing up database"
+            mysqldump -u dbuser -p'${{ secrets.DB_PASSWORD }}' dbname > $BACKUP_DIR/db_backup.sql
+            echo "[Backup] Backing up static files"
+            cp -r /var/www/MXStoreBI6/static $BACKUP_DIR/
+
+      - name: Deploy code with rollback
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: mxuser
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            cd /var/www/MXStoreBI6
+            PREV_COMMIT=$(git rev-parse HEAD)
+            git pull origin main
+            source venv/bin/activate
+            if ! pip install -r requirements.txt; then
+              echo "[Error] pip install failed, rollback"
+              git reset --hard $PREV_COMMIT
+              sudo supervisorctl restart mixuebi
+              exit 1
+            fi
+            if ! flask db upgrade; then
+              echo "[Error] DB migration failed, rollback"
+              git reset --hard $PREV_COMMIT
+              pip install -r requirements.txt
+              flask db upgrade || echo "[Warn] rollback migration failed"
+              sudo supervisorctl restart mixuebi
+              exit 1
+            fi
+            if ! sudo supervisorctl restart mixuebi; then
+              echo "[Error] service restart failed, rollback"
+              git reset --hard $PREV_COMMIT
+              pip install -r requirements.txt
+              flask db upgrade || echo "[Warn] rollback migration failed"
+              sudo supervisorctl restart mixuebi
+              exit 1
+            fi
+            echo "[Deploy] Deployment successful"
+
+      - name: Slack Notification - Success
+        if: success()
+        run: |
+          curl -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+            -H "Content-type: application/json" \
+            -d "{\"channel\":\"${{ secrets.SLACK_CHANNEL_ID }}\",\"text\":\"✅ 部署成功: ${{ github.repository }}@${{ github.ref_name }} 版本 ${{ steps.tag_version.outputs.version }}\"}"
+
+      - name: Slack Notification - Failure
+        if: failure()
+        run: |
+          curl -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+            -H "Content-type: application/json" \
+            -d "{\"channel\":\"${{ secrets.SLACK_CHANNEL_ID }}\",\"text\":\"❌ 部署失败: ${{ github.repository }}@${{ github.ref_name }} 版本 ${{ steps.tag_version.outputs.version }}\"}"
