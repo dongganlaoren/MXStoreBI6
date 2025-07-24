@@ -1,8 +1,8 @@
 """init
 
-Revision ID: f7bb2c6fbcd3
+Revision ID: d0b8dfb86594
 Revises: 
-Create Date: 2025-07-19 15:43:22.711010
+Create Date: 2025-07-24 13:36:50.411192
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f7bb2c6fbcd3'
+revision = 'd0b8dfb86594'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -70,7 +70,7 @@ def upgrade():
     sa.Column('total_error', sa.Float(), nullable=True, comment='总误差(E)=电子支付实际入账金额+银行存款金额+银行存款手续费-POS机小票里显示的电子支付总金额-POS机小票里显示的现金总金额'),
     sa.Column('cash_difference', sa.Float(), nullable=False, comment='POS现金收入误差(A)，仅存储，默认0'),
     sa.Column('electronic_difference', sa.Float(), nullable=False, comment='POS电子支付误差(B)，仅存储，默认0'),
-    sa.Column('remark', sa.String(length=255), nullable=True, comment='备注'),
+    sa.Column('remark', sa.String(length=255), nullable=True, comment='审核备注'),
     sa.Column('pos_info_completed', sa.Boolean(), nullable=False, comment='第一步(POS)是否完成'),
     sa.Column('takeaway_info_completed', sa.Boolean(), nullable=False, comment='第二步(外卖)是否完成'),
     sa.Column('actual_arrival_info_completed', sa.Boolean(), nullable=False, comment='实际入账金额录入是否完成'),
@@ -92,7 +92,7 @@ def upgrade():
     sa.Column('submitter_id', sa.Integer(), nullable=False, comment='申请人ID'),
     sa.Column('store_id', sa.String(length=32), nullable=True, comment='关联店铺ID'),
     sa.Column('primary_category', sa.Enum('SHARED_COST', 'STORE_COST', name='reimbursementprimarycategory'), nullable=False, comment='一级分类'),
-    sa.Column('secondary_category', sa.Enum('SHARED_REIMBURSEMENT', 'AGENCY_ACCOUNTING', 'TAXES', 'EMPLOYEE_SOCIAL_SECURITY', 'OTHER_SHARED_COST', 'MIXTURE_MATERIAL', 'MATERIAL_TRANSPORT', 'FIXED_SALARY', 'TEMPORARY_SALARY', 'EXTERNAL_LEMON', 'STORE_PETTY_CASH', 'RENTAL_TAX', 'UTILITIES', 'STORE_RENT', 'WAREHOUSE_RENT', 'OTHER_COST', name='reimbursementsecondarycategory'), nullable=False, comment='二级分类'),
+    sa.Column('secondary_category', sa.Enum('SHARED_REIMBURSEMENT', 'AGENCY_ACCOUNTING', 'TAXES', 'EMPLOYEE_SOCIAL_SECURITY', 'STORE_MANAGEMENT', 'OTHER_SHARED_COST', 'MIXTURE_MATERIAL', 'MATERIAL_TRANSPORT', 'FIXED_SALARY', 'TEMPORARY_SALARY', 'EXTERNAL_LEMON', 'STORE_PETTY_CASH', 'RENTAL_TAX', 'UTILITIES', 'STORE_RENT', 'WAREHOUSE_RENT', 'OTHER_COST', name='reimbursementsecondarycategory'), nullable=False, comment='二级分类'),
     sa.Column('amount', sa.Numeric(precision=12, scale=2), nullable=False, comment='报销金额'),
     sa.Column('currency', sa.String(length=8), nullable=False, comment='货币单位'),
     sa.Column('description', sa.Text(), nullable=True, comment='报销说明'),
