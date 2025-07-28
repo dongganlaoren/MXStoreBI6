@@ -1,9 +1,6 @@
 # app/forms/user_forms.py
 
-# 正确导入模型
-from app.models import RoleType, Store, User
 from flask_wtf import FlaskForm
-
 # 导入所有需要的字段类型和验证器
 from wtforms import (
     BooleanField,
@@ -15,6 +12,9 @@ from wtforms import (
     ValidationError,
 )
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional
+
+# 正确导入模型
+from app.models import RoleType, Store, User
 
 
 class LoginForm(FlaskForm):
@@ -29,7 +29,8 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     # 员工编号，仅分店长/员工注册时必填
-    employee_number = StringField("员工编号", validators=[Optional()])
+    employee_number = StringField("员工编号", validators=[Optional()],
+                                  filters=[lambda x: int(x) if x and x.isdigit() else 0])
     """
     用户注册表单 (已更新，包含店铺选择)
     """
@@ -150,8 +151,8 @@ class EditProfileForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super(EditProfileForm, self).__init__(*args, **kwargs)
         self.store_id.choices = [("", "--- (仅门店组人员需要选择) ---")] + \
-            [(str(store.store_id), f"{store.store_id} - {store.store_name}")
-             for store in Store.query.order_by(Store.store_name).all()]
+                                [(str(store.store_id), f"{store.store_id} - {store.store_name}")
+                                 for store in Store.query.order_by(Store.store_name).all()]
         self.role.choices = [(role.value, role.name.replace('_', ' ').title()) for role in RoleType]
 
     def validate_employee_number(self, field):
