@@ -1,73 +1,48 @@
-name: CI/CD 自动部署 MXStoreBI6
-
-on:
-  push:
-    branches:
-      - main  # 主分支更新时触发
-
-env:
-  PROJECT_NAME: MXStoreBI6
-  DEPLOY_PATH: /var/www/MXStoreBI6
-  VENV_PATH: /var/www/MXStoreBI6/venv
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 🛎️ 检出仓库代码
-        uses: actions/checkout@v4
-
-      - name: 📦 展示部署环境变量
-        run: |
-          echo "DEPLOY_PATH: $DEPLOY_PATH"
-          echo "PROJECT_NAME: $PROJECT_NAME"
-
-      - name: 🚀 部署到远程服务器并进行健康探测
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: mxuser
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: 22
-          script: |
-            set -euo pipefail
-
-            echo "✅ [连接成功] 主机: $(hostname) | 用户: $(whoami)"
-            echo "📂 [步骤] 切换到部署目录: $DEPLOY_PATH"
-            cd $DEPLOY_PATH
-
-            echo "🔄 [步骤] 拉取远程最新代码"
-            git fetch origin main
-            git reset --hard origin/main
-
-            echo "🐍 [步骤] 激活虚拟环境并安装依赖"
-            source $VENV_PATH/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
-
-            echo "🌀 [步骤] 重启 Supervisor 项目: $PROJECT_NAME"
-            sudo supervisorctl restart $PROJECT_NAME
-
-            echo "🔍 [步骤] 执行部署后探测脚本"
-
-            CHECK_SCRIPT=$DEPLOY_PATH/tools/post_deploy_check.sh
-            if [ -f "$CHECK_SCRIPT" ]; then
-              echo "🔧 [探测脚本] 检测到 $CHECK_SCRIPT"
-
-              # 赋予执行权限（避免缺权限导致失败）
-              chmod +x "$CHECK_SCRIPT"
-
-              # 执行探测脚本
-              if bash "$CHECK_SCRIPT"; then
-                echo "✅ [探测结果] 服务运行状态良好"
-              else
-                echo "❌ [探测失败] 服务状态异常，请检查日志"
-                exit 1
-              fi
-            else
-              echo "⚠️ [跳过探测] 未找到 $CHECK_SCRIPT，请确认是否遗漏"
-              # exit 1  # 如需强制失败，请取消此注释
-            fi
-
-            echo "🎉 [完成] 自动部署流程执行完毕"
+- name: 🚀 部署到远程服务器并进行健康探测
+  uses: appleboy/ssh-action@v0.1.10
+  with:
+    host: ${{ secrets.SERVER_HOST }}
+    username: mxuser
+    key: ${{ secrets.SERVER_SSH_KEY }}
+    port: 22
+    script: |
+      set -euo pipefail
+      
+      # 显式定义远程环境变量
+      PROJECT_NAME="MXStoreBI6"
+      DEPLOY_PATH="/var/www/MXStoreBI6"
+      VENV_PATH="/var/www/MXStoreBI6/venv"
+      
+      echo "✅ [连接成功] 主机: $(hostname) | 用户: $(whoami)"
+      echo "📂 [步骤] 切换到部署目录: $DEPLOY_PATH"
+      cd "$DEPLOY_PATH"
+      
+      echo "🔄 [步骤] 拉取远程最新代码"
+      git fetch origin main
+      git reset --hard origin/main
+      
+      echo "🐍 [步骤] 激活虚拟环境并安装依赖"
+      source "$VENV_PATH/bin/activate"
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      
+      echo "🌀 [步骤] 重启 Supervisor 项目: $PROJECT_NAME"
+      sudo supervisorctl restart "$PROJECT_NAME"
+      
+      echo "🔍 [步骤] 执行部署后探测脚本"
+      CHECK_SCRIPT="$DEPLOY_PATH/tools/post_deploy_check.sh"
+      if [ -f "$CHECK_SCRIPT" ]; then
+        echo "🔧 [探测脚本] 检测到 $CHECK_SCRIPT"
+        chmod +x "$CHECK_SCRIPT"
+        if bash "$CHECK_SCRIPT"; then
+          echo "✅ [探测结果] 服务运行状态良好"
+        else
+          echo "❌ [探测失败] 服务状态异常，请检查日志"
+          exit 1
+        fi
+      else
+        echo "⚠️ [跳过探测] 未找到 $CHECK_SCRIPT，请确认是否遗漏"
+        # exit 1  # 如需强制失败，请取消注释
+      fi
+      
+      echo "🎉 [完成] 自动部署流程执行完毕"
