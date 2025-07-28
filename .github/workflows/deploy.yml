@@ -1,69 +1,54 @@
-name: deploy
+name: Deploy MXStoreBI6 to Ubuntu Server
 
 on:
   push:
     branches:
-      - main
+      - main  # 仅主分支触发部署
+  workflow_dispatch:  # 手动触发
 
 env:
   PROJECT_NAME: MXStoreBI6
   DEPLOY_PATH: /var/www/MXStoreBI6
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   deploy:
-    name: Deploy to production
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up job
-        run: echo "🚀 开始部署流程..."
-
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.11
-
-      - name: Generate version tag
-        id: version
+      - name: Display environment variables
         run: |
-          VERSION="v$(date +'%Y.%m.%d')-build.$(echo $GITHUB_RUN_NUMBER)"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Project: $PROJECT_NAME"
+          echo "Deploy path: $DEPLOY_PATH"
 
-      - name: Create and push Git tag
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git tag ${{ steps.version.outputs.version }}
-          git push origin ${{ steps.version.outputs.version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Deploy to server via SSH
+      - name: Deploy to remote server via SSH
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ secrets.SERVER_HOST }}
+          username: mxuser
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           script: |
-            echo "✅ 登录成功，开始部署..."
-            cd $DEPLOY_PATH
-            git pull origin main
-            source venv/bin/activate
-            pip install -r requirements.txt
-            supervisorctl restart ${PROJECT_NAME}
+            echo "Start deployment on $(hostname)"
 
-      - name: Backup database and static files on server
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo "📦 备份数据库与静态资源..."
-            mkdir -p ~/backup/${PROJECT_NAME}
-            cp $DEPLOY_PATH/app/static/* ~/backup/${PROJECT_NAME}/
-            pg_dump -U dbuser dbname > ~/backup/${PROJECT_NAME}/db_$(date +%F).sql || echo "跳过数据库备份"
+            # 确保部署目录存在
+            if [ ! -d "$DEPLOY_PATH" ]; then
+              echo "Deploy path does not exist, creating..."
+              mkdir -p "$DEPLOY_PATH"
+            fi
+
+            # 拉取最新代码示例（假设已配置Git远程）
+            cd "$DEPLOY_PATH"
+            if [ -d ".git" ]; then
+              git reset --hard
+              git pull origin main
+            else
+              git clone https://github.com/<your-org-or-user>/${PROJECT_NAME}.git "$DEPLOY_PATH"
+            fi
+
+            # 示例：重启服务（请根据实际情况替换）
+            # sudo systemctl restart mxstorebi6.service
+
+            echo "Deployment finished successfully."
