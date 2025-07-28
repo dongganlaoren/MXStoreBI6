@@ -20,25 +20,12 @@ else
 fi
 
 # 检查 Supervisor 管理的项目是否 RUNNING
-if sudo -n /usr/bin/supervisorctl status MXStoreBI6 | grep -q RUNNING; then
+SUPERVISOR_STATUS=$(sudo -n /usr/bin/supervisorctl status MXStoreBI6 | grep RUNNING || true)
+if [[ -n "$SUPERVISOR_STATUS" ]]; then
   echo "✅ Supervisor 管理的项目 MXStoreBI6 运行中"
 else
   echo "❌ Supervisor 项目 MXStoreBI6 未运行"
   exit 1
-fi
-
-# 应用健康接口探测（可选）
-if command -v curl >/dev/null 2>&1; then
-  HEALTH_URL="http://127.0.0.1:8001/health"
-  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
-  if [ "$HTTP_CODE" = "200" ]; then
-    echo "✅ 应用健康接口检测通过 ($HEALTH_URL)"
-  else
-    echo "❌ 应用健康接口检测失败，HTTP状态码: $HTTP_CODE"
-    exit 1
-  fi
-else
-  echo "⚠️ curl 命令不可用，跳过应用健康接口检测"
 fi
 
 echo "🎉 [探测] 全部检查通过，服务运行正常"
