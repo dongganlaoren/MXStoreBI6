@@ -20,8 +20,7 @@ else
 fi
 
 # 检查 Supervisor 管理的项目是否 RUNNING
-SUPERVISOR_STATUS=$(sudo -n /usr/bin/supervisorctl status MXStoreBI6 | grep RUNNING || true)
-if [[ -n "$SUPERVISOR_STATUS" ]]; then
+if sudo -n /usr/bin/supervisorctl status MXStoreBI6 | grep -q RUNNING; then
   echo "✅ Supervisor 管理的项目 MXStoreBI6 运行中"
 else
   echo "❌ Supervisor 项目 MXStoreBI6 未运行"

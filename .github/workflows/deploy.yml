@@ -33,7 +33,6 @@ jobs:
           script: |
             set -euo pipefail
 
-            # 远程环境变量
             PROJECT_NAME="${PROJECT_NAME:-MXStoreBI6}"
             DEPLOY_PATH="${DEPLOY_PATH:-/var/www/MXStoreBI6}"
             VENV_PATH="${VENV_PATH:-/var/www/MXStoreBI6/venv}"
@@ -75,7 +74,7 @@ jobs:
               fi
             else
               echo "⚠️ [跳过探测] 未找到 $CHECK_SCRIPT，请确认是否遗漏"
-              # exit 1  # 需强制失败时取消注释
+              # exit 1  # 如需强制失败可取消注释
             fi
 
             echo "🎉 [完成] 自动部署流程执行完毕"
