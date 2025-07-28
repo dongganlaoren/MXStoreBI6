@@ -1,8 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-# 统一部署后探测脚本
-
 echo "🔎 [探测] 开始服务状态和关键端口检测..."
 
 # 检查 Supervisor 进程是否运行
@@ -13,8 +11,8 @@ else
   exit 1
 fi
 
-# 检查 gunicorn 是否监听本地8001端口
-if ss -tulnp | grep -q '127.0.0.1:8001'; then
+# 检查 gunicorn 是否监听本地 8001 端口
+if ss -tulnp 2>/dev/null | grep -q '127.0.0.1:8001'; then
   echo "✅ Gunicorn 正常监听127.0.0.1:8001"
 else
   echo "❌ Gunicorn 未监听127.0.0.1:8001"
@@ -30,8 +28,7 @@ else
   exit 1
 fi
 
-# 可扩展：应用健康接口探测（示例）
-# 例如使用 curl 请求应用本地健康接口，确认返回状态码200
+# 应用健康接口探测（可选）
 if command -v curl >/dev/null 2>&1; then
   HEALTH_URL="http://127.0.0.1:8001/health"
   HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
