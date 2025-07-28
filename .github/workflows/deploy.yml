@@ -1,29 +1,29 @@
-name: Deploy MXStoreBI6 to Ubuntu Server
+name: CI/CD 自动部署 MXStoreBI6
 
 on:
   push:
     branches:
-      - main  # 仅主分支触发部署
-  workflow_dispatch:  # 手动触发
+      - main  # 主分支更新时触发
 
 env:
   PROJECT_NAME: MXStoreBI6
   DEPLOY_PATH: /var/www/MXStoreBI6
+  VENV_PATH: /var/www/MXStoreBI6/venv
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: 检出仓库代码
         uses: actions/checkout@v4
 
-      - name: Display environment variables
+      - name: 展示部署环境变量
         run: |
-          echo "Project: $PROJECT_NAME"
-          echo "Deploy path: $DEPLOY_PATH"
+          echo "部署路径: $DEPLOY_PATH"
+          echo "项目名称: $PROJECT_NAME"
 
-      - name: Deploy to remote server via SSH
+      - name: 部署到远程服务器
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -31,24 +31,21 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
           script: |
-            echo "Start deployment on $(hostname)"
+            echo "[INFO] 登录成功，当前主机: $(hostname)"
+            echo "[INFO] 当前用户: $(whoami)"
 
-            # 确保部署目录存在
-            if [ ! -d "$DEPLOY_PATH" ]; then
-              echo "Deploy path does not exist, creating..."
-              mkdir -p "$DEPLOY_PATH"
-            fi
+            echo "[STEP] 进入部署目录: $DEPLOY_PATH"
+            cd $DEPLOY_PATH
 
-            # 拉取最新代码示例（假设已配置Git远程）
-            cd "$DEPLOY_PATH"
-            if [ -d ".git" ]; then
-              git reset --hard
-              git pull origin main
-            else
-              git clone https://github.com/<your-org-or-user>/${PROJECT_NAME}.git "$DEPLOY_PATH"
-            fi
+            echo "[STEP] 拉取最新代码"
+            git pull origin main
 
-            # 示例：重启服务（请根据实际情况替换）
-            # sudo systemctl restart mxstorebi6.service
+            echo "[STEP] 激活虚拟环境并安装依赖"
+            source $VENV_PATH/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
 
-            echo "Deployment finished successfully."
+            echo "[STEP] 重启 Supervisor 服务: $PROJECT_NAME"
+            supervisorctl restart $PROJECT_NAME
+
+            echo "[SUCCESS] 部署完成"
