@@ -36,20 +36,10 @@ jobs:
             PROJECT_NAME="${PROJECT_NAME:-MXStoreBI6}"
             DEPLOY_PATH="${DEPLOY_PATH:-/var/www/MXStoreBI6}"
             VENV_PATH="${VENV_PATH:-/var/www/MXStoreBI6/venv}"
-            BACKUP_DIR="/var/backups/$PROJECT_NAME"
-            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-            BACKUP_PATH="$BACKUP_DIR/backup_$TIMESTAMP"
 
             echo "✅ [连接成功] 主机: $(hostname) | 用户: $(whoami)"
             echo "📂 [步骤] 切换到部署目录: $DEPLOY_PATH"
             cd "$DEPLOY_PATH"
-
-            echo "🗂️ [备份] 创建备份目录: $BACKUP_PATH"
-            sudo mkdir -p "$BACKUP_PATH"
-            sudo rsync -a --exclude 'venv' "$DEPLOY_PATH/" "$BACKUP_PATH/"
-
-            echo "🧹 [备份] 清理 7 天前的旧备份"
-            sudo find "$BACKUP_DIR" -maxdepth 1 -type d -name "backup_*" -mtime +7 -exec rm -rf {} \;
 
             echo "🔄 [步骤] 拉取远程最新代码"
             git fetch origin main
