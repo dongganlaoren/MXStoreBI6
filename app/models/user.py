@@ -2,10 +2,10 @@
 
 from datetime import datetime
 
-from app.extensions import db
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from app.extensions import db
 # 从我们统一的 enums.py 文件中导入 RoleType
 from .enums import RoleType
 
@@ -48,6 +48,7 @@ class User(UserMixin, db.Model):
     start_date = db.Column(db.Date, nullable=True, comment="入职日期")
     end_date = db.Column(db.Date, nullable=True, comment="离职日期")
     profile_completed = db.Column(db.Boolean, default=False, comment="员工档案是否已完善（仅能一次性填写）")
+    id_card_copy = db.Column(db.String(255), nullable=True, comment="身份证复印件文件路径（受控访问，避免隐私泄露）")
 
     def __repr__(self):
         return f"<User {self.username}>"
@@ -71,6 +72,7 @@ class User(UserMixin, db.Model):
             "email": self.email,
             "start_date": self.start_date.isoformat() if self.start_date else None,
             "end_date": self.end_date.isoformat() if self.end_date else None,
+            "id_card_copy": self.id_card_copy,
         }
 
     def set_password(self, password):

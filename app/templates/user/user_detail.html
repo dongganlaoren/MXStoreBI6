@@ -4,72 +4,81 @@
 {% block content %}
 <!-- 以下内容为原admin/user_detail.html内容，后续如有url_for等引用需适配user蓝图 -->
 <style>
-  :root {
-    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-    --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
-    --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
-    --border-radius: 20px;
-  }
-  .page-hero {
-    background: var(--primary-gradient);
-    color: white;
-    padding: 3rem 0;
-    margin: 0 -15px 3rem -15px;
-    border-radius: 0 0 var(--border-radius) var(--border-radius);
-    position: relative;
-    overflow: hidden;
-  }
-  .page-hero::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
-    opacity: 0.3;
-  }
-  .page-hero-content {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-  }
-  .page-title {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    letter-spacing: 2px;
-  }
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
+      --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
+      --border-radius: 20px;
+    }
+    .page-hero {
+      background: var(--primary-gradient);
+      color: white;
+      padding: 3rem 0;
+      margin: 0 -15px 3rem -15px;
+      border-radius: 0 0 var(--border-radius) var(--border-radius);
+      position: relative;
+      overflow: hidden;
+    }
+    .page-hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+      opacity: 0.3;
+    }
+    .page-hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+    .page-title {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      letter-spacing: 2px;
+    }
 </style>
 <div class="container">
-  <div class="page-hero">
-    <div class="page-hero-content">
-      <h1 class="page-title">用户详情</h1>
+    <div class="page-hero">
+        <div class="page-hero-content">
+            <h1 class="page-title">用户详情</h1>
+        </div>
     </div>
-  </div>
-  <dl class="row">
-    <dt class="col-sm-2">ID</dt>
-    <dd class="col-sm-10">{{ user.user_id }}</dd>
-    <dt class="col-sm-2">用户名</dt>
-    <dd class="col-sm-10">{{ user.username }}</dd>
-    <dt class="col-sm-2">姓名</dt>
-    <dd class="col-sm-10">{{ user.real_name or '' }}</dd>
-    <dt class="col-sm-2">角色</dt>
-    <dd class="col-sm-10">{{ user.role.name if user.role else '' }}</dd>
-    <dt class="col-sm-2">邮箱</dt>
-    <dd class="col-sm-10">{{ user.email or '' }}</dd>
-    <dt class="col-sm-2">电话</dt>
-    <dd class="col-sm-10">{{ user.phone or '' }}</dd>
-    <dt class="col-sm-2">门店ID</dt>
-    <dd class="col-sm-10">{{ user.store_id or '' }}</dd>
-    <!-- 可根据需要继续添加更多字段 -->
-  </dl>
-  <a href="{{ url_for('admin_user.user_edit', user_id=user.user_id) }}" class="btn btn-primary">编辑</a>
-  <a href="{{ url_for('admin_user.user_list') }}" class="btn btn-secondary">返回列表</a>
+    <dl class="row">
+        <dt class="col-sm-2">ID</dt>
+        <dd class="col-sm-10">{{ user.user_id }}</dd>
+        <dt class="col-sm-2">用户名</dt>
+        <dd class="col-sm-10">{{ user.username }}</dd>
+        <dt class="col-sm-2">姓名</dt>
+        <dd class="col-sm-10">{{ user.real_name or '' }}</dd>
+        <dt class="col-sm-2">角色</dt>
+        <dd class="col-sm-10">{{ user.role.name if user.role else '' }}</dd>
+        <dt class="col-sm-2">邮箱</dt>
+        <dd class="col-sm-10">{{ user.email or '' }}</dd>
+        <dt class="col-sm-2">电话</dt>
+        <dd class="col-sm-10">{{ user.phone or '' }}</dd>
+        <dt class="col-sm-2">门店ID</dt>
+        <dd class="col-sm-10">{{ user.store_id or '' }}</dd>
+        <dt class="col-sm-2">身份证复印件</dt>
+        <dd class="col-sm-10">
+            {% if user.id_card_copy %}
+            <a href="{{ url_for('admin_user.download_id_card_copy', user_id=user.user_id) }}"
+               target="_blank">点击查看</a>
+            {% else %}
+            未上传
+            {% endif %}
+        </dd>
+        <!-- 可根据需要继续添加更多字段 -->
+    </dl>
+    <a href="{{ url_for('admin_user.user_edit', user_id=user.user_id) }}" class="btn btn-primary">编辑</a>
+    <a href="{{ url_for('admin_user.user_list') }}" class="btn btn-secondary">返回列表</a>
 </div>
 {% endblock %}

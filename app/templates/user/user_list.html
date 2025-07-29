@@ -1,85 +1,129 @@
 {% extends "base.html" %}
 {% block title %}用户管理{% endblock %}
 {% block content %}
-<!-- 以下内容为原admin/user_list.html内容，后续如有url_for等引用需适配user蓝图 -->
 <style>
-  :root {
-    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
-    --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
-    --border-radius: 20px;
-  }
-  .page-hero {
-    background: var(--primary-gradient);
-    color: white;
-    padding: 3rem 0;
-    margin: 0 -15px 3rem -15px;
-    border-radius: 0 0 var(--border-radius) var(--border-radius);
-    position: relative;
-    overflow: hidden;
-  }
-  .page-hero::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
-    opacity: 0.3;
-  }
-  .page-hero-content {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-  }
-  .page-title {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    letter-spacing: 2px;
-  }
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
+      --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
+      --border-radius: 20px;
+    }
+    .page-hero {
+      background: var(--primary-gradient);
+      color: white;
+      padding: 3rem 0;
+      margin: 0 -15px 3rem -15px;
+      border-radius: 0 0 var(--border-radius) var(--border-radius);
+      position: relative;
+      overflow: hidden;
+    }
+    .page-hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+      opacity: 0.3;
+    }
+    .page-hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+    .page-title {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      letter-spacing: 2px;
+    }
+    .user-table {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+    .user-table th, .user-table td {
+      vertical-align: middle;
+      text-align: center;
+    }
+    .user-table th {
+      background: var(--info-gradient);
+      color: white;
+      font-weight: 600;
+      border: none;
+    }
+    .user-table tr {
+      transition: background 0.2s;
+    }
+    .user-table tr:hover {
+      background: #f8f9fa;
+    }
+    .action-btn {
+      margin: 0 2px;
+      padding: 0.3rem 0.8rem;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      border: none;
+      background: var(--primary-gradient);
+      color: white;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .action-btn:hover {
+      background: var(--success-gradient);
+      color: white;
+      text-decoration: none;
+    }
 </style>
 <div class="container">
-  <div class="page-hero">
-    <div class="page-hero-content">
-      <h1 class="page-title">用户管理</h1>
+    <div class="page-hero">
+        <div class="page-hero-content">
+            <h1 class="page-title">用户管理</h1>
+        </div>
     </div>
-  </div>
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>用户名</th>
-        <th>姓名</th>
-        <th>角色</th>
-        <th>邮箱</th>
-        <th>电话</th>
-        <th>操作</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for user in users %}
-      <tr>
-        <td>{{ user.user_id }}</td>
-        <td>{{ user.username }}</td>
-        <td>{{ user.real_name or '' }}</td>
-        <td>{{ user.role.name if user.role else '' }}</td>
-        <td>{{ user.email or '' }}</td>
-        <td>{{ user.phone or '' }}</td>
-        <td>
-          <a href="{{ url_for('admin_user.user_detail', user_id=user.user_id) }}">详情</a> |
-          <a href="{{ url_for('admin_user.user_edit', user_id=user.user_id) }}">编辑</a>
-        </td>
-      </tr>
-      {% else %}
-      <tr><td colspan="7">暂无用户</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <table class="table user-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>用户名</th>
+            <th>角色</th>
+            <th>银行</th>
+            <th>银行卡号</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.user_id }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.role.name if user.role else '' }}</td>
+            <td>{{ user.bank_name or '' }}</td>
+            <td>{{ user.bank_account_number or '' }}</td>
+            <td>
+                <a href="{{ url_for('admin_user.user_detail', user_id=user.user_id) }}" class="action-btn">详情</a>
+                <a href="{{ url_for('admin_user.user_edit', user_id=user.user_id) }}" class="action-btn">编辑</a>
+                <form method="post" action="{{ url_for('admin_user.user_delete', user_id=user.user_id) }}"
+                      style="display:inline;" onsubmit="return confirm('确定要删除该用户吗？');">
+                    <button type="submit" class="action-btn" style="background:var(--danger-gradient);">删除</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6">暂无用户</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}

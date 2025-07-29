@@ -4,507 +4,559 @@
 
 {% block content %}
 <style>
-  :root {
-    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-    --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
-    --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
-    --border-radius: 20px;
-  }
-
-  .page-hero {
-    background: var(--info-gradient);
-    color: white;
-    padding: 3rem 0;
-    margin: 0 -15px 3rem -15px;
-    border-radius: 0 0 var(--border-radius) var(--border-radius);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .page-hero::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="waves" width="100" height="20" patternUnits="userSpaceOnUse"><path d="M0,10 Q25,0 50,10 T100,10 V20 H0 Z" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23waves)"/></svg>');
-    opacity: 0.3;
-  }
-
-  .page-hero-content {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-  }
-
-  .page-title {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    letter-spacing: 2px;
-  }
-
-  .page-subtitle {
-    font-size: 1.2rem;
-    opacity: 0.9;
-    margin-bottom: 0;
-  }
-
-  .edit-form-card {
-    background: white;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-soft);
-    border: none;
-    overflow: hidden;
-    margin-bottom: 2rem;
-    max-width: 800px;
-    margin: 0 auto 2rem;
-  }
-
-  .form-header {
-    background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
-    padding: 2rem;
-    text-align: center;
-    border-bottom: 1px solid #f8f9fa;
-  }
-
-  .form-avatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: var(--info-gradient);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 2rem;
-    margin: 0 auto 1rem;
-    box-shadow: 0 8px 30px rgba(79, 172, 254, 0.3);
-  }
-
-  .form-username {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #2c3e50;
-    margin: 0;
-  }
-
-  .form-body {
-    padding: 2rem;
-  }
-
-  .form-sections {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  .form-section {
-    background: #f8f9fa;
-    border-radius: 15px;
-    padding: 1.5rem;
-    border: 1px solid #e9ecef;
-    transition: all 0.3s ease;
-  }
-
-  .form-section:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-  }
-
-  .section-title {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e9ecef;
-  }
-
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .form-group {
-    margin-bottom: 1.5rem;
-  }
-
-  .form-label {
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.5rem;
-    display: block;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .form-control {
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 0.8rem 1rem;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    background: white;
-  }
-
-  .form-control:focus {
-    border-color: #4facfe;
-    box-shadow: 0 0 0 0.2rem rgba(79, 172, 254, 0.25);
-    outline: none;
-  }
-
-  .form-control[readonly] {
-    background: #f8f9fa;
-    color: #6c757d;
-    cursor: not-allowed;
-    border-style: dashed;
-  }
-
-  .form-check {
-    background: white;
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 1rem;
-    margin-top: 0.5rem;
-  }
-
-  .form-check-input {
-    width: 1.2rem;
-    height: 1.2rem;
-    margin-right: 0.8rem;
-  }
-
-  .form-check-label {
-    font-weight: 500;
-    color: #495057;
-    font-size: 0.95rem;
-  }
-
-  .action-buttons {
-    background: white;
-    padding: 2rem;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-soft);
-    text-align: center;
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-    max-width: 800px;
-    margin: 0 auto;
-  }
-
-  .btn-action {
-    padding: 1rem 2.5rem;
-    border-radius: 25px;
-    font-weight: 600;
-    font-size: 1rem;
-    border: none;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 140px;
-    justify-content: center;
-  }
-
-  .btn-action:hover {
-    transform: translateY(-2px);
-    text-decoration: none;
-  }
-
-  .btn-primary {
-    background: var(--success-gradient);
-    color: white;
-    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
-  }
-
-  .btn-primary:hover {
-    color: white;
-    box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
-  }
-
-  .btn-secondary {
-    background: linear-gradient(135deg, #6c757d, #495057);
-    color: white;
-    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
-  }
-
-  .btn-secondary:hover {
-    color: white;
-    box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
-  }
-
-  .field-icon {
-    color: #4facfe;
-    margin-right: 0.3rem;
-  }
-
-  .store-only-notice {
-    background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
-    border: 1px solid rgba(79, 172, 254, 0.3);
-    border-radius: 10px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    color: #2c3e50;
-    font-size: 0.9rem;
-  }
-
-  .completion-tip {
-    background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
-    border: 1px solid rgba(17, 153, 142, 0.3);
-    border-radius: 10px;
-    padding: 1rem;
-    margin-bottom: 2rem;
-    color: #2c3e50;
-    font-size: 0.9rem;
-  }
-
-  @media (max-width: 768px) {
-    .page-title {
-      font-size: 2rem;
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      --shadow-soft: 0 10px 40px rgba(0,0,0,0.1);
+      --shadow-hover: 0 20px 60px rgba(0,0,0,0.15);
+      --border-radius: 20px;
     }
 
-    .form-grid {
-      grid-template-columns: 1fr;
-      gap: 1rem;
+    .page-hero {
+      background: var(--info-gradient);
+      color: white;
+      padding: 3rem 0;
+      margin: 0 -15px 3rem -15px;
+      border-radius: 0 0 var(--border-radius) var(--border-radius);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page-hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="waves" width="100" height="20" patternUnits="userSpaceOnUse"><path d="M0,10 Q25,0 50,10 T100,10 V20 H0 Z" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23waves)"/></svg>');
+      opacity: 0.3;
+    }
+
+    .page-hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+
+    .page-title {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      letter-spacing: 2px;
+    }
+
+    .page-subtitle {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      margin-bottom: 0;
+    }
+
+    .edit-form-card {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-soft);
+      border: none;
+      overflow: hidden;
+      margin-bottom: 2rem;
+      max-width: 800px;
+      margin: 0 auto 2rem;
+    }
+
+    .form-header {
+      background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+      padding: 2rem;
+      text-align: center;
+      border-bottom: 1px solid #f8f9fa;
+    }
+
+    .form-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--info-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 2rem;
+      margin: 0 auto 1rem;
+      box-shadow: 0 8px 30px rgba(79, 172, 254, 0.3);
+    }
+
+    .form-username {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #2c3e50;
+      margin: 0;
     }
 
     .form-body {
+      padding: 2rem;
+    }
+
+    .form-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .form-section {
+      background: #f8f9fa;
+      border-radius: 15px;
       padding: 1.5rem;
+      border: 1px solid #e9ecef;
+      transition: all 0.3s ease;
+    }
+
+    .form-section:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e9ecef;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 0.5rem;
+      display: block;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-control {
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      padding: 0.8rem 1rem;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .form-control:focus {
+      border-color: #4facfe;
+      box-shadow: 0 0 0 0.2rem rgba(79, 172, 254, 0.25);
+      outline: none;
+    }
+
+    .form-control[readonly] {
+      background: #f8f9fa;
+      color: #6c757d;
+      cursor: not-allowed;
+      border-style: dashed;
+    }
+
+    .form-check {
+      background: white;
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .form-check-input {
+      width: 1.2rem;
+      height: 1.2rem;
+      margin-right: 0.8rem;
+    }
+
+    .form-check-label {
+      font-weight: 500;
+      color: #495057;
+      font-size: 0.95rem;
     }
 
     .action-buttons {
-      flex-direction: column;
-      align-items: center;
+      background: white;
+      padding: 2rem;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-soft);
+      text-align: center;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 800px;
+      margin: 0 auto;
     }
 
     .btn-action {
-      width: 100%;
-      max-width: 250px;
+      padding: 1rem 2.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 140px;
+      justify-content: center;
     }
-  }
+
+    .btn-action:hover {
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--success-gradient);
+      color: white;
+      box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+    }
+
+    .btn-primary:hover {
+      color: white;
+      box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #6c757d, #495057);
+      color: white;
+      box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+    }
+
+    .btn-secondary:hover {
+      color: white;
+      box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+    }
+
+    .field-icon {
+      color: #4facfe;
+      margin-right: 0.3rem;
+    }
+
+    .store-only-notice {
+      background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+      border: 1px solid rgba(79, 172, 254, 0.3);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      color: #2c3e50;
+      font-size: 0.9rem;
+    }
+
+    .completion-tip {
+      background: linear-gradient(135deg, rgba(17, 153, 142, 0.1) 0%, rgba(56, 239, 125, 0.1) 100%);
+      border: 1px solid rgba(17, 153, 142, 0.3);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+      color: #2c3e50;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      .page-title {
+        font-size: 2rem;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .form-body {
+        padding: 1.5rem;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .btn-action {
+        width: 100%;
+        max-width: 250px;
+      }
+    }
 </style>
 
 <div class="page-hero">
-  <div class="container page-hero-content">
-    <h1 class="page-title">✏️ {{ lang_dict['edit_profile'] if lang_dict.get('edit_profile') else '编辑资料' }}</h1>
-    <p class="page-subtitle">{{ lang_dict['edit_profile_subtitle'] if lang_dict.get('edit_profile_subtitle') else '完善您的个人信息' }}</p>
-  </div>
+    <div class="container page-hero-content">
+        <h1 class="page-title">✏️ {{ lang_dict['edit_profile'] if lang_dict.get('edit_profile') else '编辑资料' }}</h1>
+        <p class="page-subtitle">{{ lang_dict['edit_profile_subtitle'] if lang_dict.get('edit_profile_subtitle') else
+            '完善您的个人信息' }}</p>
+    </div>
 </div>
 
 <div class="container">
-  <!-- 编辑表单卡片 -->
-  <div class="edit-form-card">
-    <div class="form-header">
-      <div class="form-avatar">
-        {{ current_user.username[0]|upper }}
-      </div>
-      <div class="form-username">{{ lang_dict['edit_profile_for'] if lang_dict.get('edit_profile_for') else '编辑' }} {{ current_user.username }} {{ lang_dict['profile'] if lang_dict.get('profile') else '的资料' }}</div>
-    </div>
-
-    <div class="form-body">
-      <div class="completion-tip">
-        <i class="bi bi-lightbulb field-icon"></i>
-        <strong>{{ lang_dict['tip'] if lang_dict.get('tip') else '提示：' }}</strong>{{ lang_dict['edit_profile_tip'] if lang_dict.get('edit_profile_tip') else '完善个人资料有助于提高账户安全性，并便于团队协作和财务报销等功能的使用。' }}
-      </div>
-
-      <form id="profile-edit-form" method="POST" action="{{ url_for('user.edit_profile') }}" novalidate>
-        {{ form.hidden_tag() }}
-
-        <div class="form-sections">
-          <!-- 个人信息 -->
-          <div class="form-section">
-            <h4 class="section-title">
-              <i class="bi bi-person-fill field-icon"></i>
-              {{ lang_dict['personal_info'] if lang_dict.get('personal_info') else '个人信息' }}
-            </h4>
-
-            <div class="form-grid">
-              <div class="form-group">
-                {{ form.real_name.label(class="form-label", text=lang_dict['real_name'] if lang_dict.get('real_name') else '真实姓名') }}
-                {{ form.real_name(class="form-control", required="required", placeholder=lang_dict['real_name_placeholder'] if lang_dict.get('real_name_placeholder') else '请输入真实姓名', **{'data-pristine-required-message': lang_dict['real_name_required'] if lang_dict.get('real_name_required') else '真实姓名不能为空'}) }}
-              </div>
-
-              <div class="form-group">
-                {{ form.employee_number.label(class="form-label", text=lang_dict['employee_number'] if lang_dict.get('employee_number') else '员工编号') }}
-                <input class="form-control" value="{{ form.employee_number.data or (lang_dict['unassigned'] if lang_dict.get('unassigned') else '未分配') }}" readonly tabindex="-1" title="{{ lang_dict['employee_number_admin_only'] if lang_dict.get('employee_number_admin_only') else '员工编号由管理员分配' }}">
-                <small class="text-muted">{{ lang_dict['employee_number_admin_only'] if lang_dict.get('employee_number_admin_only') else '此字段由管理员分配，无法自行修改' }}</small>
-              </div>
+    <!-- 编辑表单卡片 -->
+    <div class="edit-form-card">
+        <div class="form-header">
+            <div class="form-avatar">
+                {{ current_user.username[0]|upper }}
             </div>
-
-            <div class="form-group">
-              {{ form.id_card_number.label(class="form-label", text=lang_dict['id_card_number'] if lang_dict.get('id_card_number') else '身份证号') }}
-              {{ form.id_card_number(class="form-control", placeholder=lang_dict['id_card_number_placeholder'] if lang_dict.get('id_card_number_placeholder') else '请输入身份证号码') }}
+            <div class="form-username">{{ lang_dict['edit_profile_for'] if lang_dict.get('edit_profile_for') else '编辑'
+                }} {{ current_user.username }} {{ lang_dict['profile'] if lang_dict.get('profile') else '的资料' }}
             </div>
-          </div>
-
-          <!-- 联系方式 -->
-          <div class="form-section">
-            <h4 class="section-title">
-              <i class="bi bi-telephone-fill field-icon"></i>
-              {{ lang_dict['contact_info'] if lang_dict.get('contact_info') else '联系方式' }}
-            </h4>
-
-            <div class="form-grid">
-              <div class="form-group">
-                {{ form.phone.label(class="form-label", text=lang_dict['phone'] if lang_dict.get('phone') else '联系电话') }}
-                {{ form.phone(class="form-control", placeholder=lang_dict['phone_placeholder'] if lang_dict.get('phone_placeholder') else '请输入联系电话') }}
-              </div>
-
-              <div class="form-group">
-                {{ form.email.label(class="form-label", text=lang_dict['email'] if lang_dict.get('email') else '电子邮箱') }}
-                {{ form.email(class="form-control", placeholder=lang_dict['email_placeholder'] if lang_dict.get('email_placeholder') else '请输入电子邮箱', type="email", **{'data-pristine-email-message': lang_dict['email_invalid'] if lang_dict.get('email_invalid') else '请输入一个有效的邮箱地址'}) }}
-              </div>
-            </div>
-
-            <div class="form-group">
-              {{ form.line_id.label(class="form-label", text=lang_dict['line_id'] if lang_dict.get('line_id') else 'LINE ID') }}
-              {{ form.line_id(class="form-control", placeholder=lang_dict['line_id_placeholder'] if lang_dict.get('line_id_placeholder') else '请输入LINE ID') }}
-            </div>
-          </div>
-
-          <!-- 银行及在职信息 (仅门店人员) -->
-          {% if current_user.store_id %}
-          <div class="form-section">
-            <h4 class="section-title">
-              <i class="bi bi-bank field-icon"></i>
-              {{ lang_dict['bank_and_job_info'] if lang_dict.get('bank_and_job_info') else '银行及在职信息' }}
-            </h4>
-
-            <div class="store-only-notice">
-              <i class="bi bi-info-circle me-2"></i>
-              {{ lang_dict['store_only_notice'] if lang_dict.get('store_only_notice') else '此部分仅对门店人员开放，用于薪资发放和报销等财务相关功能。' }}
-            </div>
-
-            <div class="form-grid">
-              <div class="form-group">
-                {{ form.bank_name.label(class="form-label", text=lang_dict['bank_name'] if lang_dict.get('bank_name') else '银行名称') }}
-                {{ form.bank_name(class="form-control", placeholder=lang_dict['bank_name_placeholder'] if lang_dict.get('bank_name_placeholder') else '请输入银行名称') }}
-              </div>
-
-              <div class="form-group">
-                {{ form.bank_account_number.label(class="form-label", text=lang_dict['bank_account_number'] if lang_dict.get('bank_account_number') else '银行账号') }}
-                {{ form.bank_account_number(class="form-control", placeholder=lang_dict['bank_account_number_placeholder'] if lang_dict.get('bank_account_number_placeholder') else '请输入银行账号') }}
-              </div>
-            </div>
-
-            <div class="form-group">
-              {{ form.start_date.label(class="form-label", text=lang_dict['start_date'] if lang_dict.get('start_date') else '入职日期') }}
-              {{ form.start_date(class="form-control") }}
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">{{ lang_dict['is_primary_contact'] if lang_dict.get('is_primary_contact') else '联系人设置' }}</label>
-              <div class="form-check">
-                {{ form.is_primary_contact(class="form-check-input") }}
-                {{ form.is_primary_contact.label(class="form-check-label", text=lang_dict['is_primary_contact'] if lang_dict.get('is_primary_contact') else '主要联系人') }}
-              </div>
-            </div>
-          </div>
-          {% endif %}
         </div>
-      </form>
-    </div>
-  </div>
 
-  <!-- 操作按钮 -->
-  <div class="action-buttons">
-    <button type="submit" form="profile-edit-form" class="btn-action btn-primary">
-      <i class="bi bi-check-circle"></i> {{ lang_dict['save'] if lang_dict.get('save') else '保存修改' }}
-    </button>
-    <a href="{{ url_for('user.profile') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}" class="btn-action btn-secondary">
-      <i class="bi bi-x-circle"></i> {{ lang_dict['cancel_edit'] if lang_dict.get('cancel_edit') else '取消编辑' }}
-    </a>
-  </div>
+        <div class="form-body">
+            <div class="completion-tip">
+                <i class="bi bi-lightbulb field-icon"></i>
+                <strong>{{ lang_dict['tip'] if lang_dict.get('tip') else '提示：' }}</strong>{{
+                lang_dict['edit_profile_tip'] if lang_dict.get('edit_profile_tip') else
+                '完善个人资料有助于提高账户安全性，并便于团队协作和财务报销等功能的使用。' }}
+            </div>
+
+            <form id="profile-edit-form" method="POST" enctype="multipart/form-data"
+                  action="{{ url_for('user.edit_profile') }}" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="form-sections">
+                    <!-- 个人信息 -->
+                    <div class="form-section">
+                        <h4 class="section-title">
+                            <i class="bi bi-person-fill field-icon"></i>
+                            {{ lang_dict['personal_info'] if lang_dict.get('personal_info') else '个人信息' }}
+                        </h4>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                {{ form.real_name.label(class="form-label", text=lang_dict['real_name'] if
+                                lang_dict.get('real_name') else '真实姓名') }}
+                                {{ form.real_name(class="form-control", required="required",
+                                placeholder=lang_dict['real_name_placeholder'] if lang_dict.get('real_name_placeholder')
+                                else '请输入真实姓名', **{'data-pristine-required-message':
+                                lang_dict['real_name_required'] if lang_dict.get('real_name_required') else '真实姓名不能为空'})
+                                }}
+                            </div>
+
+                            <div class="form-group">
+                                {{ form.employee_number.label(class="form-label", text=lang_dict['employee_number'] if
+                                lang_dict.get('employee_number') else '员工编号') }}
+                                <input class="form-control"
+                                       value="{{ form.employee_number.data or (lang_dict['unassigned'] if lang_dict.get('unassigned') else '未分配') }}"
+                                       readonly tabindex="-1"
+                                       title="{{ lang_dict['employee_number_admin_only'] if lang_dict.get('employee_number_admin_only') else '员工编号由管理员分配' }}">
+                                <small class="text-muted">{{ lang_dict['employee_number_admin_only'] if
+                                    lang_dict.get('employee_number_admin_only') else '此字段由管理员分配，无法自行修改'
+                                    }}</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            {{ form.id_card_number.label(class="form-label", text=lang_dict['id_card_number'] if
+                            lang_dict.get('id_card_number') else '身份证号') }}
+                            {{ form.id_card_number(class="form-control",
+                            placeholder=lang_dict['id_card_number_placeholder'] if
+                            lang_dict.get('id_card_number_placeholder') else '请输入身份证号码') }}
+                        </div>
+                        <div class="form-group">
+                            {{ form.id_card_copy.label(class="form-label", text='身份证复印件') }}
+                            {{ form.id_card_copy(class="form-control-file") }}
+                            {% if current_user.id_card_copy %}
+                            <div class="mt-2">
+                                <a href="{{ url_for('user.download_id_card_copy') }}"
+                                   target="_blank">已上传，点击查看</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 联系方式 -->
+                    <div class="form-section">
+                        <h4 class="section-title">
+                            <i class="bi bi-telephone-fill field-icon"></i>
+                            {{ lang_dict['contact_info'] if lang_dict.get('contact_info') else '联系方式' }}
+                        </h4>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                {{ form.phone.label(class="form-label", text=lang_dict['phone'] if
+                                lang_dict.get('phone') else '联系电话') }}
+                                {{ form.phone(class="form-control", placeholder=lang_dict['phone_placeholder'] if
+                                lang_dict.get('phone_placeholder') else '请输入联系电话') }}
+                            </div>
+
+                            <div class="form-group">
+                                {{ form.email.label(class="form-label", text=lang_dict['email'] if
+                                lang_dict.get('email') else '电子邮箱') }}
+                                {{ form.email(class="form-control", placeholder=lang_dict['email_placeholder'] if
+                                lang_dict.get('email_placeholder') else '请输入电子邮箱', type="email",
+                                **{'data-pristine-email-message': lang_dict['email_invalid'] if
+                                lang_dict.get('email_invalid') else '请输入一个有效的邮箱地址'}) }}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            {{ form.line_id.label(class="form-label", text=lang_dict['line_id'] if
+                            lang_dict.get('line_id') else 'LINE ID') }}
+                            {{ form.line_id(class="form-control", placeholder=lang_dict['line_id_placeholder'] if
+                            lang_dict.get('line_id_placeholder') else '请输入LINE ID') }}
+                        </div>
+                    </div>
+
+                    <!-- 银行及在职信息 (仅门店人员) -->
+                    {% if current_user.store_id %}
+                    <div class="form-section">
+                        <h4 class="section-title">
+                            <i class="bi bi-bank field-icon"></i>
+                            {{ lang_dict['bank_and_job_info'] if lang_dict.get('bank_and_job_info') else '银行及在职信息'
+                            }}
+                        </h4>
+
+                        <div class="store-only-notice">
+                            <i class="bi bi-info-circle me-2"></i>
+                            {{ lang_dict['store_only_notice'] if lang_dict.get('store_only_notice') else
+                            '此部分仅对门店人员开放，用于薪资发放和报销等财务相关功能。' }}
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                {{ form.bank_name.label(class="form-label", text=lang_dict['bank_name'] if
+                                lang_dict.get('bank_name') else '银行名称') }}
+                                {{ form.bank_name(class="form-control", placeholder=lang_dict['bank_name_placeholder']
+                                if lang_dict.get('bank_name_placeholder') else '请输入银行名称') }}
+                            </div>
+
+                            <div class="form-group">
+                                {{ form.bank_account_number.label(class="form-label",
+                                text=lang_dict['bank_account_number'] if lang_dict.get('bank_account_number') else
+                                '银行账号') }}
+                                {{ form.bank_account_number(class="form-control",
+                                placeholder=lang_dict['bank_account_number_placeholder'] if
+                                lang_dict.get('bank_account_number_placeholder') else '请输入银行账号') }}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            {{ form.start_date.label(class="form-label", text=lang_dict['start_date'] if
+                            lang_dict.get('start_date') else '入职日期') }}
+                            {{ form.start_date(class="form-control") }}
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">{{ lang_dict['is_primary_contact'] if
+                                lang_dict.get('is_primary_contact') else '联系人设置' }}</label>
+                            <div class="form-check">
+                                {{ form.is_primary_contact(class="form-check-input") }}
+                                {{ form.is_primary_contact.label(class="form-check-label",
+                                text=lang_dict['is_primary_contact'] if lang_dict.get('is_primary_contact') else
+                                '主要联系人') }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <button type="submit" form="profile-edit-form" class="btn-action btn-primary">
+            <i class="bi bi-check-circle"></i> {{ lang_dict['save'] if lang_dict.get('save') else '保存修改' }}
+        </button>
+        <a href="{{ url_for('user.profile') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}"
+           class="btn-action btn-secondary">
+            <i class="bi bi-x-circle"></i> {{ lang_dict['cancel_edit'] if lang_dict.get('cancel_edit') else '取消编辑'
+            }}
+        </a>
+    </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 表单验证初始化
-    const form = document.getElementById('profile-edit-form');
+    document.addEventListener('DOMContentLoaded', function() {
+        // 表单验证初始化
+        const form = document.getElementById('profile-edit-form');
 
-    // Pristine.js 表单验证 (如果已引入)
-    if (typeof Pristine !== 'undefined') {
-        const pristine = new Pristine(form);
+        // Pristine.js 表单验证 (如果已引入)
+        if (typeof Pristine !== 'undefined') {
+            const pristine = new Pristine(form);
 
-        form.addEventListener('submit', function(e) {
-            const valid = pristine.validate();
-            if (!valid) {
-                e.preventDefault();
-            } else {
-                const btn = document.querySelector('.btn-primary');
-                btn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>保存中...';
-                btn.disabled = true;
-            }
+            form.addEventListener('submit', function(e) {
+                const valid = pristine.validate();
+                if (!valid) {
+                    e.preventDefault();
+                } else {
+                    const btn = document.querySelector('.btn-primary');
+                    btn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>保存中...';
+                    btn.disabled = true;
+                }
+            });
+        }
+
+        // 添加滚动动画效果
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // 为表单区块添加动画
+        document.querySelectorAll('.edit-form-card, .action-buttons').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'all 0.6s ease';
+            observer.observe(card);
         });
-    }
 
-    // 添加滚动动画效果
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
+        // 表单字段焦点效果
+        const inputs = document.querySelectorAll('.form-control');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                if (!this.readOnly) {
+                    this.parentElement.style.transform = 'scale(1.02)';
+                }
+            });
 
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
+            input.addEventListener('blur', function() {
+                this.parentElement.style.transform = 'scale(1)';
+            });
         });
-    }, observerOptions);
 
-    // 为表单区块添加动画
-    document.querySelectorAll('.edit-form-card, .action-buttons').forEach(card => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(30px)';
-        card.style.transition = 'all 0.6s ease';
-        observer.observe(card);
+        // 实时验证邮箱格式
+        const emailInput = document.querySelector('input[type="email"]');
+        if (emailInput) {
+            emailInput.addEventListener('input', function() {
+                const email = this.value;
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                if (email && !emailRegex.test(email)) {
+                    this.style.borderColor = '#dc3545';
+                } else {
+                    this.style.borderColor = '#4facfe';
+                }
+            });
+        }
     });
-
-    // 表单字段焦点效果
-    const inputs = document.querySelectorAll('.form-control');
-    inputs.forEach(input => {
-        input.addEventListener('focus', function() {
-            if (!this.readOnly) {
-                this.parentElement.style.transform = 'scale(1.02)';
-            }
-        });
-
-        input.addEventListener('blur', function() {
-            this.parentElement.style.transform = 'scale(1)';
-        });
-    });
-
-    // 实时验证邮箱格式
-    const emailInput = document.querySelector('input[type="email"]');
-    if (emailInput) {
-        emailInput.addEventListener('input', function() {
-            const email = this.value;
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-            if (email && !emailRegex.test(email)) {
-                this.style.borderColor = '#dc3545';
-            } else {
-                this.style.borderColor = '#4facfe';
-            }
-        });
-    }
-});
 </script>
 {% endblock %}

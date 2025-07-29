@@ -10,6 +10,7 @@ from wtforms import (
     StringField,
     SubmitField,
     ValidationError,
+    FileField,  # 新增
 )
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional
 
@@ -106,7 +107,9 @@ class RegistrationForm(FlaskForm):
             if not self.store_id.data or self.store_id.data == '':
                 self.store_id.errors.append("该角色必须选择所属店铺")
                 return False
-            if not self.employee_number.data or self.employee_number.data.strip() == '':
+            # 修正：employee_number 可能为 int 类型，不能直接 .strip()
+            emp_num = self.employee_number.data
+            if emp_num is None or (isinstance(emp_num, str) and emp_num.strip() == ''):
                 self.employee_number.errors.append("该角色必须填写员工编号")
                 return False
         return True
@@ -145,6 +148,9 @@ class EditProfileForm(FlaskForm):
         choices=[(role.value, role.name.replace('_', ' ').title()) for role in RoleType],
         validators=[DataRequired("请选择一个角色")]
     )
+
+    # 新增：身份证复印件字段
+    id_card_copy = FileField("身份证复印件（图片或PDF，可选）")
 
     submit = SubmitField("保存我的资料")
 

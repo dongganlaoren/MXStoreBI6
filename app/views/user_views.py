@@ -1,12 +1,5 @@
 # app/views/user_views.py
 
-from app.extensions import db
-
-# 导入我们更新后的表单
-from app.forms.user_forms import EditProfileForm, LoginForm, RegistrationForm
-
-# 导入我们需要的模型和枚举
-from app.models import RoleType, User
 from flask import (
     Blueprint,
     current_app,
@@ -14,9 +7,16 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_from_directory,
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
+
+from app.extensions import db
+# 导入我们更新后的表单
+from app.forms.user_forms import EditProfileForm, LoginForm, RegistrationForm
+# 导入我们需要的模型和枚举
+from app.models import RoleType, User
 from app.utils.lang_dict import lang_dict
 
 user_bp = Blueprint('user', __name__)
@@ -68,6 +68,15 @@ def edit_profile():
     if form.validate_on_submit():
         try:
             form.populate_obj(current_user)
+            # 修正 employee_number 为空字符串时写入数据库
+            if hasattr(current_user, 'employee_number'):
+                if current_user.employee_number == '' or current_user.employee_number is None:
+                    current_user.employee_number = None
+                else:
+                    try:
+                        current_user.employee_number = int(current_user.employee_number)
+                    except Exception:
+                        current_user.employee_number = None
             if hasattr(form, 'store_id'):
                 store_id_val = form.store_id.data
                 if store_id_val == '' or store_id_val is None:
@@ -84,6 +93,20 @@ def edit_profile():
                     except Exception as err:
                         current_app.logger.error(f"非法role值: {role_val}, 错误: {err}")
                         current_user.role = None
+            # 新增：处理身份证复印件上传
+            file = form.id_card_copy.data
+            # 只有重新上传时才保存新文件
+            if hasattr(file, 'filename') and file.filename:
+                import os, uuid
+                upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'secure')
+                os.makedirs(upload_dir, exist_ok=True)
+                from werkzeug.utils import secure_filename
+                ext = os.path.splitext(secure_filename(file.filename))[1]
+                filename = f"idcard_{current_user.user_id}_{uuid.uuid4().hex}{ext}"
+                file_path = os.path.join(upload_dir, filename)
+                file.save(file_path)
+                # 只存相对路径
+                current_user.id_card_copy = f"uploads/secure/{filename}"
             # 员工编号不允许编辑，编辑时不保存
             # 保存前输出所有字段调试
             # 去除无用 info 日志
@@ -120,7 +143,8 @@ def register():
     form = RegistrationForm()
     # 动态设置店铺下拉框选项，确保每次渲染页面都能获取到最新店铺
     from app.models import Store
-    form.store_id.choices = [(s.store_id, f"{s.store_id} - {s.store_name}") for s in Store.query.order_by(Store.store_name).all()]
+    form.store_id.choices = [(s.store_id, f"{s.store_id} - {s.store_name}") for s in
+                             Store.query.order_by(Store.store_name).all()]
 
     if form.validate_on_submit():
         # 根据角色决定是否需要店铺ID
@@ -214,3 +238,18 @@ def staff_view():
         lang_dict=lang_dict.get(current_lang, {}),
         current_lang=current_lang
     )
+
+
+@user_bp.route('/download_id_card_copy')
+@login_required
+def download_id_card_copy():
+    """
+    普通用户下载/预览自己的身份证复印件，仅允许本人访问。
+    """
+    if not current_user.id_card_copy:
+        abort(404)
+    file_path = current_user.id_card_copy  # 形如 uploads/secure/xxx.jpg
+    import os
+    abs_dir = os.path.join(current_app.root_path, 'static', os.path.dirname(file_path))
+    filename = os.path.basename(file_path)
+    return send_from_directory(abs_dir, filename, as_attachment=False)
