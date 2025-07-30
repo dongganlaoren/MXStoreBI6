@@ -1,86 +1,125 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container mt-4">
-<div class="d-flex align-items-center mb-4">
-    <i class="bi bi-clipboard-check-fill fs-2 text-primary me-2"></i>
-    <h2 class="mb-0 fw-bold text-primary" style="letter-spacing:1px;">{{ lang_dict['sales_check_title'] if lang_dict.get('sales_check_title') else '营业信息核对' }}</h2>
-    <span class="badge bg-info bg-opacity-75 ms-3 fs-6">{{ lang_dict['sales_check_bi'] if lang_dict.get('sales_check_bi') else 'BI营业核对' }}</span>
-</div>
+    <div class="d-flex align-items-center mb-4">
+        <i class="bi bi-clipboard-check-fill fs-2 text-primary me-2"></i>
+        <h2 class="mb-0 fw-bold text-primary" style="letter-spacing:1px;">{{ lang_dict['sales_check_title'] if
+            lang_dict.get('sales_check_title') else '营业信息核对' }}</h2>
+        <span class="badge bg-info bg-opacity-75 ms-3 fs-6">{{ lang_dict['sales_check_bi'] if lang_dict.get('sales_check_bi') else 'BI营业核对' }}</span>
+    </div>
     <form method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <!-- 第一部分：日期、门店、误差、上报人 -->
         <div class="row g-3 mb-3 align-items-end">
             <div class="col-md-3">
-                <label class="form-label">{{ lang_dict['store_id'] if lang_dict.get('store_id') else '门店编号' }}</label>
-                <input type="text" class="form-control bg-light border-0 fw-bold text-primary" value="{{ daily_sales.store_id }}" readonly>
+                <label class="form-label">{{ lang_dict['store_id'] if lang_dict.get('store_id') else '门店编号'
+                    }}</label>
+                <input type="text" class="form-control bg-light border-0 fw-bold text-primary"
+                       value="{{ daily_sales.store_id }}" readonly>
             </div>
             <div class="col-md-3">
-                <label class="form-label">{{ lang_dict['report_date'] if lang_dict.get('report_date') else '上报日期' }}</label>
-                <input type="text" class="form-control bg-light border-0" value="{{ daily_sales.report_date }}" readonly>
+                <label class="form-label">{{ lang_dict['report_date'] if lang_dict.get('report_date') else '上报日期'
+                    }}</label>
+                <input type="text" class="form-control bg-light border-0" value="{{ daily_sales.report_date }}"
+                       readonly>
             </div>
             <div class="col-md-3">
-                <label class="form-label">{{ lang_dict['report_user'] if lang_dict.get('report_user') else '上报人' }}</label>
-                <input type="text" class="form-control bg-light border-0" value="{{ daily_sales.user.employee_number if daily_sales.user and daily_sales.user.employee_number else (daily_sales.user.username if daily_sales.user and daily_sales.user.username else '-') }}" readonly>
+                <label class="form-label">{{ lang_dict['report_user'] if lang_dict.get('report_user') else '上报人'
+                    }}</label>
+                <input type="text" class="form-control bg-light border-0"
+                       value="{{ daily_sales.user.employee_number if daily_sales.user and daily_sales.user.employee_number else (daily_sales.user.username if daily_sales.user and daily_sales.user.username else '-') }}"
+                       readonly>
             </div>
             <div class="col-md-3">
-                <label class="form-label fw-bold text-danger">{{ lang_dict['total_error'] if lang_dict.get('total_error') else '误差' }}</label>
-                <input type="text" class="form-control fs-4 text-danger bg-warning bg-opacity-25 border-danger border-2 text-center fw-bold" value="{{ daily_sales.total_error }}" readonly>
+                <label class="form-label fw-bold text-danger">{{ lang_dict['total_error'] if
+                    lang_dict.get('total_error') else '误差' }}</label>
+                <input type="text"
+                       class="form-control fs-4 text-danger bg-warning bg-opacity-25 border-danger border-2 text-center fw-bold"
+                       value="{{ daily_sales.total_error }}" readonly>
             </div>
         </div>
         <!-- 第二部分：POS机销售信息 -->
         <fieldset class="border rounded-4 p-4 mb-4 shadow-sm bg-white">
-            <legend class="w-auto px-3 mb-0" style="font-size:1.2rem;font-weight:600;color:#0d6efd;background:rgba(13,110,253,0.08);border-radius:0.7em;padding:0.2em 1.5em;box-shadow:0 2px 8px rgba(13,110,253,0.08);">{{ lang_dict['pos_sales_info'] if lang_dict.get('pos_sales_info') else 'POS机小票销售信息' }}</legend>
+            <legend class="w-auto px-3 mb-0"
+                    style="font-size:1.2rem;font-weight:600;color:#0d6efd;background:rgba(13,110,253,0.08);border-radius:0.7em;padding:0.2em 1.5em;box-shadow:0 2px 8px rgba(13,110,253,0.08);">
+                {{ lang_dict['pos_sales_info'] if lang_dict.get('pos_sales_info') else 'POS机小票销售信息' }}
+            </legend>
             <div class="row">
                 <div class="col-md-3 mb-3">
-                    <label class="form-label">{{ lang_dict['cash_income'] if lang_dict.get('cash_income') else '现金收入 (C)' }}</label>
+                    <label class="form-label">{{ lang_dict['cash_income'] if lang_dict.get('cash_income') else '现金收入
+                        (C)' }}</label>
                     <div class="input-group">
-                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status == 2 %}
+                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
+                        2 %}
                         <span class="form-control-plaintext ps-2">{{ daily_sales.cash_income }}</span>
                         {% else %}
-                        <input type="text" class="form-control editable-field" id="cash_income" name="cash_income" value="{{ daily_sales.cash_income }}" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="cash_income">{{ lang_dict['edit'] if lang_dict.get('edit') else '修改' }}</button>
+                        <input type="text" class="form-control editable-field" id="cash_income" name="cash_income"
+                               value="{{ '%.2f'|format(daily_sales.cash_income or 0) }}" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="cash_income">{{
+                            lang_dict['edit'] if lang_dict.get('edit') else '修改' }}
+                        </button>
                         {% endif %}
                     </div>
                 </div>
                 <div class="col-md-3 mb-3">
-                    <label class="form-label">{{ lang_dict['pos_income'] if lang_dict.get('pos_income') else '电子支付收入 (P)' }}</label>
+                    <label class="form-label">{{ lang_dict['pos_income'] if lang_dict.get('pos_income') else '电子支付收入
+                        (P)' }}</label>
                     <div class="input-group">
-                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status == 2 %}
+                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
+                        2 %}
                         <span class="form-control-plaintext ps-2">{{ daily_sales.pos_income }}</span>
                         {% else %}
-                        <input type="text" class="form-control editable-field" id="pos_income" name="pos_income" value="{{ daily_sales.pos_income }}" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="pos_income">{{ lang_dict['edit'] if lang_dict.get('edit') else '修改' }}</button>
+                        <input type="text" class="form-control editable-field" id="pos_income" name="pos_income"
+                               value="{{ '%.2f'|format(daily_sales.pos_income or 0) }}" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="pos_income">{{
+                            lang_dict['edit'] if lang_dict.get('edit') else '修改' }}
+                        </button>
                         {% endif %}
                     </div>
                 </div>
                 <div class="col-md-3 mb-3 d-flex flex-column justify-content-end">
-                    <label class="form-label">{{ lang_dict['voucher_amount'] if lang_dict.get('voucher_amount') else '代金券使用金额 (R)' }}</label>
+                    <label class="form-label">{{ lang_dict['voucher_amount'] if lang_dict.get('voucher_amount') else
+                        '代金券使用金额 (R)' }}</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light text-secondary">￥</span>
-                        <input type="text" class="form-control bg-light border-primary fw-bold text-primary" value="{{ daily_sales.voucher_amount }}" readonly style="font-size:1.15rem;">
+                        <input type="text" class="form-control bg-light border-primary fw-bold text-primary"
+                               value="{{ '%.2f'|format(daily_sales.voucher_amount or 0) }}" readonly
+                               style="font-size:1.15rem;">
                     </div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-3 mb-3">
-                    <label class="form-label">{{ lang_dict['pos_total'] if lang_dict.get('pos_total') else 'POS机总营业额（T0）' }}</label>
-                    <input type="text" class="form-control" value="{{ daily_sales.pos_total }}" readonly>
+                    <label class="form-label">{{ lang_dict['pos_total'] if lang_dict.get('pos_total') else
+                        'POS机总营业额（T0）' }}</label>
+                    <input type="text" class="form-control" value="{{ '%.2f'|format(daily_sales.pos_total or 0) }}"
+                           readonly>
                 </div>
             </div>
         </fieldset>
         {% if daily_sales.store and daily_sales.store.third_party_platform %}
         <!-- 第三部分：第三方外卖平台销售信息 -->
         <fieldset class="border rounded-4 p-4 mb-4 shadow-sm bg-white">
-            <legend class="w-auto px-3 mb-0" style="font-size:1.2rem;font-weight:600;color:#20c997;background:rgba(32,201,151,0.08);border-radius:0.7em;padding:0.2em 1.5em;box-shadow:0 2px 8px rgba(32,201,151,0.08);">{{ lang_dict['third_party_sales_info'] if lang_dict.get('third_party_sales_info') else '第三方外卖平台销售信息' }}</legend>
+            <legend class="w-auto px-3 mb-0"
+                    style="font-size:1.2rem;font-weight:600;color:#20c997;background:rgba(32,201,151,0.08);border-radius:0.7em;padding:0.2em 1.5em;box-shadow:0 2px 8px rgba(32,201,151,0.08);">
+                {{ lang_dict['third_party_sales_info'] if lang_dict.get('third_party_sales_info') else '第三方外卖平台销售信息'
+                }}
+            </legend>
             <div class="row">
                 <div class="col-md-3 mb-3">
-                    <label class="form-label">{{ lang_dict['takeaway_amount'] if lang_dict.get('takeaway_amount') else '第三方外卖平台收入 (T1)' }}</label>
+                    <label class="form-label">{{ lang_dict['takeaway_amount'] if lang_dict.get('takeaway_amount') else
+                        '第三方外卖平台收入 (T1)' }}</label>
                     <div class="input-group">
-                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status == 2 %}
+                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
+                        2 %}
                         <span class="form-control-plaintext ps-2">{{ daily_sales.takeaway_amount }}</span>
                         {% else %}
-                        <input type="text" class="form-control editable-field" id="takeaway_amount" name="takeaway_amount" value="{{ daily_sales.takeaway_amount }}" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="takeaway_amount">{{ lang_dict['edit'] if lang_dict.get('edit') else '修改' }}</button>
+                        <input type="text" class="form-control editable-field" id="takeaway_amount"
+                               name="takeaway_amount" value="{{ '%.2f'|format(daily_sales.takeaway_amount or 0) }}"
+                               readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="takeaway_amount">{{
+                            lang_dict['edit'] if lang_dict.get('edit') else '修改' }}
+                        </button>
                         {% endif %}
                     </div>
                 </div>
@@ -92,44 +131,67 @@
         {% endif %}
         <!-- 第四部分：实际入账信息 -->
         <fieldset class="border rounded-4 p-4 mb-4 shadow-sm bg-white">
-            <legend class="w-auto px-3 mb-0" style="font-size:1.2rem;font-weight:600;color:#fd7e14;background:rgba(253,126,20,0.08);border-radius:0.7em;padding:0.2em 1.5em;box-shadow:0 2px 8px rgba(253,126,20,0.08);">{{ lang_dict['actual_sales_info'] if lang_dict.get('actual_sales_info') else '实际入账信息' }}</legend>
+            <legend class="w-auto px-3 mb-0"
+                    style="font-size:1.2rem;font-weight:600;color:#fd7e14;background:rgba(253,126,20,0.08);border-radius:0.7em;padding:0.2em 1.5em;box-shadow:0 2px 8px rgba(253,126,20,0.08);">
+                {{ lang_dict['actual_sales_info'] if lang_dict.get('actual_sales_info') else '实际入账信息' }}
+            </legend>
             <div class="row">
                 <div class="col-md-4 mb-3">
-                    <label class="form-label fw-bold text-primary">{{ lang_dict['actual_sales'] if lang_dict.get('actual_sales') else '实际到账金额' }}</label>
-                    <input type="text" class="form-control fs-4 text-primary bg-info bg-opacity-25 border-primary border-2" value="{{ daily_sales.actual_sales }}" readonly>
+                    <label class="form-label fw-bold text-primary">{{ lang_dict['actual_sales'] if
+                        lang_dict.get('actual_sales') else '实际到账金额' }}</label>
+                    <input type="text"
+                           class="form-control fs-4 text-primary bg-info bg-opacity-25 border-primary border-2"
+                           value="{{ '%.2f'|format(daily_sales.actual_sales or 0) }}" readonly>
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-3 mb-3">
-                    <label class="form-label">{{ lang_dict['electronic_actual_arrival'] if lang_dict.get('electronic_actual_arrival') else '电子支付实际入账金额 (EA)' }}</label>
+                    <label class="form-label">{{ lang_dict['electronic_actual_arrival'] if
+                        lang_dict.get('electronic_actual_arrival') else '电子支付实际入账金额 (EA)' }}</label>
                     <div class="input-group">
-                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status == 2 %}
+                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
+                        2 %}
                         <span class="form-control-plaintext ps-2">{{ daily_sales.electronic_actual_arrival }}</span>
                         {% else %}
-                        <input type="text" class="form-control editable-field" id="electronic_actual_arrival" name="electronic_actual_arrival" value="{{ daily_sales.electronic_actual_arrival }}" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="electronic_actual_arrival">{{ lang_dict['edit'] if lang_dict.get('edit') else '修改' }}</button>
+                        <input type="text" class="form-control editable-field" id="electronic_actual_arrival"
+                               name="electronic_actual_arrival"
+                               value="{{ '%.2f'|format(daily_sales.electronic_actual_arrival or 0) }}" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-edit"
+                                data-field="electronic_actual_arrival">{{ lang_dict['edit'] if lang_dict.get('edit')
+                            else '修改' }}
+                        </button>
                         {% endif %}
                     </div>
                 </div>
                 <div class="col-md-3 mb-3">
-                    <label class="form-label">{{ lang_dict['bank_deposit'] if lang_dict.get('bank_deposit') else '银行存款金额 (BC)' }}</label>
+                    <label class="form-label">{{ lang_dict['bank_deposit'] if lang_dict.get('bank_deposit') else '银行存款金额
+                        (BC)' }}</label>
                     <div class="input-group">
-                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status == 2 %}
+                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
+                        2 %}
                         <span class="form-control-plaintext ps-2">{{ daily_sales.bank_deposit }}</span>
                         {% else %}
-                        <input type="text" class="form-control editable-field" id="bank_deposit" name="bank_deposit" value="{{ daily_sales.bank_deposit }}" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="bank_deposit">{{ lang_dict['edit'] if lang_dict.get('edit') else '修改' }}</button>
+                        <input type="text" class="form-control editable-field" id="bank_deposit" name="bank_deposit"
+                               value="{{ '%.2f'|format(daily_sales.bank_deposit or 0) }}" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="bank_deposit">{{
+                            lang_dict['edit'] if lang_dict.get('edit') else '修改' }}
+                        </button>
                         {% endif %}
                     </div>
                 </div>
                 <div class="col-md-3 mb-3">
-                    <label class="form-label">{{ lang_dict['bank_fee'] if lang_dict.get('bank_fee') else '存款手续费 (BF)' }}</label>
+                    <label class="form-label">{{ lang_dict['bank_fee'] if lang_dict.get('bank_fee') else '存款手续费
+                        (BF)' }}</label>
                     <div class="input-group">
-                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status == 2 %}
+                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
+                        2 %}
                         <span class="form-control-plaintext ps-2">{{ daily_sales.bank_fee }}</span>
                         {% else %}
-                        <input type="text" class="form-control editable-field" id="bank_fee" name="bank_fee" value="{{ daily_sales.bank_fee }}" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="bank_fee">{{ lang_dict['edit'] if lang_dict.get('edit') else '修改' }}</button>
+                        <input type="text" class="form-control editable-field" id="bank_fee" name="bank_fee"
+                               value="{{ '%.2f'|format(daily_sales.bank_fee or 0) }}" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="bank_fee">{{
+                            lang_dict['edit'] if lang_dict.get('edit') else '修改' }}
+                        </button>
                         {% endif %}
                     </div>
                 </div>
@@ -139,223 +201,247 @@
         <div class="mb-3 mt-4 p-3 border rounded-4 bg-light shadow-sm">
             {{ form.financial_check_status.label(class="form-label fw-bold") }}
             {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status == 2 %}
-                <span class="form-control-plaintext ps-2">
+            <span class="form-control-plaintext ps-2">
                     {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status == 2 %}{{ lang_dict['approved'] if lang_dict.get('approved') else '已审核' }}{% elif daily_sales.financial_check_status == 'PENDING' or daily_sales.financial_check_status == 1 %}{{ lang_dict['pending'] if lang_dict.get('pending') else '待审核' }}{% else %}--{% endif %}
                 </span>
             {% else %}
-                {{ form.financial_check_status(class="form-select") }}
+            {{ form.financial_check_status(class="form-select") }}
             {% endif %}
             {% for error in form.financial_check_status.errors %}
-                <div class="text-danger small">{{ error }}</div>
+            <div class="text-danger small">{{ error }}</div>
             {% endfor %}
         </div>
         <div class="mb-3 mt-3">
             {{ form.remark.label(class="form-label fw-bold") }}
             {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status == 2 %}
-                <span class="form-control-plaintext ps-2">{{ form.remark.data or '' }}</span>
+            <span class="form-control-plaintext ps-2">{{ form.remark.data or '' }}</span>
             {% else %}
-                {{ form.remark(class="form-control", rows=3, placeholder=(lang_dict['finance_remark_placeholder'] if lang_dict.get('finance_remark_placeholder') else '可填写财务审核备注')) }}
+            {{ form.remark(class="form-control", rows=3, placeholder=(lang_dict['finance_remark_placeholder'] if
+            lang_dict.get('finance_remark_placeholder') else '可填写财务审核备注')) }}
             {% endif %}
             {% for error in form.remark.errors %}
-                <div class="text-danger small">{{ error }}</div>
+            <div class="text-danger small">{{ error }}</div>
             {% endfor %}
         </div>
         <div class="mb-3">
             {% if daily_sales.financial_check_status != 'APPROVED' and daily_sales.financial_check_status != 2 %}
-                <button type="submit" id="btn-save" class="btn btn-primary btn-lg px-5" disabled>{{ lang_dict['save'] if lang_dict.get('save') else '保存' }}</button>
+            <button type="submit" id="btn-save" class="btn btn-primary btn-lg px-5" disabled>{{ lang_dict['save'] if
+                lang_dict.get('save') else '保存' }}
+            </button>
             {% endif %}
-            <a href="{{ url_for('sales_manage.manage_list', initial_load='true') }}" class="btn btn-secondary ms-2">{{ lang_dict['back_to_list'] if lang_dict.get('back_to_list') else '返回列表' }}</a>
+            <a href="{{ url_for('sales_manage.manage_list', initial_load='true') }}" class="btn btn-secondary ms-2">{{
+                lang_dict['back_to_list'] if lang_dict.get('back_to_list') else '返回列表' }}</a>
         </div>
     </form>
     <hr class="my-4">
     <ul class="nav nav-tabs mb-3 rounded-4 overflow-hidden shadow-sm" id="historyTab" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="img-tab" data-bs-toggle="tab" data-bs-target="#img-pane" type="button" role="tab">{{ lang_dict['daily_voucher'] if lang_dict.get('daily_voucher') else '日报凭证' }}</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="change-tab" data-bs-toggle="tab" data-bs-target="#change-pane" type="button" role="tab">{{ lang_dict['change_history'] if lang_dict.get('change_history') else '修改历史' }}</button>
-      </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="img-tab" data-bs-toggle="tab" data-bs-target="#img-pane" type="button"
+                    role="tab">{{ lang_dict['daily_voucher'] if lang_dict.get('daily_voucher') else '日报凭证' }}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="change-tab" data-bs-toggle="tab" data-bs-target="#change-pane" type="button"
+                    role="tab">{{ lang_dict['change_history'] if lang_dict.get('change_history') else '修改历史' }}
+            </button>
+        </li>
     </ul>
     <div class="tab-content bg-white rounded-4 shadow-sm p-4" id="historyTabContent">
-      <div class="tab-pane fade show active" id="img-pane" role="tabpanel">
-        <h5>{{ lang_dict['daily_voucher'] if lang_dict.get('daily_voucher') else '日报凭证' }}</h5>
-        <div class="row">
-            {% for att in daily_sales.attachments %}
+        <div class="tab-pane fade show active" id="img-pane" role="tabpanel">
+            <h5>{{ lang_dict['daily_voucher'] if lang_dict.get('daily_voucher') else '日报凭证' }}</h5>
+            <div class="row">
+                {% for att in daily_sales.attachments %}
                 <div class="col-md-3 mb-3">
                     <div class="card">
                         {% set ext = att.file_path.split('.')[-1]|lower %}
-                        <a href="{{ url_for('static', filename=att.file_path.replace('\\', '/')) }}" class="attachment-link preview-attachment" data-filename="{{ att.original_filename if att.original_filename is defined else att.file_path }}" data-type="{{ att.attachment_type.value }}">
+                        <a href="{{ url_for('static', filename=att.file_path.replace('\\', '/')) }}"
+                           class="attachment-link preview-attachment"
+                           data-filename="{{ att.original_filename if att.original_filename is defined else att.file_path }}"
+                           data-type="{{ att.attachment_type.value }}">
                             {% if ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] %}
-                                <img src="{{ url_for('static', filename=att.file_path.replace('\\', '/')) }}" class="card-img-top" alt="{{ lang_dict['voucher_img'] if lang_dict.get('voucher_img') else '凭证图片' }}" style="cursor:zoom-in;transition:box-shadow .2s;max-height:160px;object-fit:contain;">
+                            <img src="{{ url_for('static', filename=att.file_path.replace('\\', '/')) }}"
+                                 class="card-img-top"
+                                 alt="{{ lang_dict['voucher_img'] if lang_dict.get('voucher_img') else '凭证图片' }}"
+                                 style="cursor:zoom-in;transition:box-shadow .2s;max-height:160px;object-fit:contain;">
                             {% elif ext == 'pdf' %}
-                                <div class="d-flex flex-column align-items-center justify-content-center" style="height:160px;">
-                                    <i class="bi bi-file-earmark-pdf text-danger" style="font-size:3rem;"></i>
-                                    <span class="text-secondary small mt-2">{{ lang_dict['pdf_preview'] if lang_dict.get('pdf_preview') else 'PDF预览' }}</span>
-                                </div>
+                            <div class="d-flex flex-column align-items-center justify-content-center"
+                                 style="height:160px;">
+                                <i class="bi bi-file-earmark-pdf text-danger" style="font-size:3rem;"></i>
+                                <span class="text-secondary small mt-2">{{ lang_dict['pdf_preview'] if lang_dict.get('pdf_preview') else 'PDF预览' }}</span>
+                            </div>
                             {% else %}
-                                <div class="d-flex flex-column align-items-center justify-content-center" style="height:160px;">
-                                    <i class="bi bi-file-earmark-text text-info" style="font-size:3rem;"></i>
-                                    <span class="text-secondary small mt-2">{{ lang_dict['file'] if lang_dict.get('file') else '文件' }}</span>
-                                </div>
+                            <div class="d-flex flex-column align-items-center justify-content-center"
+                                 style="height:160px;">
+                                <i class="bi bi-file-earmark-text text-info" style="font-size:3rem;"></i>
+                                <span class="text-secondary small mt-2">{{ lang_dict['file'] if lang_dict.get('file') else '文件' }}</span>
+                            </div>
                             {% endif %}
                         </a>
                         <div class="card-body p-2 text-center">
                             <span class="badge bg-info">{{ att.attachment_type.label if att.attachment_type else '' }}</span>
-                            <div class="small mt-1 text-truncate" title="{{ att.original_filename if att.original_filename is defined else att.file_path }}">
-                                {{ att.original_filename if att.original_filename is defined else att.file_path.split('/')[-1] }}
+                            <div class="small mt-1 text-truncate"
+                                 title="{{ att.original_filename if att.original_filename is defined else att.file_path }}">
+                                {{ att.original_filename if att.original_filename is defined else
+                                att.file_path.split('/')[-1] }}
                             </div>
                         </div>
                     </div>
                 </div>
+                {% else %}
+                <div class="col-12 text-muted">{{ lang_dict['no_voucher'] if lang_dict.get('no_voucher') else '暂无凭证'
+                    }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="tab-pane fade" id="change-pane" role="tabpanel">
+            <h5>{{ lang_dict['key_change_history'] if lang_dict.get('key_change_history') else '关键字段修改历史'
+                }}</h5>
+            {% if history_list and history_list|length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light text-center">
+                    <tr>
+                        <th>{{ lang_dict['field'] if lang_dict.get('field') else '字段' }}</th>
+                        <th>{{ lang_dict['old_value'] if lang_dict.get('old_value') else '原值' }}</th>
+                        <th>{{ lang_dict['new_value'] if lang_dict.get('new_value') else '新值' }}</th>
+                        <th>{{ lang_dict['operator'] if lang_dict.get('operator') else '操作人' }}</th>
+                        <th>{{ lang_dict['role'] if lang_dict.get('role') else '角色' }}</th>
+                        <th>{{ lang_dict['reason'] if lang_dict.get('reason') else '理由' }}</th>
+                        <th>{{ lang_dict['time'] if lang_dict.get('time') else '时间' }}</th>
+                    </tr>
+                    </thead>
+                    <tbody class="text-center">
+                    {% for h in history_list %}
+                    <tr>
+                        <td>{{ h.field_name }}</td>
+                        <td>{{ h.old_value if h.old_value is not none else '-' }}</td>
+                        <td class="fw-bold text-primary">{{ h.new_value }}</td>
+                        <td>{{ h.operator_id }}</td>
+                        <td>{{ h.operator_role }}</td>
+                        <td>{{ h.remark }}</td>
+                        <td>{{ h.created_at.strftime('%Y-%m-%d %H:%M:%S') if h.created_at else '' }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% else %}
-                <div class="col-12 text-muted">{{ lang_dict['no_voucher'] if lang_dict.get('no_voucher') else '暂无凭证' }}</div>
-            {% endfor %}
+            <div class="text-muted">{{ lang_dict['no_key_change_history'] if lang_dict.get('no_key_change_history') else
+                '暂无关键字段修改历史' }}
+            </div>
+            {% endif %}
         </div>
-      </div>
-      <div class="tab-pane fade" id="change-pane" role="tabpanel">
-        <h5>{{ lang_dict['key_change_history'] if lang_dict.get('key_change_history') else '关键字段修改历史' }}</h5>
-        {% if history_list and history_list|length > 0 %}
-        <div class="table-responsive">
-          <table class="table table-bordered table-hover align-middle">
-            <thead class="table-light text-center">
-              <tr>
-                <th>{{ lang_dict['field'] if lang_dict.get('field') else '字段' }}</th>
-                <th>{{ lang_dict['old_value'] if lang_dict.get('old_value') else '原值' }}</th>
-                <th>{{ lang_dict['new_value'] if lang_dict.get('new_value') else '新值' }}</th>
-                <th>{{ lang_dict['operator'] if lang_dict.get('operator') else '操作人' }}</th>
-                <th>{{ lang_dict['role'] if lang_dict.get('role') else '角色' }}</th>
-                <th>{{ lang_dict['reason'] if lang_dict.get('reason') else '理由' }}</th>
-                <th>{{ lang_dict['time'] if lang_dict.get('time') else '时间' }}</th>
-              </tr>
-            </thead>
-            <tbody class="text-center">
-              {% for h in history_list %}
-              <tr>
-                <td>{{ h.field_name }}</td>
-                <td>{{ h.old_value if h.old_value is not none else '-' }}</td>
-                <td class="fw-bold text-primary">{{ h.new_value }}</td>
-                <td>{{ h.operator_id }}</td>
-                <td>{{ h.operator_role }}</td>
-                <td>{{ h.remark }}</td>
-                <td>{{ h.created_at.strftime('%Y-%m-%d %H:%M:%S') if h.created_at else '' }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% else %}
-          <div class="text-muted">{{ lang_dict['no_key_change_history'] if lang_dict.get('no_key_change_history') else '暂无关键字段修改历史' }}</div>
-        {% endif %}
-      </div>
     </div>
     <!-- 附件预览Modal -->
     <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="previewModalLabel">附件预览</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
-          </div>
-          <div class="modal-body" id="previewBody" style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="previewModalLabel">附件预览</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                </div>
+                <div class="modal-body" id="previewBody"
+                     style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>
+            </div>
         </div>
-      </div>
     </div>
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.preview-attachment').forEach(function(link) {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                var fileUrl = this.getAttribute('href');
-                var ext = fileUrl.split('.').pop().toLowerCase();
-                var modal = new bootstrap.Modal(document.getElementById('previewModal'));
-                var previewBody = document.getElementById('previewBody');
-                previewBody.innerHTML = '';
-                if (["jpg","jpeg","png","gif","bmp","webp"].includes(ext)) {
-                    previewBody.innerHTML = '<img src="' + fileUrl + '" style="max-width:90vw;max-height:80vh;border-radius:8px;box-shadow:0 4px 32px #0008;">';
-                } else if (ext === 'pdf') {
-                    previewBody.innerHTML = '<iframe src="' + fileUrl + '" style="width:90vw;height:80vh;border:none;"></iframe>';
-                } else if (["mp4","webm","ogg"].includes(ext)) {
-                    previewBody.innerHTML = '<video src="' + fileUrl + '" controls style="max-width:90vw;max-height:80vh;border-radius:8px;"></video>';
-                } else {
-                    previewBody.innerHTML = '<div class="text-center text-muted">暂不支持该文件类型预览，可<a href="' + fileUrl + '" target="_blank">下载查看</a></div>';
-                }
-                modal.show();
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.preview-attachment').forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var fileUrl = this.getAttribute('href');
+                    var ext = fileUrl.split('.').pop().toLowerCase();
+                    var modal = new bootstrap.Modal(document.getElementById('previewModal'));
+                    var previewBody = document.getElementById('previewBody');
+                    previewBody.innerHTML = '';
+                    if (["jpg","jpeg","png","gif","bmp","webp"].includes(ext)) {
+                        previewBody.innerHTML = '<img src="' + fileUrl + '" style="max-width:90vw;max-height:80vh;border-radius:8px;box-shadow:0 4px 32px #0008;">';
+                    } else if (ext === 'pdf') {
+                        previewBody.innerHTML = '<iframe src="' + fileUrl + '" style="width:90vw;height:80vh;border:none;"></iframe>';
+                    } else if (["mp4","webm","ogg"].includes(ext)) {
+                        previewBody.innerHTML = '<video src="' + fileUrl + '" controls style="max-width:90vw;max-height:80vh;border-radius:8px;"></video>';
+                    } else {
+                        previewBody.innerHTML = '<div class="text-center text-muted">暂不支持该文件类型预览，可<a href="' + fileUrl + '" target="_blank">下载查看</a></div>';
+                    }
+                    modal.show();
+                });
             });
         });
-    });
     </script>
     <script>
-    // 简单图片放大弹窗（支持多图）
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.img-zoomable').forEach(function(link) {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                var imgUrl = this.getAttribute('href');
-                var modal = document.createElement('div');
-                modal.style.position = 'fixed';
-                modal.style.left = 0;
-                modal.style.top = 0;
-                modal.style.width = '100vw';
-                modal.style.height = '100vh';
-                modal.style.background = 'rgba(0,0,0,0.8)';
-                modal.style.display = 'flex';
-                modal.style.alignItems = 'center';
-                modal.style.justifyContent = 'center';
-                modal.style.zIndex = 9999;
-                modal.innerHTML = '<img src="' + imgUrl + '" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 4px 32px #0008;">';
-                modal.onclick = function() { document.body.removeChild(modal); };
-                document.body.appendChild(modal);
+        // 简单图片放大弹窗（支持多图）
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.img-zoomable').forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var imgUrl = this.getAttribute('href');
+                    var modal = document.createElement('div');
+                    modal.style.position = 'fixed';
+                    modal.style.left = 0;
+                    modal.style.top = 0;
+                    modal.style.width = '100vw';
+                    modal.style.height = '100vh';
+                    modal.style.background = 'rgba(0,0,0,0.8)';
+                    modal.style.display = 'flex';
+                    modal.style.alignItems = 'center';
+                    modal.style.justifyContent = 'center';
+                    modal.style.zIndex = 9999;
+                    modal.innerHTML = '<img src="' + imgUrl + '" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 4px 32px #0008;">';
+                    modal.onclick = function() { document.body.removeChild(modal); };
+                    document.body.appendChild(modal);
+                });
             });
-        });
 
-        // 关键字段“修改”按钮交互
-        document.querySelectorAll('.btn-edit').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                var field = this.getAttribute('data-field');
-                var input = document.getElementById(field);
-                if (input.readOnly) {
-                    input.readOnly = false;
-                    input.classList.add('bg-warning','border-warning');
-                    input.focus();
-                    // 弹窗填写理由
-                    var reason = prompt('请填写修改理由（必填）：');
-                    if (reason === null || reason.trim() === '') {
-                        input.readOnly = true;
-                        input.classList.remove('bg-warning','border-warning');
-                        alert('必须填写修改理由！');
-                        return;
+            // 关键字段“修改”按钮交互
+            document.querySelectorAll('.btn-edit').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var field = this.getAttribute('data-field');
+                    var input = document.getElementById(field);
+                    if (input.readOnly) {
+                        input.readOnly = false;
+                        input.classList.add('bg-warning','border-warning');
+                        input.focus();
+                        // 弹窗填写理由
+                        var reason = prompt('请填写修改理由（必填）：');
+                        if (reason === null || reason.trim() === '') {
+                            input.readOnly = true;
+                            input.classList.remove('bg-warning','border-warning');
+                            alert('必须填写修改理由！');
+                            return;
+                        }
+                        // 创建隐藏域存理由
+                        var old = document.getElementById('remark_' + field);
+                        if (old) old.remove();
+                        var hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'remark_' + field;
+                        hidden.id = 'remark_' + field;
+                        hidden.value = reason;
+                        input.parentNode.appendChild(hidden);
+                        // 高亮提示
+                        input.title = '已修改，待保存';
                     }
-                    // 创建隐藏域存理由
-                    var old = document.getElementById('remark_' + field);
-                    if (old) old.remove();
-                    var hidden = document.createElement('input');
-                    hidden.type = 'hidden';
-                    hidden.name = 'remark_' + field;
-                    hidden.id = 'remark_' + field;
-                    hidden.value = reason;
-                    input.parentNode.appendChild(hidden);
-                    // 高亮提示
-                    input.title = '已修改，待保存';
-                }
+                });
             });
-        });
 
-        // 审核状态选择为“已审核”时才允许保存
-        var statusSelect = document.querySelector('select[name="financial_check_status"]');
-        var saveBtn = document.getElementById('btn-save');
-        if (statusSelect && saveBtn) {
-            function checkStatusEnableSave() {
-                if (statusSelect.value === 'APPROVED') {
-                    saveBtn.disabled = false;
-                } else {
-                    saveBtn.disabled = true;
+            // 审核状态选择为“已审核”时才允许保存
+            var statusSelect = document.querySelector('select[name="financial_check_status"]');
+            var saveBtn = document.getElementById('btn-save');
+            if (statusSelect && saveBtn) {
+                function checkStatusEnableSave() {
+                    if (statusSelect.value === 'APPROVED') {
+                        saveBtn.disabled = false;
+                    } else {
+                        saveBtn.disabled = true;
+                    }
                 }
+                statusSelect.addEventListener('change', checkStatusEnableSave);
+                // 初始化时也检查一次
+                checkStatusEnableSave();
             }
-            statusSelect.addEventListener('change', checkStatusEnableSave);
-            // 初始化时也检查一次
-            checkStatusEnableSave();
-        }
-    });
+        });
     </script>
 </div>
 {% endblock %}
