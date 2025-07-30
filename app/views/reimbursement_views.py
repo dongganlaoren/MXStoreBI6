@@ -58,7 +58,13 @@ def list_requests():
         # 只能看自己发起的
         query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
     elif role == 'FINANCE':
-        if category == 'done':
+        if category == 'todo':
+            # 财务待我审批：我为审批人且待审批
+            query = query.filter(
+                ReimbursementRequest.approver_id == current_user.user_id,
+                ReimbursementRequest.status == ReimbursementStatus.PENDING
+            )
+        elif category == 'done':
             # 财务能看所有审批通过的
             query = query.filter(ReimbursementRequest.status == ReimbursementStatus.APPROVED)
         else:  # mine
