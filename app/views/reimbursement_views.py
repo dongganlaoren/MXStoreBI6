@@ -15,6 +15,7 @@ from app.models.enums import ReimbursementAttachmentType
 from app.models.enums import ReimbursementStatus
 from app.models.reimbursement import ReimbursementRequest, ReimbursementAttachment
 from app.models.user import User
+from app.utils.lang_dict import lang_dict
 
 bp = Blueprint('reimbursement', __name__, url_prefix='/reimbursement')
 
@@ -85,13 +86,18 @@ def list_requests():
     query = query.filter(ReimbursementRequest.created_at >= begin, ReimbursementRequest.created_at < end)
     requests = query.order_by(ReimbursementRequest.created_at.desc()).all()
 
+    # 优先从请求参数获取语言
+    current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
+    lang = lang_dict.get(current_lang, lang_dict['zh'])
     return render_template('reimbursement/list.html',
                            requests=requests,
                            category=category,
                            status=status,
                            time_range=time_range,
                            start_date=start_date,
-                           end_date=end_date
+                           end_date=end_date,
+                           lang=lang,
+                           current_lang=current_lang
                            )
 
 
@@ -155,7 +161,9 @@ def create():
             flash(f'保存失败: {e}', 'danger')
     else:
         print("表单校验失败:", form.errors)
-    return render_template('reimbursement/create.html', form=form)
+    current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
+    lang = lang_dict.get(current_lang, lang_dict['zh'])
+    return render_template('reimbursement/create.html', form=form, lang=lang, current_lang=current_lang)
 
 
 @bp.route('/<int:request_id>')
@@ -163,7 +171,10 @@ def create():
 def detail(request_id):
     req = ReimbursementRequest.query.get_or_404(request_id)
     attachments = req.attachments.all()
-    return render_template('reimbursement/detail.html', req=req, attachments=attachments)
+    current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
+    lang = lang_dict.get(current_lang, lang_dict['zh'])
+    return render_template('reimbursement/detail.html', req=req, attachments=attachments, lang=lang,
+                           current_lang=current_lang)
 
 
 @bp.route('/<int:request_id>/approve', methods=['GET', 'POST'])

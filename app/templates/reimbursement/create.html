@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
-{% block title %}发起申请{% endblock %}
+{% block title %}{{ lang['reimbursement_create_title'] }}{% endblock %}
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex align-items-center mb-3">
-        <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">发起申请</h2>
-        <span class="badge bg-success bg-opacity-75 fs-6">财务报销</span>
+        <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">{{
+            lang['reimbursement_create_title'] }}</h2>
+        <span class="badge bg-success bg-opacity-75 fs-6">{{ lang['reimbursement_finance'] }}</span>
     </div>
     <div class="card shadow-sm mb-4">
         <div class="card-body">
@@ -13,49 +14,53 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <div class="mb-3">
-                            {{ form.primary_category.label(class="form-label fw-bold") }}
+                            {{ form.primary_category.label(class="form-label fw-bold",
+                            text=lang['reimbursement_primary_category']) }}
                             {{ form.primary_category(class="form-select", id="primary_category") }}
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            {{ form.secondary_category.label(class="form-label fw-bold") }}
+                            {{ form.secondary_category.label(class="form-label fw-bold",
+                            text=lang['reimbursement_secondary_category']) }}
                             {{ form.secondary_category(class="form-select", id="secondary_category") }}
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            {{ form.store_id.label(class="form-label fw-bold", id="store-id-label") }}
+                            {{ form.store_id.label(class="form-label fw-bold", id="store-id-label",
+                            text=lang['reimbursement_store']) }}
                             {{ form.store_id(class="form-select", id="store-id-select") }}
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">申请日期</label>
+                            <label class="form-label fw-bold">{{ lang['reimbursement_submission_date'] }}</label>
                             {{ form.submission_date(class="form-control") }}
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            {{ form.amount.label(class="form-label fw-bold") }}
+                            {{ form.amount.label(class="form-label fw-bold", text=lang['reimbursement_amount']) }}
                             {{ form.amount(class="form-control") }}
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            {{ form.currency.label(class="form-label fw-bold") }}
+                            {{ form.currency.label(class="form-label fw-bold", text=lang['reimbursement_currency'] if
+                            lang.get('reimbursement_currency') else '货币单位') }}
                             {{ form.currency(class="form-select") }}
                         </div>
                     </div>
                 </div>
                 <div class="mb-3">
-                    {{ form.reason.label(class="form-label fw-bold") }}
+                    {{ form.reason.label(class="form-label fw-bold", text=lang['reimbursement_reason']) }}
                     {{ form.reason(class="form-control", rows=3) }}
                 </div>
                 <div class="mb-3 position-relative">
-                    <label for="approver_id" class="form-label fw-bold">审批人</label>
+                    <label for="approver_id" class="form-label fw-bold">{{ lang['reimbursement_approver'] }}</label>
                     <input type="text" id="approver_search" class="form-control"
-                           placeholder="输入姓名/工号/手机号等关键词搜索审批人" autocomplete="off">
+                           placeholder="{{ lang['reimbursement_search_approver'] }}" autocomplete="off">
                     {{ form.approver_id(type="hidden", id="approver_id") }}
                     <div id="approver_suggest" class="list-group position-absolute w-100" style="z-index:1000;"></div>
                     {% if form.approver_id.errors %}
@@ -63,12 +68,14 @@
                     {% endif %}
                 </div>
                 <div class="mb-3">
-                    {{ form.attachments.label(class="form-label fw-bold") }}
+                    {{ form.attachments.label(class="form-label fw-bold", text=lang['reimbursement_attachments']) }}
                     {{ form.attachments(class="form-control", multiple=True, id="attachmentInput") }}
-                    <div class="form-text">可上传多个附件，支持直接粘贴截图</div>
+                    <div class="form-text">{{ lang['reimbursement_attachment_tip'] }}</div>
                 </div>
                 <div class="d-flex justify-content-end">
-                    <button type="submit" class="btn btn-success px-4 py-2"><i class="bi bi-send"></i> 发起申请</button>
+                    <button type="submit" class="btn btn-success px-4 py-2"><i class="bi bi-send"></i> {{
+                        lang['reimbursement_create_btn'] }}
+                    </button>
                 </div>
             </form>
         </div>
