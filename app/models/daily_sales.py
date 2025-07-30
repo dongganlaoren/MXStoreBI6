@@ -1,7 +1,6 @@
 # MXStoreBI/app/models/daily_sales.py
 
 from datetime import datetime
-from flask import current_app
 
 from app.extensions import db
 from .enums import FinancialCheckStatus
@@ -13,7 +12,8 @@ class DailySales(db.Model):
     # 上报人对象（User）
     user = db.relationship('User', backref='daily_sales', lazy='joined')
     # 理论营收总金额
-    theoretical_total = db.Column(db.Float, comment='理论营收(T2)=店铺理论营业额(T0)+第三方外卖平台收入(T1)-POS机小票里显示的代金券总金额-银行存款金额')
+    theoretical_total = db.Column(db.Float,
+                                  comment='理论营收(T2)=店铺理论营业额(T0)+第三方外卖平台收入(T1)-POS机小票里显示的代金券总金额-银行存款金额')
     """
     每日营业额上报记录模型
     字段及计算公式详见《字段说明.md》
@@ -44,10 +44,12 @@ class DailySales(db.Model):
     takeaway_amount = db.Column(db.Float, default=0.0, nullable=False, comment='第三方外卖平台收入 (T1)')
 
     # 实际总营业额
-    actual_sales = db.Column(db.Float, comment='实际总营业额(S)=第三方外卖平台收入(T1)+外卖收入+电子支付实际入账金额+银行存款金额')
+    actual_sales = db.Column(db.Float,
+                             comment='实际总营业额(S)=第三方外卖平台收入(T1)+外卖收入+电子支付实际入账金额+银行存款金额')
 
     # 误差
-    total_error = db.Column(db.Float, comment='总误差(E)=电子支付实际入账金额+银行存款金额+银行存款手续费-POS机小票里显示的电子支付总金额-POS机小票里显示的现金总金额')
+    total_error = db.Column(db.Float,
+                            comment='总误差(E)=电子支付实际入账金额+银行存款金额+银行存款手续费-POS机小票里显示的电子支付总金额-POS机小票里显示的现金总金额')
 
     # 误差字段仅存储，默认0
     cash_difference = db.Column(db.Float, default=0.0, nullable=False, comment='POS现金收入误差(A)，仅存储，默认0')
@@ -59,7 +61,8 @@ class DailySales(db.Model):
     pos_info_completed = db.Column(db.Boolean, default=False, nullable=False, comment='第一步(POS)是否完成')
     takeaway_info_completed = db.Column(db.Boolean, default=False, nullable=False, comment='第二步(外卖)是否完成')
     # 实际入账金额录入是否完成（包括电子支付实际入账和银行存款）
-    actual_arrival_info_completed = db.Column(db.Boolean, default=False, nullable=False, comment='实际入账金额录入是否完成')
+    actual_arrival_info_completed = db.Column(db.Boolean, default=False, nullable=False,
+                                              comment='实际入账金额录入是否完成')
     is_submitted = db.Column(db.Boolean, default=False, nullable=False, comment='是否已最终提交给财务')
     financial_check_status = db.Column(
         db.Enum(FinancialCheckStatus),
@@ -86,18 +89,22 @@ class DailySales(db.Model):
         - 理论营收总金额（T2）= 店铺理论营业额（T0） + 第三方外卖平台收入（T1） - POS机小票里显示的代金券总金额 - 银行存款手续费
         - 实际总营业额(S)=第三方外卖平台收入(T1)+外卖收入+电子支付实际入账金额+银行存款金额
         - 总误差 = 电子支付实际入账金额 + 银行存款金额 + 银行存款手续费 - POS机小票电子支付收入 - POS机小票现金收入
-        
         """
         # 店铺理论营业额 T0 = 现金收入 + 电子支付收入 + 外卖收入 + 代金券使用金额
-        self.pos_total = (self.cash_income or 0) + (self.pos_income or 0) + (self.day_pass_income or 0) + (self.voucher_amount or 0)
+        self.pos_total = round(
+            (self.cash_income or 0) + (self.pos_income or 0) + (self.day_pass_income or 0) + (self.voucher_amount or 0),
+            2)
         # 理论营收总金额 T2
-        self.theoretical_total = self.pos_total + (self.takeaway_amount or 0) - (self.voucher_amount or 0) - (self.bank_fee or 0)
-        # 电子支付实际入账金额 EA 由用户填写，不再自动计算
-        # self.electronic_actual_arrival = (self.pos_income or 0) + (self.electronic_difference or 0)
+        self.theoretical_total = round(
+            self.pos_total + (self.takeaway_amount or 0) - (self.voucher_amount or 0) - (self.bank_fee or 0), 2)
         # 实际总营业额 S = 第三方外卖平台收入(T1) + 外卖收入 + 电子支付实际入账金额 + 银行存款金额
-        self.actual_sales = (self.takeaway_amount or 0) + (self.day_pass_income or 0) + (self.electronic_actual_arrival or 0) + (self.bank_deposit or 0)
+        self.actual_sales = round(
+            (self.takeaway_amount or 0) + (self.day_pass_income or 0) + (self.electronic_actual_arrival or 0) + (
+                        self.bank_deposit or 0), 2)
         # 总误差 E = 电子支付实际入账金额 + 银行存款金额 + 银行存款手续费 - POS机小票电子支付总金额 - POS机小票现金总金额
-        self.total_error = (self.electronic_actual_arrival or 0) + (self.bank_deposit or 0) + (self.bank_fee or 0) - (self.pos_income or 0) - (self.cash_income or 0)
+        self.total_error = round(
+            (self.electronic_actual_arrival or 0) + (self.bank_deposit or 0) + (self.bank_fee or 0) - (
+                        self.pos_income or 0) - (self.cash_income or 0), 2)
 
     def to_dict(self):
         """
