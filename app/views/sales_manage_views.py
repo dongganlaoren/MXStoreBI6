@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from flask import (
@@ -8,7 +9,7 @@ from flask_login import current_user, login_required
 from app.extensions import db
 from app.forms.sales_check_forms import SalesCheckForm
 from app.forms.sales_forms import SalesForm
-from app.models import DailySales, Store, FinancialCheckStatus, RoleType, BankDepositHistory
+from app.models import DailySales, Store, FinancialCheckStatus, RoleType, BankDepositHistory, DailySalesAttachments
 
 sales_manage_bp = Blueprint('sales_manage', __name__)
 
@@ -357,3 +358,34 @@ def manage_report_create():
         flash('日报创建成功！', 'success')
         return redirect(url_for('sales_manage.manage_report_list'))
     return render_template('sales_manage/create.html', form=form, show_takeaway=show_takeaway)
+
+
+# 删除审核记录及附件
+@sales_manage_bp.route('/manage/check/delete/<int:report_id>', methods=['GET'])
+@login_required
+def delete_check(report_id):
+    if current_user.role not in [RoleType.ADMIN, RoleType.FINANCE]:
+        flash('无权操作', 'danger')
+        return redirect(url_for('sales_manage.manage_list'))
+    daily_sales = DailySales.query.get_or_404(report_id)
+    if daily_sales.financial_check_status != FinancialCheckStatus.PENDING and daily_sales.financial_check_status != 1:
+        flash('仅待审核状态可删除', 'warning')
+        return redirect(url_for('sales_manage.manage_list'))
+    # 删除所有附件文件和记录
+    attachments = DailySalesAttachments.query.filter_by(report_id=report_id).all()
+    static_dir = os.path.join(current_app.root_path, 'static')
+    for att in attachments:
+        file_path = os.path.join(static_dir, att.file_path)
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            current_app.logger.error(f"删除附件文件失败: {file_path}, {e}")
+        db.session.delete(att)
+    # 删除历史记录
+    BankDepositHistory.query.filter_by(report_id=report_id).delete()
+    # 删除日报主表
+    db.session.delete(daily_sales)
+    db.session.commit()
+    flash('审核记录及所有附件已永久删除', 'success')
+    return redirect(url_for('sales_manage.manage_list', initial_load='true'))

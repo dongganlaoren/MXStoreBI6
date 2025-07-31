@@ -235,9 +235,15 @@
             <button type="submit" id="btn-save" class="btn btn-primary btn-lg px-5" disabled>{{ lang_dict['save'] if
                 lang_dict.get('save') else '保存' }}
             </button>
-            {% endif %}
             <a href="{{ url_for('sales_manage.manage_list', initial_load='true') }}" class="btn btn-secondary ms-2">{{
                 lang_dict['back_to_list'] if lang_dict.get('back_to_list') else '返回列表' }}</a>
+            <a href="{{ url_for('sales_manage.delete_check', report_id=daily_sales.report_id) }}"
+               class="btn btn-danger ms-2"
+               onclick="return confirm('确定要永久删除该审核记录及所有附件吗？此操作不可恢复！');">删除</a>
+            {% else %}
+            <a href="{{ url_for('sales_manage.manage_list', initial_load='true') }}" class="btn btn-secondary ms-2">{{
+                lang_dict['back_to_list'] if lang_dict.get('back_to_list') else '返回列表' }}</a>
+            {% endif %}
         </div>
     </form>
     <hr class="my-4">
