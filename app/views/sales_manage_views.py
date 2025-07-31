@@ -19,7 +19,8 @@ sales_manage_bp = Blueprint('sales_manage', __name__)
 def manage_list():
     store_id = request.args.get('store_id', default='', type=str)
     date_str = request.args.get('report_date', default='', type=str)
-    financial_check_status = request.args.get('financial_check_status', default='', type=str)
+    # 默认状态为待审核
+    financial_check_status = request.args.get('financial_check_status', default='PENDING', type=str)
     page = request.args.get('page', 1, type=int)
     per_page = 20
     role = getattr(current_user.role, 'value', None) if hasattr(current_user.role, 'value') else str(current_user.role)
