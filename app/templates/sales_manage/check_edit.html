@@ -81,10 +81,17 @@
                     <label class="form-label">{{ lang_dict['voucher_amount'] if lang_dict.get('voucher_amount') else
                         '代金券使用金额 (R)' }}</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-light text-secondary">￥</span>
-                        <input type="text" class="form-control bg-light border-primary fw-bold text-primary"
-                               value="{{ '%.2f'|format(daily_sales.voucher_amount or 0) }}" readonly
-                               style="font-size:1.15rem;">
+                        {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
+                        2 %}
+                        <span class="form-control-plaintext ps-2">{{ daily_sales.voucher_amount }}</span>
+                        {% else %}
+                        <span class="input-group-text bg-light text-secondary">฿</span>
+                        <input type="text" class="form-control editable-field" id="voucher_amount" name="voucher_amount"
+                               value="{{ '%.2f'|format(daily_sales.voucher_amount or 0) }}" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-edit" data-field="voucher_amount">{{
+                            lang_dict['edit'] if lang_dict.get('edit') else '修改' }}
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>

@@ -1,14 +1,17 @@
+from datetime import datetime
+
 from flask import (
     Blueprint, current_app, flash, redirect, render_template, request, url_for
 )
 from flask_login import current_user, login_required
+
 from app.extensions import db
-from app.models import DailySales, Store, FinancialCheckStatus, RoleType, BankDepositHistory
-from app.forms.sales_forms import SalesForm
 from app.forms.sales_check_forms import SalesCheckForm
-from datetime import datetime
+from app.forms.sales_forms import SalesForm
+from app.models import DailySales, Store, FinancialCheckStatus, RoleType, BankDepositHistory
 
 sales_manage_bp = Blueprint('sales_manage', __name__)
+
 
 # 营业信息管理列表
 @sales_manage_bp.route('/manage/list', methods=['GET'])
@@ -43,21 +46,24 @@ def manage_list():
     query = query.order_by(DailySales.report_date.desc(), DailySales.store_id)
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     return render_template('sales_manage/list.html',
-        pagination=pagination,
-        stores=stores,
-        store_id=store_id,
-        report_date=date_str,
-        financial_check_status=financial_check_status,
-        title="营业信息管理"
-    )
+                           pagination=pagination,
+                           stores=stores,
+                           store_id=store_id,
+                           report_date=date_str,
+                           financial_check_status=financial_check_status,
+                           title="营业信息管理"
+                           )
+
 
 # 日报详情
 @sales_manage_bp.route('/manage/detail/<int:report_id>', methods=['GET'])
 @login_required
 def detail(report_id):
     daily_sales = DailySales.query.get_or_404(report_id)
-    history_list = BankDepositHistory.query.filter_by(report_id=report_id).order_by(BankDepositHistory.created_at.desc()).all()
+    history_list = BankDepositHistory.query.filter_by(report_id=report_id).order_by(
+        BankDepositHistory.created_at.desc()).all()
     return render_template('sales_manage/detail.html', report=daily_sales, history_list=history_list)
+
 
 # 创建日报（上报）
 @sales_manage_bp.route('/manage/create', methods=['GET', 'POST'])
@@ -131,6 +137,7 @@ def create():
         return redirect(url_for('sales_manage.manage_list'))
     return render_template('sales_manage/create.html', form=form, show_takeaway=show_takeaway)
 
+
 # 日报审核/编辑
 @sales_manage_bp.route('/manage/check/<int:report_id>', methods=['GET', 'POST'])
 @login_required
@@ -140,14 +147,16 @@ def manage_check_edit(report_id):
         return redirect(url_for('sales_manage.manage_list'))
     daily_sales = DailySales.query.get_or_404(report_id)
     if daily_sales.financial_check_status == FinancialCheckStatus.APPROVED or daily_sales.financial_check_status == 2:
-        history_list = BankDepositHistory.query.filter_by(report_id=report_id).order_by(BankDepositHistory.created_at.desc()).all()
+        history_list = BankDepositHistory.query.filter_by(report_id=report_id).order_by(
+            BankDepositHistory.created_at.desc()).all()
         return render_template('sales_manage/detail.html', report=daily_sales, history_list=history_list)
     form = SalesCheckForm(obj=daily_sales)
     if request.method == 'GET' and daily_sales.financial_check_status:
         form.financial_check_status.data = daily_sales.financial_check_status.value
-    history_list = BankDepositHistory.query.filter_by(report_id=report_id).order_by(BankDepositHistory.created_at.desc()).all()
+    history_list = BankDepositHistory.query.filter_by(report_id=report_id).order_by(
+        BankDepositHistory.created_at.desc()).all()
     editable_fields = [
-        'cash_income', 'pos_income',
+        'cash_income', 'pos_income', 'voucher_amount',
         'electronic_actual_arrival', 'bank_deposit', 'bank_fee'
     ]
     if daily_sales.store and getattr(daily_sales.store, 'third_party_platform', False):
@@ -166,7 +175,8 @@ def manage_check_edit(report_id):
                 reason = request.form.get(f'remark_{field}', '')
                 if not reason:
                     flash(f'请填写“{field}”的变更理由', 'danger')
-                    return render_template('sales_manage/check_edit.html', form=form, daily_sales=daily_sales, title='营业信息审核', history_list=history_list)
+                    return render_template('sales_manage/check_edit.html', form=form, daily_sales=daily_sales,
+                                           title='营业信息审核', history_list=history_list)
                 history = BankDepositHistory(
                     report_id=report_id,
                     field_name=field,
@@ -185,7 +195,8 @@ def manage_check_edit(report_id):
         except Exception as e:
             current_app.logger.error(f"[审核保存] FinancialCheckStatus赋值异常: {e}")
             flash(f"审核状态赋值失败: {e}", 'danger')
-            return render_template('sales_manage/check_edit.html', form=form, daily_sales=daily_sales, title='营业信息审核', history_list=history_list)
+            return render_template('sales_manage/check_edit.html', form=form, daily_sales=daily_sales,
+                                   title='营业信息审核', history_list=history_list)
         daily_sales.remark = form.remark.data
         if changed:
             daily_sales.auto_calculate()
@@ -198,7 +209,9 @@ def manage_check_edit(report_id):
     for att in getattr(daily_sales, 'attachments', []):
         if att.file_path and not att.file_path.startswith('uploads/'):
             att.file_path = 'uploads/' + att.file_path.split('uploads/')[-1]
-    return render_template('sales_manage/check_edit.html', form=form, daily_sales=daily_sales, title='营业信息审核', history_list=history_list)
+    return render_template('sales_manage/check_edit.html', form=form, daily_sales=daily_sales, title='营业信息审核',
+                           history_list=history_list)
+
 
 # 审核列表（仅财务/管理员）
 @sales_manage_bp.route('/manage/audit/list', methods=['GET'])
@@ -229,13 +242,14 @@ def manage_audit_list():
     query = query.order_by(DailySales.report_date.desc(), DailySales.store_id)
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     return render_template('sales_manage/list.html',
-        pagination=pagination,
-        stores=stores,
-        store_id=store_id,
-        report_date=date_str,
-        financial_check_status=financial_check_status,
-        title="销售核对"
-    )
+                           pagination=pagination,
+                           stores=stores,
+                           store_id=store_id,
+                           report_date=date_str,
+                           financial_check_status=financial_check_status,
+                           title="销售核对"
+                           )
+
 
 # 日报上报列表（门店组/管理组）
 @sales_manage_bp.route('/manage/report/list', methods=['GET'])
@@ -251,6 +265,7 @@ def manage_report_list():
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     reports = pagination.items
     return render_template('sales_manage/list.html', reports=reports, pagination=pagination, title="营业日报列表")
+
 
 # 日报上报创建（门店组/管理组）
 @sales_manage_bp.route('/manage/report/create', methods=['GET', 'POST'])
