@@ -3,7 +3,7 @@ name: CI/CD 自动部署 MXStoreBI6
 on:
   push:
     branches:
-      - main  # 主分支更新时触发
+      - main
 
 env:
   PROJECT_NAME: MXStoreBI6
@@ -12,36 +12,29 @@ env:
 
 jobs:
   deploy:
+    name: 部署到生产服务器（含备份）
     runs-on: ubuntu-latest
 
     steps:
-      - name: 检出仓库代码
+      - name: 🧾 拉取仓库代码
         uses: actions/checkout@v4
 
-      - name: 展示部署环境变量
-        run: |
-          echo "部署路径: $DEPLOY_PATH"
-          echo "项目名称: $PROJECT_NAME"
-
-      - name: 部署到远程服务器并进行健康探测
+      - name: 🚀 连接服务器并部署
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.SERVER_HOST }}
-          username: deployuser              # 修改为 deployuser
-          key: ${{ secrets.SERVER_SSH_KEY }} # 使用统一密钥
+          username: deployuser
+          key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
           script: |
             set -euo pipefail
-
-            PROJECT_NAME="${PROJECT_NAME:-MXStoreBI6}"
-            DEPLOY_PATH="${DEPLOY_PATH:-/var/www/MXStoreBI6}"
-            VENV_PATH="${VENV_PATH:-/var/www/MXStoreBI6/venv}"
 
             echo "✅ [连接成功] 主机: $(hostname) | 用户: $(whoami)"
             echo "📂 [步骤] 切换到部署目录: $DEPLOY_PATH"
             cd "$DEPLOY_PATH"
 
             echo "🔄 [步骤] 拉取远程最新代码"
+            git config --global --add safe.directory "$DEPLOY_PATH"
             git fetch origin main
             git reset --hard origin/main
 
@@ -76,4 +69,16 @@ jobs:
               echo "⚠️ [跳过探测] 未找到 $CHECK_SCRIPT，请确认是否遗漏"
             fi
 
-            echo "🎉 [完成] 自动部署流程执行完毕"
+            echo "📦 [备份] 当前部署目录"
+            BACKUP_DIR="/var/backups/MXStoreBI6"
+            BACKUP_FILE="$BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).tar.gz"
+            sudo mkdir -p "$BACKUP_DIR"
+            sudo tar czf "$BACKUP_FILE" --exclude='venv' --exclude='__pycache__' .
+            echo "✅ 备份完成: $BACKUP_FILE"
+
+            echo "🧹 [清理] 保留最近 7 个备份"
+            sudo ls -1t "$BACKUP_DIR"/backup_*.tar.gz | tail -n +8 | xargs -r sudo rm -f
+            echo "✅ 多余备份已清理"
+
+      - name: ✅ 输出部署完成
+        run: echo "🎉 MXStoreBI6 部署流程执行完成。"
