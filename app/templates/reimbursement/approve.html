@@ -2,126 +2,159 @@
 {% block title %}报销审批{% endblock %}
 {% block content %}
 <div class="container mt-4">
-  <div class="d-flex align-items-center mb-3">
-    <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">报销审批</h2>
-    <span class="badge bg-success bg-opacity-75 fs-6">财务报销</span>
-  </div>
-  <div class="card shadow-sm mb-4">
-    <div class="card-body">
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <h5 class="mb-3 text-primary">申请信息</h5>
-          <table class="table table-borderless mb-0">
-            <tr><th class="text-end text-secondary">ID：</th><td>{{ req.request_id }}</td></tr>
-            <tr><th class="text-end text-secondary">一级分类：</th><td>{{ req.primary_category.value }}</td></tr>
-            <tr><th class="text-end text-secondary">二级分类：</th><td>{{ req.secondary_category.value }}</td></tr>
-            <tr><th class="text-end text-secondary">所属店铺：</th><td>{{ req.store.store_name if req.store else '公摊' }}</td></tr>
-            <tr><th class="text-end text-secondary">金额：</th><td class="fw-bold text-danger">{{ req.amount }} {{ req.currency }}</td></tr>
-            <tr><th class="text-end text-secondary">申请日期：</th><td>{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else '' }}</td></tr>
-            <tr><th class="text-end text-secondary">报销事由：</th><td>{{ req.description }}</td></tr>
-            <tr><th class="text-end text-secondary">申请人：</th><td>{{ req.submitter.real_name or req.submitter.username }}</td></tr>
-          </table>
-          <h6 class="mt-4">报销相关附件</h6>
-          <ul class="list-group mb-4">
-            {% for att in req.attachments %}
-              {% set att_type = att.attachment_type.value if att.attachment_type is not string and att.attachment_type is not none else att.attachment_type %}
-              {% if att_type == 'SUBMISSION' %}
-              <li class="list-group-item d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center mb-3">
+        <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">报销审批</h2>
+        <span class="badge bg-success bg-opacity-75 fs-6">财务报销</span>
+    </div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5 class="mb-3 text-primary">申请信息</h5>
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <th class="text-end text-secondary">ID：</th>
+                            <td>{{ req.request_id }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-end text-secondary">一级分类：</th>
+                            <td>{{ req.primary_category.value }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-end text-secondary">二级分类：</th>
+                            <td>{{ req.secondary_category.value }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-end text-secondary">所属店铺：</th>
+                            <td>{% if req.store %}{{ req.store.store_id }}（{{ req.store.store_name }}）{% else %}公摊{%
+                                endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="text-end text-secondary">金额：</th>
+                            <td class="fw-bold text-danger">{{ req.amount }} {{ req.currency }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-end text-secondary">申请日期：</th>
+                            <td>{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else '' }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-end text-secondary">报销事由：</th>
+                            <td>{{ req.description }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-end text-secondary">申请人：</th>
+                            <td>{{ req.submitter.real_name or req.submitter.username }}</td>
+                        </tr>
+                    </table>
+                    <h6 class="mt-4">报销相关附件</h6>
+                    <ul class="list-group mb-4">
+                        {% for att in req.attachments %}
+                        {% set att_type = att.attachment_type.value if att.attachment_type is not string and
+                        att.attachment_type is not none else att.attachment_type %}
+                        {% if att_type == 'SUBMISSION' %}
+                        <li class="list-group-item d-flex align-items-center justify-content-between">
                 <span>
                   <i class="bi bi-paperclip me-2 text-primary"></i>
                   <a href="/{{ att.file_path }}" target="_blank" class="attachment-link" style="color: #0d6efd;">{{ att.original_filename }}</a>
                   <span class="badge bg-primary bg-opacity-75 text-white ms-2 attachment-badge-blue">报销附件</span>
                 </span>
-                <a href="#" class="btn btn-link btn-sm text-primary preview-btn" data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">预览查看</a>
-              </li>
-              {% endif %}
-            {% endfor %}
-          </ul>
-        </div>
-        <div class="col-md-6">
-          <h5 class="mb-3 text-success">审批操作</h5>
-          <form method="post" enctype="multipart/form-data">
-            {{ form.hidden_tag() }}
-            <div class="mb-3">
-              {{ form.approval_comments.label(class="form-label fw-bold") }}
-              {{ form.approval_comments(class="form-control") }}
-            </div>
-            <div class="mb-3">
-              {{ form.attachments.label(class="form-label fw-bold") }}
-              {{ form.attachments(class="form-control", multiple=True, id="attachmentInput") }}
-              <div class="form-text">可上传多个附件，支持直接粘贴截图</div>
-            </div>
-            <div class="d-flex justify-content-end">
-              <button type="submit" class="btn btn-success px-4 py-2"><i class="bi bi-check-circle"></i> 审批通过</button>
-              <a href="{{ url_for('reimbursement.list_requests') }}" class="btn btn-secondary ms-2">返回</a>
-            </div>
-          </form>
-          <h6 class="mt-4">审批相关附件</h6>
-          <ul class="list-group mb-4">
-            {% for att in req.attachments %}
-              {% set att_type = att.attachment_type.value if att.attachment_type is not string and att.attachment_type is not none else att.attachment_type %}
-              {% if att_type == 'APPROVAL' %}
-              <li class="list-group-item d-flex align-items-center justify-content-between">
+                            <a href="#" class="btn btn-link btn-sm text-primary preview-btn"
+                               data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">预览查看</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="mb-3 text-success">审批操作</h5>
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.approval_comments.label(class="form-label fw-bold") }}
+                            {{ form.approval_comments(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.attachments.label(class="form-label fw-bold") }}
+                            {{ form.attachments(class="form-control", multiple=True, id="attachmentInput") }}
+                            <div class="form-text">可上传多个附件，支持直接粘贴截图</div>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-success px-4 py-2"><i class="bi bi-check-circle"></i>
+                                审批通过
+                            </button>
+                            <a href="{{ url_for('reimbursement.list_requests') }}"
+                               class="btn btn-secondary ms-2">返回</a>
+                        </div>
+                    </form>
+                    <h6 class="mt-4">审批相关附件</h6>
+                    <ul class="list-group mb-4">
+                        {% for att in req.attachments %}
+                        {% set att_type = att.attachment_type.value if att.attachment_type is not string and
+                        att.attachment_type is not none else att.attachment_type %}
+                        {% if att_type == 'APPROVAL' %}
+                        <li class="list-group-item d-flex align-items-center justify-content-between">
                 <span>
                   <i class="bi bi-paperclip me-2 text-success"></i>
                   <a href="/{{ att.file_path }}" target="_blank" class="attachment-link" style="color: #198754;">{{ att.original_filename }}</a>
                   <span class="badge bg-success bg-opacity-75 text-white ms-2 attachment-badge-green">审批附件</span>
                 </span>
-                <a href="#" class="btn btn-link btn-sm text-success preview-btn" data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">预览查看</a>
-              </li>
-              {% endif %}
-            {% endfor %}
-          </ul>
+                            <a href="#" class="btn btn-link btn-sm text-success preview-btn"
+                               data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">预览查看</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 </div>
 {% endblock %}
 {% block scripts %}
 <style>
-.attachment-link {
-  max-width: 120px;
-  display: inline-block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: middle;
-  font-weight: 500;
-}
-@media (max-width: 768px) {
-  .attachment-link {
-    max-width: 80px;
-  }
-}
-.attachment-badge-blue {
-  background: #0d6efd !important;
-  color: #fff !important;
-}
-.attachment-badge-green {
-  background: #198754 !important;
-  color: #fff !important;
-}
-</style>
-<script>
-// 粘贴板粘贴图片支持
-const attachmentInput = document.getElementById('attachmentInput');
-if (attachmentInput) {
-  attachmentInput.addEventListener('paste', function(event) {
-    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.kind === 'file' && item.type.startsWith('image/')) {
-        const file = item.getAsFile();
-        const dt = new DataTransfer();
-        for (let j = 0; j < attachmentInput.files.length; j++) {
-          dt.items.add(attachmentInput.files[j]);
-        }
-        dt.items.add(file);
-        attachmentInput.files = dt.files;
+    .attachment-link {
+      max-width: 120px;
+      display: inline-block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+      font-weight: 500;
+    }
+    @media (max-width: 768px) {
+      .attachment-link {
+        max-width: 80px;
       }
     }
-  });
-}
+    .attachment-badge-blue {
+      background: #0d6efd !important;
+      color: #fff !important;
+    }
+    .attachment-badge-green {
+      background: #198754 !important;
+      color: #fff !important;
+    }
+</style>
+<script>
+    // 粘贴板粘贴图片支持
+    const attachmentInput = document.getElementById('attachmentInput');
+    if (attachmentInput) {
+      attachmentInput.addEventListener('paste', function(event) {
+        const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.kind === 'file' && item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            const dt = new DataTransfer();
+            for (let j = 0; j < attachmentInput.files.length; j++) {
+              dt.items.add(attachmentInput.files[j]);
+            }
+            dt.items.add(file);
+            attachmentInput.files = dt.files;
+          }
+        }
+      });
+    }
 </script>
 {% endblock %}
