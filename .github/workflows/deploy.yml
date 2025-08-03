@@ -6,13 +6,11 @@ on:
       - main
 
 env:
-  PROJECT_NAME: MXStoreBI6
-  DEPLOY_PATH: /var/www/MXStoreBI6
-  VENV_PATH: /var/www/MXStoreBI6/venv
+  SSH_HOST: gothaieasy.fun
 
 jobs:
   deploy:
-    name: 部署到生产服务器（含备份）
+    name: 部署到生产服务器
     runs-on: ubuntu-latest
 
     steps:
@@ -22,19 +20,23 @@ jobs:
       - name: 🚀 连接服务器并部署
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.SERVER_HOST }}
+          host: ${{ env.SSH_HOST }}
           username: deployuser
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
           script: |
             set -euo pipefail
 
+            # ✅ 显式定义变量
+            DEPLOY_PATH="/var/www/MXStoreBI6"
+            VENV_PATH="$DEPLOY_PATH/venv"
+            PROJECT_NAME="MXStoreBI6"
+
             echo "✅ [连接成功] 主机: $(hostname) | 用户: $(whoami)"
             echo "📂 [步骤] 切换到部署目录: $DEPLOY_PATH"
             cd "$DEPLOY_PATH"
 
             echo "🔄 [步骤] 拉取远程最新代码"
-            git config --global --add safe.directory "$DEPLOY_PATH"
             git fetch origin main
             git reset --hard origin/main
 
@@ -78,7 +80,5 @@ jobs:
 
             echo "🧹 [清理] 保留最近 7 个备份"
             sudo ls -1t "$BACKUP_DIR"/backup_*.tar.gz | tail -n +8 | xargs -r sudo rm -f
-            echo "✅ 多余备份已清理"
 
-      - name: ✅ 输出部署完成
-        run: echo "🎉 MXStoreBI6 部署流程执行完成。"
+            echo "🎉 [完成] 自动部署流程执行完毕"
