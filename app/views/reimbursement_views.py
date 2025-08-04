@@ -81,9 +81,11 @@ def list_requests():
             query = query.filter(ReimbursementRequest.status == ReimbursementStatus.APPROVED)
         else:  # mine
             query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
+    # 时间范围过滤
+    query = query.filter(ReimbursementRequest.created_at >= begin, ReimbursementRequest.created_at < end)
+    # 状态过滤
     if status != 'all':
         query = query.filter(ReimbursementRequest.status == getattr(ReimbursementStatus, status))
-    query = query.filter(ReimbursementRequest.created_at >= begin, ReimbursementRequest.created_at < end)
     requests = query.order_by(ReimbursementRequest.created_at.desc()).all()
 
     # 优先从请求参数获取语言
@@ -292,3 +294,76 @@ def list_all():
             pass
     requests = query.order_by(ReimbursementRequest.created_at.desc()).all()
     return render_template('reimbursement/list_all.html', requests=requests)
+
+
+@bp.route('/<int:request_id>/withdraw', methods=['POST'])
+@login_required
+def withdraw(request_id):
+    req = ReimbursementRequest.query.get_or_404(request_id)
+    if req.submitter_id != current_user.user_id:
+        flash('无权撤回该申请', 'danger')
+        return redirect(url_for('reimbursement.list_requests'))
+    if req.status != ReimbursementStatus.PENDING:
+        flash('仅待审批状态可撤回', 'warning')
+        return redirect(url_for('reimbursement.list_requests'))
+    req.status = ReimbursementStatus.DRAFT
+    db.session.commit()
+    flash('已撤回为草稿，可重新编辑', 'success')
+    return redirect(url_for('reimbursement.list_requests'))
+
+
+@bp.route('/<int:request_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit(request_id):
+    req = ReimbursementRequest.query.get_or_404(request_id)
+    if req.submitter_id != current_user.user_id or req.status != ReimbursementStatus.DRAFT:
+        flash('仅本人草稿可编辑', 'danger')
+        return redirect(url_for('reimbursement.list_requests'))
+    form = ReimbursementCreateForm(obj=req)
+    if form.validate_on_submit():
+        try:
+            if form.primary_category.data == 'SHARED_COST':
+                req.store_id = None
+            else:
+                req.store_id = form.store_id.data or None
+            req.primary_category = form.primary_category.data
+            req.secondary_category = form.secondary_category.data
+            req.description = form.reason.data
+            req.amount = form.amount.data
+            req.currency = form.currency.data
+            req.approver_id = int(form.approver_id.data) if form.approver_id.data else None
+            req.status = ReimbursementStatus.PENDING  # 重新提交
+            req.updated_at = datetime.utcnow()
+            # 附件处理略（如需支持编辑附件可补充）
+            db.session.commit()
+            flash('草稿已提交', 'success')
+            return redirect(url_for('reimbursement.list_requests'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'保存失败: {e}', 'danger')
+    current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
+    lang = lang_dict.get(current_lang, lang_dict['zh'])
+    return render_template('reimbursement/create.html', form=form, lang=lang, current_lang=current_lang, is_edit=True)
+
+
+@bp.route('/<int:request_id>/delete', methods=['POST'])
+@login_required
+def delete(request_id):
+    req = ReimbursementRequest.query.get_or_404(request_id)
+    if req.submitter_id != current_user.user_id or req.status != ReimbursementStatus.DRAFT:
+        flash('仅本人草稿可删除', 'danger')
+        return redirect(url_for('reimbursement.list_requests'))
+    # 删除相关附件文件和数据库记录
+    attachments = req.attachments.all()
+    for att in attachments:
+        try:
+            file_path = os.path.join(current_app.root_path, att.file_path)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            current_app.logger.warning(f"删除附件文件失败: {att.file_path}, 错误: {e}")
+        db.session.delete(att)
+    db.session.delete(req)
+    db.session.commit()
+    flash('草稿已删除', 'success')
+    return redirect(url_for('reimbursement.list_requests'))

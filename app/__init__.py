@@ -7,10 +7,12 @@ from logging.handlers import RotatingFileHandler
 from typing import Optional
 
 from flask import Flask, render_template, g, request, session
+from flask_wtf.csrf import generate_csrf
 from markupsafe import Markup, escape
 
 from app import commands
 from app.extensions import csrf, db, login_manager, migrate
+
 
 # -------------------- Jinja2 过滤器 --------------------
 def nl2br_filter(value: Optional[str]) -> Markup:
@@ -19,6 +21,7 @@ def nl2br_filter(value: Optional[str]) -> Markup:
         return Markup("")
     escaped = escape(str(value))
     return Markup(re.sub(r"(\r\n|\r|\n)", "<br>\n", escaped))
+
 
 def date_filter(value, fmt="%Y"):
     """自定义Jinja2日期格式化过滤器，支持 'now' 字符串、datetime对象、ISO日期字符串"""
@@ -33,11 +36,13 @@ def date_filter(value, fmt="%Y"):
             return value
     return dt.strftime(fmt)
 
+
 def strftime_filter(value, format='%Y-%m-%d %H:%M:%S'):
     """Jinja2 filter to format datetime objects using strftime."""
     if isinstance(value, datetime):
         return value.strftime(format)
     return value  # 如果不是 datetime 对象，则原样返回
+
 
 # -------------------- Flask 应用工厂 --------------------
 def create_app(config: object) -> Flask:
@@ -59,7 +64,7 @@ def create_app(config: object) -> Flask:
     # 注册自定义 Jinja2 过滤器
     app.jinja_env.filters["date"] = date_filter
     app.jinja_env.filters["nl2br"] = nl2br_filter
-    app.jinja_env.filters["strftime"] = strftime_filter # 注册 strftime 过滤器
+    app.jinja_env.filters["strftime"] = strftime_filter  # 注册 strftime 过滤器
 
     # 注入当前时间到模板
     @app.context_processor
@@ -86,6 +91,11 @@ def create_app(config: object) -> Flask:
     # 注册全局模板变量
     app.context_processor(inject_lang_dict)
 
+    def inject_csrf_token():
+        return dict(csrf_token=generate_csrf())
+
+    app.context_processor(inject_csrf_token)
+
     # 注册蓝图
     with app.app_context():
         register_blueprints(app)
@@ -98,6 +108,7 @@ def create_app(config: object) -> Flask:
 
     return app
 
+
 # -------------------- 日志配置 --------------------
 def configure_logging(app: Flask):
     """配置日志文件滚动"""
@@ -107,6 +118,7 @@ def configure_logging(app: Flask):
     handler.setFormatter(formatter)
     app.logger.addHandler(handler)
     app.logger.setLevel(logging.INFO)
+
 
 # -------------------- 生产环境配置校验 --------------------
 def validate_production_config(app: Flask):
@@ -118,16 +130,17 @@ def validate_production_config(app: Flask):
                 app.logger.error(f"生产环境必须配置 {key}")
                 raise ValueError(f"生产环境必须配置 {key}")
 
+
 # -------------------- 蓝图注册 --------------------
 def register_blueprints(app: Flask):
     """注册所有蓝图"""
     # 导入各功能模块的蓝图
-    from app.views.main_views import main_bp           # 主页面相关
-    from app.views.root_views import root_bp           # 根路由和通用页面
-    from app.views.user_views import user_bp           # 用户相关
-    from app.views.admin_user_views import admin_user_bp # 管理员相关
+    from app.views.main_views import main_bp  # 主页面相关
+    from app.views.root_views import root_bp  # 根路由和通用页面
+    from app.views.user_views import user_bp  # 用户相关
+    from app.views.admin_user_views import admin_user_bp  # 管理员相关
     from app.views.reimbursement_views import bp as reimbursement_bp  # 财务报销模块
-    from app.views.sales_manage_views import sales_manage_bp      # 营业信息管理相关
+    from app.views.sales_manage_views import sales_manage_bp  # 营业信息管理相关
 
     # 注册蓝图及其路由前缀
     app.register_blueprint(root_bp)  # 根路由，无前缀
@@ -136,6 +149,7 @@ def register_blueprints(app: Flask):
     app.register_blueprint(admin_user_bp)  # 管理员相关
     app.register_blueprint(reimbursement_bp, url_prefix="/reimbursement")  # 财务报销模块
     app.register_blueprint(sales_manage_bp)  # 注册营业信息管理蓝图
+
 
 # -------------------- 错误处理 --------------------
 def handle_app_error(app: Flask, error: Exception, code: int) -> tuple:

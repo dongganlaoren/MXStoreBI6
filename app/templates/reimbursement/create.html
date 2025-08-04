@@ -71,6 +71,8 @@
                     {{ form.attachments.label(class="form-label fw-bold", text=lang['reimbursement_attachments']) }}
                     {{ form.attachments(class="form-control", multiple=True, id="attachmentInput") }}
                     <div class="form-text">{{ lang['reimbursement_attachment_tip'] }}</div>
+                    <!-- 预览区 -->
+                    <div id="attachmentPreview" class="mt-2 d-flex flex-wrap gap-2"></div>
                 </div>
                 <div class="d-flex justify-content-end">
                     <button type="submit" class="btn btn-success px-4 py-2"><i class="bi bi-send"></i> {{
@@ -84,6 +86,8 @@
 {% endblock %}
 
 {% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // 一级分类与二级分类联动配置
@@ -191,9 +195,99 @@
             });
         }
 
-        // 粘贴图片支持
+        // 附件预览功能
         const attachmentInput = document.getElementById('attachmentInput');
+        const previewContainer = document.getElementById('attachmentPreview');
+        // 预览弹窗
+        let previewModal = null;
+        let previewBody = null;
+        function ensurePreviewModal() {
+            if (document.getElementById('previewModal')) return;
+            const modalHtml = `
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="previewModalLabel">附件预览</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body" id="previewBody" style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>
+    </div>
+  </div>
+</div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        function showPreviewModal(contentHtml) {
+            ensurePreviewModal();
+            previewBody = document.getElementById('previewBody');
+            previewBody.innerHTML = contentHtml;
+            if (!previewModal) {
+                previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            }
+            previewModal.show();
+        }
+        function renderAttachmentPreview() {
+            if (!attachmentInput || !previewContainer || !attachmentInput.files) return;
+            previewContainer.innerHTML = '';
+            const files = attachmentInput.files;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileType = file.type;
+                const fileName = file.name;
+                const fileReader = new FileReader();
+                const wrapper = document.createElement('div');
+                wrapper.className = 'position-relative';
+                wrapper.style.width = '90px';
+                wrapper.style.height = '90px';
+                wrapper.style.border = '1px solid #eee';
+                wrapper.style.borderRadius = '6px';
+                wrapper.style.overflow = 'hidden';
+                wrapper.style.background = '#fafbfc';
+                wrapper.style.display = 'flex';
+                wrapper.style.alignItems = 'center';
+                wrapper.style.justifyContent = 'center';
+                wrapper.style.cursor = 'pointer';
+                wrapper.title = fileName;
+                if (fileType.startsWith('image/')) {
+                    fileReader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.alt = fileName;
+                        img.style.maxWidth = '100%';
+                        img.style.maxHeight = '100%';
+                        img.style.objectFit = 'contain';
+                        // 支持点击和双击都可放大
+                        img.addEventListener('click', function(ev) {
+                            showPreviewModal(`<img src='${e.target.result}' alt='${fileName}' style='max-width:100%;max-height:70vh;'>`);
+                        });
+                        img.addEventListener('dblclick', function(ev) {
+                            showPreviewModal(`<img src='${e.target.result}' alt='${fileName}' style='max-width:100%;max-height:70vh;'>`);
+                        });
+                        wrapper.appendChild(img);
+                    };
+                    fileReader.readAsDataURL(file);
+                } else if (fileType === 'application/pdf') {
+                    const icon = document.createElement('span');
+                    icon.innerHTML = '<i class="bi bi-file-earmark-pdf" style="font-size:2rem;color:#d9534f;"></i>';
+                    icon.addEventListener('click', function() {
+                        const url = URL.createObjectURL(file);
+                        showPreviewModal(`<iframe src='${url}' style='width:100%;height:70vh;' frameborder='0'></iframe>`);
+                    });
+                    wrapper.appendChild(icon);
+                } else {
+                    const icon = document.createElement('span');
+                    icon.innerHTML = '<i class="bi bi-file-earmark" style="font-size:2rem;color:#6c757d;"></i>';
+                    icon.addEventListener('click', function() {
+                        showPreviewModal(`<div class='text-center'><p>${fileName}</p><p>不支持预览，可在提交后下载查看。</p></div>`);
+                    });
+                    wrapper.appendChild(icon);
+                }
+                previewContainer.appendChild(wrapper);
+            }
+        }
         if (attachmentInput) {
+            attachmentInput.addEventListener('change', renderAttachmentPreview);
+            // 粘贴图片支持
             attachmentInput.addEventListener('paste', function(event) {
                 const items = (event.clipboardData || event.originalEvent.clipboardData).items;
                 for (let i = 0; i < items.length; i++) {
@@ -201,19 +295,18 @@
                     if (item.kind === 'file' && item.type.startsWith('image/')) {
                         const file = item.getAsFile();
                         const dataTransfer = new DataTransfer();
-
-                        // 保留现有文件
                         for (let j = 0; j < attachmentInput.files.length; j++) {
                             dataTransfer.items.add(attachmentInput.files[j]);
                         }
-
-                        // 添加粘贴的文件
                         dataTransfer.items.add(file);
                         attachmentInput.files = dataTransfer.files;
+                        renderAttachmentPreview();
                     }
                 }
             });
         }
+        // 页面加载时初始化预览
+        renderAttachmentPreview();
 
         // 一级分类变化时，控制所属店铺下拉框显示/隐藏
         const storeIdLabel = document.getElementById('store-id-label');

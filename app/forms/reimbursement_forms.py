@@ -24,9 +24,31 @@ class ReimbursementCreateForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         import datetime
+        from flask_login import current_user
         if not self.submission_date.data:
             self.submission_date.data = datetime.date.today()
-        self.store_id.choices = [(s.store_id, s.store_name) for s in Store.query.order_by(Store.store_name).all()]
+        # 动态设置店铺选项
+        user = getattr(current_user, '_get_current_object', lambda: current_user)()
+        if user and hasattr(user, 'role'):
+            role = user.role.value if hasattr(user.role, 'value') else user.role
+            if role in ['ADMIN', 'HEAD_MANAGER', 'FINANCE']:
+                # 可选所有店铺
+                self.store_id.choices = [(s.store_id, s.store_name) for s in
+                                         Store.query.order_by(Store.store_name).all()]
+            elif role in ['BRANCH_MANAGER', 'EMPLOYEE']:
+                # 只能选自己所属店铺
+                if user.store_id:
+                    store = Store.query.filter_by(store_id=user.store_id).first()
+                    if store:
+                        self.store_id.choices = [(store.store_id, store.store_name)]
+                    else:
+                        self.store_id.choices = []
+                else:
+                    self.store_id.choices = []
+            else:
+                self.store_id.choices = []
+        else:
+            self.store_id.choices = []
         # 动态设置二级分类choices，保证POST校验通过
         primary = self.primary_category.data or (
             self.primary_category.choices[0][0] if self.primary_category.choices else None)
