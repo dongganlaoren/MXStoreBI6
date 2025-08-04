@@ -27,7 +27,6 @@ jobs:
           script: |
             set -euo pipefail
 
-            # 明确变量定义
             DEPLOY_PATH="/var/www/MXStoreBI6"
             VENV_PATH="$DEPLOY_PATH/venv"
             PROJECT_NAME="MXStoreBI6"
@@ -35,45 +34,38 @@ jobs:
             DB_BACKUP_FILE="$DB_BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).sql"
             DB_USER="${{ secrets.DB_USER }}"
             DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-            DB_NAME="${{ secrets.DB_NAME }}"
+            DB_NAME="MXStoreBI_Production"
             CODE_BACKUP_DIR="/var/backups/MXStoreBI6"
             CODE_BACKUP_FILE="$CODE_BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).tar.gz"
 
             echo "✅ [连接成功] 主机: $(hostname) | 用户: $(whoami)"
 
-            # 切换工作目录
             echo "📂 [步骤] 切换到部署目录: $DEPLOY_PATH"
             cd "$DEPLOY_PATH"
 
-            # 拉取最新代码
             echo "🔄 [步骤] 拉取远程最新代码"
             git fetch origin main
             git reset --hard origin/main
 
-            # 虚拟环境及依赖安装
             echo "🐍 [步骤] 激活虚拟环境并安装依赖"
             source "$VENV_PATH/bin/activate"
             pip install --upgrade pip
             pip install -r requirements.txt
 
-            # 数据库备份，确保备份目录权限正确
             echo "💾 [备份] 执行数据库备份: $DB_NAME"
             sudo mkdir -p "$DB_BACKUP_DIR"
-            sudo chown deployuser:deployuser "$DB_BACKUP_DIR"
+            sudo chown "$(whoami):$(whoami)" "$DB_BACKUP_DIR"
             mysqldump --no-tablespaces -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "$DB_BACKUP_FILE"
             echo "✅ [数据库备份] 文件路径: $DB_BACKUP_FILE"
 
-            # 保留最近7个数据库备份，删除旧备份
             echo "🧹 [清理] 保留最近 7 个数据库备份"
-            sudo ls -1t "$DB_BACKUP_DIR"/backup_*.sql | tail -n +8 | xargs -r sudo rm -f
+            sudo ls -1t "$DB_BACKUP_DIR"/backup_*.sql | tail -n +8 | xargs -r sudo rm -f || true
 
-            # 数据库结构迁移
             echo "🧰 [pre-deploy] 执行数据库结构迁移"
             export FLASK_APP=run.py
             flask db upgrade
             echo "✅ [数据库] flask db upgrade 执行完成"
 
-            # sudo权限验证 supervisorctl
             echo "🛡️ [检测] 检查 sudo 免密权限 supervisorctl"
             if sudo -n /usr/bin/supervisorctl status >/dev/null 2>&1; then
               echo "✅ [权限验证] sudo 权限正常，继续部署"
@@ -82,11 +74,9 @@ jobs:
               exit 1
             fi
 
-            # 重启 Supervisor 服务
             echo "🌀 [步骤] 重启 Supervisor 项目: $PROJECT_NAME"
             sudo -n /usr/bin/supervisorctl restart "$PROJECT_NAME"
 
-            # 部署后探测脚本执行
             echo "🔍 [步骤] 执行部署后探测脚本"
             CHECK_SCRIPT="$DEPLOY_PATH/tools/post_deploy_check.sh"
             if [ -f "$CHECK_SCRIPT" ]; then
@@ -102,15 +92,13 @@ jobs:
               echo "⚠️ [跳过探测] 未找到 $CHECK_SCRIPT，请确认是否遗漏"
             fi
 
-            # 代码备份，排除虚拟环境和缓存目录
             echo "📦 [备份] 当前部署目录"
             sudo mkdir -p "$CODE_BACKUP_DIR"
-            sudo chown deployuser:deployuser "$CODE_BACKUP_DIR"
+            sudo chown "$(whoami):$(whoami)" "$CODE_BACKUP_DIR"
             sudo tar czf "$CODE_BACKUP_FILE" --exclude='venv' --exclude='__pycache__' .
             echo "✅ 代码备份完成: $CODE_BACKUP_FILE"
 
-            # 保留最近7个代码备份，删除旧备份
             echo "🧹 [清理] 保留最近 7 个代码备份"
-            sudo ls -1t "$CODE_BACKUP_DIR"/backup_*.tar.gz | tail -n +8 | xargs -r sudo rm -f
+            sudo ls -1t "$CODE_BACKUP_DIR"/backup_*.tar.gz | tail -n +8 | xargs -r sudo rm -f || true
 
             echo "🎉 [完成] 自动部署流程执行完毕"
