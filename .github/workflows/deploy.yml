@@ -31,6 +31,11 @@ jobs:
             DEPLOY_PATH="/var/www/MXStoreBI6"
             VENV_PATH="$DEPLOY_PATH/venv"
             PROJECT_NAME="MXStoreBI6"
+            DB_BACKUP_DIR="/var/backups/db/MXStoreBI6"
+            DB_BACKUP_FILE="$DB_BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).sql"
+            DB_USER="${{ secrets.DB_USER }}"
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            DB_NAME="${{ secrets.DB_NAME }}"
 
             echo "✅ [连接成功] 主机: $(hostname) | 用户: $(whoami)"
             echo "📂 [步骤] 切换到部署目录: $DEPLOY_PATH"
@@ -44,6 +49,19 @@ jobs:
             source "$VENV_PATH/bin/activate"
             pip install --upgrade pip
             pip install -r requirements.txt
+
+            echo "💾 [备份] 执行数据库备份: $DB_NAME"
+            sudo mkdir -p "$DB_BACKUP_DIR"
+            mysqldump -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "$DB_BACKUP_FILE"
+            echo "✅ [数据库备份] 文件路径: $DB_BACKUP_FILE"
+
+            echo "🧹 [清理] 保留最近 7 个数据库备份"
+            sudo ls -1t "$DB_BACKUP_DIR"/backup_*.sql | tail -n +8 | xargs -r sudo rm -f
+
+            echo "🧰 [pre-deploy] 执行数据库结构迁移"
+            export FLASK_APP=run.py
+            flask db upgrade
+            echo "✅ [数据库] flask db upgrade 执行完成"
 
             echo "🛡️ [检测] 检查 sudo 免密权限 supervisorctl"
             if sudo -n /usr/bin/supervisorctl status >/dev/null 2>&1; then
@@ -72,13 +90,13 @@ jobs:
             fi
 
             echo "📦 [备份] 当前部署目录"
-            BACKUP_DIR="/var/backups/MXStoreBI6"
-            BACKUP_FILE="$BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).tar.gz"
-            sudo mkdir -p "$BACKUP_DIR"
-            sudo tar czf "$BACKUP_FILE" --exclude='venv' --exclude='__pycache__' .
-            echo "✅ 备份完成: $BACKUP_FILE"
+            CODE_BACKUP_DIR="/var/backups/MXStoreBI6"
+            CODE_BACKUP_FILE="$CODE_BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).tar.gz"
+            sudo mkdir -p "$CODE_BACKUP_DIR"
+            sudo tar czf "$CODE_BACKUP_FILE" --exclude='venv' --exclude='__pycache__' .
+            echo "✅ 代码备份完成: $CODE_BACKUP_FILE"
 
-            echo "🧹 [清理] 保留最近 7 个备份"
-            sudo ls -1t "$BACKUP_DIR"/backup_*.tar.gz | tail -n +8 | xargs -r sudo rm -f
+            echo "🧹 [清理] 保留最近 7 个代码备份"
+            sudo ls -1t "$CODE_BACKUP_DIR"/backup_*.tar.gz | tail -n +8 | xargs -r sudo rm -f
 
             echo "🎉 [完成] 自动部署流程执行完毕"
