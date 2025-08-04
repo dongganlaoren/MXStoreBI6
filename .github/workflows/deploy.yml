@@ -26,20 +26,20 @@ jobs:
           port: 22
           script: |
             set -euo pipefail
+            set +H  # 防止密码中的 ! 被 Bash history expansion 解析
 
             DEPLOY_PATH="/var/www/MXStoreBI6"
             VENV_PATH="$DEPLOY_PATH/venv"
             PROJECT_NAME="MXStoreBI6"
             DB_BACKUP_DIR="/var/backups/db/MXStoreBI6"
             DB_BACKUP_FILE="$DB_BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).sql"
-            DB_USER="${{ secrets.DB_USER }}"
-            DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-            DB_NAME="MXStoreBI_Production"
             CODE_BACKUP_DIR="/var/backups/MXStoreBI6"
             CODE_BACKUP_FILE="$CODE_BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).tar.gz"
+            DB_USER="${{ secrets.DB_USER }}"
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            DB_NAME="${{ secrets.DB_NAME }}"
 
             echo "✅ [连接成功] 主机: $(hostname) | 用户: $(whoami)"
-
             echo "📂 [步骤] 切换到部署目录: $DEPLOY_PATH"
             cd "$DEPLOY_PATH"
 
@@ -54,8 +54,8 @@ jobs:
 
             echo "💾 [备份] 执行数据库备份: $DB_NAME"
             sudo mkdir -p "$DB_BACKUP_DIR"
-            sudo chown "$(whoami):$(whoami)" "$DB_BACKUP_DIR"
-            mysqldump --no-tablespaces -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "$DB_BACKUP_FILE"
+            sudo chown $(whoami):$(whoami) "$DB_BACKUP_DIR"
+            mysqldump --no-tablespaces -u"$DB_USER" --password="$DB_PASSWORD" "$DB_NAME" > "$DB_BACKUP_FILE"
             echo "✅ [数据库备份] 文件路径: $DB_BACKUP_FILE"
 
             echo "🧹 [清理] 保留最近 7 个数据库备份"
@@ -94,7 +94,7 @@ jobs:
 
             echo "📦 [备份] 当前部署目录"
             sudo mkdir -p "$CODE_BACKUP_DIR"
-            sudo chown "$(whoami):$(whoami)" "$CODE_BACKUP_DIR"
+            sudo chown $(whoami):$(whoami) "$CODE_BACKUP_DIR"
             sudo tar czf "$CODE_BACKUP_FILE" --exclude='venv' --exclude='__pycache__' .
             echo "✅ 代码备份完成: $CODE_BACKUP_FILE"
 
