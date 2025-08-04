@@ -61,10 +61,8 @@ jobs:
             echo "🧹 [清理] 保留最近 7 个数据库备份"
             sudo ls -1t "$DB_BACKUP_DIR"/backup_*.sql | tail -n +8 | xargs -r sudo rm -f || true
 
-            echo "🧰 [pre-deploy] 执行数据库结构迁移"
-            export FLASK_APP=run.py
-            flask db upgrade
-            echo "✅ [数据库] flask db upgrade 执行完成"
+            echo "⏭️ [跳过] 数据库结构迁移 (flask db upgrade 已被禁用)"
+            # flask db upgrade
 
             echo "🛡️ [检测] 检查 sudo 免密权限 supervisorctl"
             if sudo -n /usr/bin/supervisorctl status >/dev/null 2>&1; then
