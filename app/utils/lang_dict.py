@@ -160,6 +160,11 @@ lang_dict = {
         'reimbursement_preview_modal_title': '附件预览',
         'reimbursement_download': '点击下载/查看',
         'reimbursement_currency': '货币单位',
+        'reimbursement_mine': '我提交的',
+        'reimbursement_todo': '待我审批',
+        'reimbursement_done': '我已审批',
+        'store_id_column': '店铺ID',
+        'withdraw_btn': '撤回',
     },
     'th': {
         'role': 'ตำแหน่ง',
@@ -363,5 +368,10 @@ lang_dict = {
         'reimbursement_preview_modal_title': 'ดูตัวอย่างไฟล์แนบ',
         'reimbursement_download': 'คลิกเพื่อดาวน์โหลด/ดู',
         'reimbursement_currency': 'สกุลเงิน',
+        'reimbursement_mine': 'ที่ฉันส่ง',
+        'reimbursement_todo': 'รอการอนุมัติของฉัน',
+        'reimbursement_done': 'ฉันอนุมัติแล้ว',
+        'store_id_column': 'รหัสสาขา',
+        'withdraw_btn': 'ถอนคำขอ',
     }
 }

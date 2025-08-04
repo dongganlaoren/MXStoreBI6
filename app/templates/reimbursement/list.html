@@ -18,20 +18,26 @@
             {% set role = current_user.role.value if current_user.role else '' %}
             {% if role in ['BRANCH_MANAGER', 'EMPLOYEE', 'HEAD_MANAGER'] %}
             <select class="form-select" name="category" disabled>
-                <option value="mine" selected>我提交的</option>
+                <option value="mine" selected>{{ lang['reimbursement_mine'] }}</option>
             </select>
             <input type="hidden" name="category" value="mine">
             {% elif role == 'FINANCE' %}
             <select class="form-select" name="category">
-                <option value="todo" {% if category=='todo' %}selected{% endif %}>待我审批</option>
-                <option value="done" {% if category=='done' %}selected{% endif %}>我已审批</option>
-                <option value="mine" {% if category=='mine' %}selected{% endif %}>我提交的</option>
+                <option value="todo" {% if category=='todo' %}selected{% endif %}>{{ lang['reimbursement_todo'] }}
+                </option>
+                <option value="done" {% if category=='done' %}selected{% endif %}>{{ lang['reimbursement_done'] }}
+                </option>
+                <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}
+                </option>
             </select>
             {% else %} {# ADMIN #}
             <select class="form-select" name="category">
-                <option value="todo" {% if category=='todo' %}selected{% endif %}>待我审批</option>
-                <option value="done" {% if category=='done' %}selected{% endif %}>我已审批</option>
-                <option value="mine" {% if category=='mine' %}selected{% endif %}>我提交的</option>
+                <option value="todo" {% if category=='todo' %}selected{% endif %}>{{ lang['reimbursement_todo'] }}
+                </option>
+                <option value="done" {% if category=='done' %}selected{% endif %}>{{ lang['reimbursement_done'] }}
+                </option>
+                <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}
+                </option>
             </select>
             {% endif %}
         </div>
@@ -54,9 +60,9 @@
         </div>
         <div class="col-auto" id="custom-date"
              style="display:{% if time_range=='custom' %}flex{% else %}none{% endif %};align-items:center;">
-            <input type="date" class="form-control" name="start_date" value="{{start_date}}">
+            <input type="date" class="form-control" name="start_date" value="{{ start_date if start_date else '' }}">
             <span class="mx-1">~</span>
-            <input type="date" class="form-control" name="end_date" value="{{end_date}}">
+            <input type="date" class="form-control" name="end_date" value="{{ end_date if end_date else '' }}">
         </div>
         <div class="col-auto align-self-end">
             <button type="submit" class="btn btn-primary">{{ lang['reimbursement_filter'] }}</button>
@@ -68,7 +74,7 @@
             <tr style="font-size:1.02rem;">
                 <th style="min-width:120px;cursor:pointer;" id="sort-date">{{ lang['reimbursement_submission_date'] }}
                     <span id="sort-arrow">⇅</span></th>
-                <th style="min-width:90px;">店铺ID</th>
+                <th style="min-width:90px;">{{ lang['store_id_column'] }}</th>
                 <th style="min-width:110px;">{{ lang['reimbursement_submitter'] }}</th>
                 <th style="min-width:110px;">{{ lang['reimbursement_approver'] }}</th>
                 <th style="min-width:90px;">{{ lang['reimbursement_amount'] }}</th>
@@ -107,7 +113,7 @@
                           style="display:inline;"
                           onsubmit="return confirm('确定要撤回该申请吗？撤回后可在草稿箱编辑。');">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <button type="submit" class="btn btn-sm btn-warning ms-1">撤回</button>
+                        <button type="submit" class="btn btn-sm btn-warning ms-1">{{ lang['withdraw_btn'] }}</button>
                     </form>
                     {% endif %}
                     {% if req.status.value == 'DRAFT' and current_user.user_id == req.submitter_id %}
