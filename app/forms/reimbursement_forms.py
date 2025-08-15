@@ -9,7 +9,7 @@ from app.models.store import Store
 
 class ReimbursementCreateForm(FlaskForm):
     primary_category = SelectField('一级分类', choices=[(c.name, c.value) for c in ReimbursementPrimaryCategory],
-                                   validators=[DataRequired()])
+                                   validators=[DataRequired()], default='STORE_COST')  # 默认选中店铺成本
     secondary_category = SelectField('二级分类', choices=[], validators=[DataRequired()])
     store_id = SelectField('所属店铺', choices=[], validators=[Optional()])
     reason = TextAreaField('报销事由', validators=[DataRequired(), Length(max=500)])
@@ -32,15 +32,15 @@ class ReimbursementCreateForm(FlaskForm):
         if user and hasattr(user, 'role'):
             role = user.role.value if hasattr(user.role, 'value') else user.role
             if role in ['ADMIN', 'HEAD_MANAGER', 'FINANCE']:
-                # 可选所有店铺
-                self.store_id.choices = [(s.store_id, s.store_name) for s in
-                                         Store.query.order_by(Store.store_name).all()]
+                # 可选所有店铺，显示“店铺ID 店铺名称”
+                self.store_id.choices = [(s.store_id, f"{s.store_id} {s.store_name}") for s in
+                                         Store.query.order_by(Store.store_id).all()]
             elif role in ['BRANCH_MANAGER', 'EMPLOYEE']:
                 # 只能选自己所属店铺
                 if user.store_id:
                     store = Store.query.filter_by(store_id=user.store_id).first()
                     if store:
-                        self.store_id.choices = [(store.store_id, store.store_name)]
+                        self.store_id.choices = [(store.store_id, f"{store.store_id} {store.store_name}")]
                     else:
                         self.store_id.choices = []
                 else:

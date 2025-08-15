@@ -1,9 +1,11 @@
 # config.py
 import os
+
 from dotenv import load_dotenv
 
 # 在文件顶部加载 .env，确保环境变量在类定义之前可用
 load_dotenv()
+
 
 class Config:
     """
@@ -24,19 +26,30 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
     RECORDS_PER_PAGE = int(os.environ.get('RECORDS_PER_PAGE', 10))
+    # 邮件相关配置
+    MAIL_SERVER = os.environ.get('MAIL_SERVER')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 465))
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'True') == 'True'
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'False') == 'True'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
+
 
 class DevelopmentConfig(Config):
     """开发环境的特定配置"""
     DEBUG = True
-    ENV = 'development'  #  开发环境
+    ENV = 'development'  # 开发环境
     SQLALCHEMY_ECHO = True
     # 不再提供sqlite后备，强制要求DATABASE_URL
+
 
 class ProductionConfig(Config):
     """生产环境的特定配置"""
     DEBUG = False
-    ENV = 'production' # 生产环境
+    ENV = 'production'  # 生产环境
     SQLALCHEMY_ECHO = False
+
 
 class TestingConfig(Config):
     """测试环境特定配置"""
@@ -47,6 +60,7 @@ class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL') or 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
     SECRET_KEY = os.environ.get('TEST_SECRET_KEY') or 'test_secret_key'
+
 
 config_by_name = dict(
     development=DevelopmentConfig,

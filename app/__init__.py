@@ -11,7 +11,7 @@ from flask_wtf.csrf import generate_csrf
 from markupsafe import Markup, escape
 
 from app import commands
-from app.extensions import csrf, db, login_manager, migrate
+from app.extensions import csrf, db, login_manager, migrate, mail
 
 
 # -------------------- Jinja2 过滤器 --------------------
@@ -57,6 +57,7 @@ def create_app(config: object) -> Flask:
     migrate.init_app(app, db)
     login_manager.init_app(app)
     commands.init_app(app)
+    mail.init_app(app)  # 初始化邮件扩展
     login_manager.login_view = "user.login"
     app.url_map.strict_slashes = False
     validate_production_config(app)

@@ -1,7 +1,7 @@
 import logging
 import os
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask import current_app
@@ -16,6 +16,7 @@ from app.models.enums import ReimbursementStatus
 from app.models.reimbursement import ReimbursementRequest, ReimbursementAttachment
 from app.models.user import User
 from app.utils.lang_dict import lang_dict
+from app.utils.notify import send_notify_mail
 
 bp = Blueprint('reimbursement', __name__, url_prefix='/reimbursement')
 
@@ -26,63 +27,21 @@ def list_requests():
     # 获取筛选参数
     category = request.args.get('category', 'todo')  # todo, done, mine
     status = request.args.get('status', 'all')
-    time_range = request.args.get('time_range', '7d')
+    # 取消默认7天时间范围
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
 
-    # 时间范围处理
-    now = datetime.now()
-    if time_range == '24h':
-        begin = now - timedelta(hours=24)
-        end = now
-    elif time_range == '7d':
-        begin = now - timedelta(days=7)
-        end = now
-    elif time_range == '30d':
-        begin = now - timedelta(days=30)
-        end = now
-    elif time_range == 'custom' and start_date and end_date:
-        try:
-            begin = datetime.strptime(start_date, '%Y-%m-%d')
-            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
-        except Exception:
-            begin = now - timedelta(days=7)
-            end = now
-    else:
-        begin = now - timedelta(days=7)
-        end = now
-
-    # 查询条件
     query = ReimbursementRequest.query
     role = getattr(current_user.role, 'value', None)
     if role in ['BRANCH_MANAGER', 'EMPLOYEE', 'HEAD_MANAGER']:
-        # 只能看自己发起的
+        # 只能看自己发起的，全部记录，按时间倒序
         query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
-    elif role == 'FINANCE':
-        if category == 'todo':
-            # 财务待我审批：我为审批人且待审批
-            query = query.filter(
-                ReimbursementRequest.approver_id == current_user.user_id,
-                ReimbursementRequest.status == ReimbursementStatus.PENDING
-            )
-        elif category == 'done':
-            # 财务能看所有审批通过的
-            query = query.filter(ReimbursementRequest.status == ReimbursementStatus.APPROVED)
-        else:  # mine
-            query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
-    else:  # ADMIN
-        if category == 'todo':
-            query = query.filter(
-                ReimbursementRequest.approver_id == current_user.user_id,
-                ReimbursementRequest.status == ReimbursementStatus.PENDING
-            )
-        elif category == 'done':
-            query = query.filter(ReimbursementRequest.approver_id == current_user.user_id)
-            query = query.filter(ReimbursementRequest.status == ReimbursementStatus.APPROVED)
-        else:  # mine
-            query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
-    # 时间范围过滤
-    query = query.filter(ReimbursementRequest.created_at >= begin, ReimbursementRequest.created_at < end)
+    elif role in ['FINANCE', 'ADMIN']:
+        # 默认显示“待我审批”的（我为审批人且待审批），全部记录
+        query = query.filter(
+            ReimbursementRequest.approver_id == current_user.user_id,
+            ReimbursementRequest.status == ReimbursementStatus.PENDING
+        )
     # 状态过滤
     if status != 'all':
         query = query.filter(ReimbursementRequest.status == getattr(ReimbursementStatus, status))
@@ -95,7 +54,7 @@ def list_requests():
                            requests=requests,
                            category=category,
                            status=status,
-                           time_range=time_range,
+                           time_range=None,
                            start_date=start_date,
                            end_date=end_date,
                            lang=lang,
@@ -154,6 +113,14 @@ def create():
                     db.session.add(att)
             db.session.commit()
             logging.info(f"报销申请保存成功: {req}")
+            # 邮件通知审核人
+            approver = User.query.get(approver_id) if approver_id else None
+            if approver and approver.email:
+                subject = "【系统通知】有新的财务报销申请待您审批"
+                body = f"您好，您有一条新的报销申请待审批。申请人：{current_user.real_name or current_user.username}，金额：{form.amount.data} {form.currency.data}。请及时登录系统处理。"
+                send_notify_mail(subject, [approver.email], body)
+            else:
+                logging.warning(f"审核人未填写邮箱，无法发送报销通知邮件。审核人ID: {approver_id}")
             flash('报销申请已提交', 'success')
             return redirect(url_for('reimbursement.list_requests'))
         except Exception as e:
@@ -212,6 +179,14 @@ def approve(request_id):
                 )
                 db.session.add(att)
         db.session.commit()
+        # 审批通过后邮件通知提交人
+        submitter = User.query.get(req.submitter_id)
+        if submitter and submitter.email:
+            subject = "【系统通知】您的财务报销申请已审批通过"
+            body = f"您好，您的报销申请已审批通过。金额：{req.amount} {req.currency}。审批意见：{req.approval_comments or '无'}。请及时登录系统查看详情。"
+            send_notify_mail(subject, [submitter.email], body)
+        else:
+            logging.warning(f"提交人未填写邮箱，无法发送审批通过通知邮件。提交人ID: {req.submitter_id}")
         flash('审批已通过', 'success')
         return redirect(url_for('reimbursement.detail', request_id=request_id))
     return render_template('reimbursement/approve.html', form=form, req=req)

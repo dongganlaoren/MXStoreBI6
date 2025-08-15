@@ -16,3 +16,4 @@ flake8
 email_validator
 black
 gunicorn
+Flask-Mail

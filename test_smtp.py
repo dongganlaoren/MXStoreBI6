@@ -1,0 +1,4 @@
+SMTP_SERVER = 'smtp.163.com'
+SMTP_PORT = 465
+USERNAME = 'mirabi@163.com'
+PASSWORD = 'JQQEy7j76PFGzS4A'
