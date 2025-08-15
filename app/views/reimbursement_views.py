@@ -26,25 +26,51 @@ bp = Blueprint('reimbursement', __name__, url_prefix='/reimbursement')
 def list_requests():
     # 获取筛选参数
     category = request.args.get('category', 'todo')  # todo, done, mine
-    status = request.args.get('status', 'all')
-    # 取消默认7天时间范围
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
+    time_range = request.args.get('time_range', 'all')
 
     query = ReimbursementRequest.query
     role = getattr(current_user.role, 'value', None)
+    # 门店组用户只能看到自己提交的
     if role in ['BRANCH_MANAGER', 'EMPLOYEE', 'HEAD_MANAGER']:
-        # 只能看自己发起的，全部记录，按时间倒序
         query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
     elif role in ['FINANCE', 'ADMIN']:
-        # 默认显示“待我审批”的（我为审批人且待审批），全部记录
-        query = query.filter(
-            ReimbursementRequest.approver_id == current_user.user_id,
-            ReimbursementRequest.status == ReimbursementStatus.PENDING
-        )
-    # 状态过滤
-    if status != 'all':
-        query = query.filter(ReimbursementRequest.status == getattr(ReimbursementStatus, status))
+        if category == 'todo':
+            query = query.filter(
+                ReimbursementRequest.approver_id == current_user.user_id,
+                ReimbursementRequest.status == ReimbursementStatus.PENDING
+            )
+        elif category == 'done':
+            # 只查审批人为自己且状态为已审批（APPROVED/REJECTED）
+            query = query.filter(
+                ReimbursementRequest.approver_id == current_user.user_id,
+                ReimbursementRequest.status.in_([ReimbursementStatus.APPROVED, ReimbursementStatus.REJECTED])
+            )
+        elif category == 'mine':
+            # 只查提交人为自己
+            query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
+        else:
+            # 默认：审批人为自己
+            query = query.filter(ReimbursementRequest.approver_id == current_user.user_id)
+    # 时间筛选
+    from datetime import datetime, timedelta
+    if time_range == '24h':
+        begin = datetime.now() - timedelta(days=1)
+        query = query.filter(ReimbursementRequest.created_at >= begin)
+    elif time_range == '7d':
+        begin = datetime.now() - timedelta(days=7)
+        query = query.filter(ReimbursementRequest.created_at >= begin)
+    elif time_range == '30d':
+        begin = datetime.now() - timedelta(days=30)
+        query = query.filter(ReimbursementRequest.created_at >= begin)
+    elif time_range == 'custom' and start_date and end_date:
+        try:
+            begin = datetime.strptime(start_date, '%Y-%m-%d')
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(ReimbursementRequest.created_at >= begin, ReimbursementRequest.created_at < end)
+        except Exception:
+            pass
     requests = query.order_by(ReimbursementRequest.created_at.desc()).all()
 
     # 优先从请求参数获取语言
@@ -53,8 +79,7 @@ def list_requests():
     return render_template('reimbursement/list.html',
                            requests=requests,
                            category=category,
-                           status=status,
-                           time_range=None,
+                           time_range=time_range,
                            start_date=start_date,
                            end_date=end_date,
                            lang=lang,
@@ -341,4 +366,33 @@ def delete(request_id):
     db.session.delete(req)
     db.session.commit()
     flash('草稿已删除', 'success')
+    return redirect(url_for('reimbursement.list_requests'))
+
+
+@bp.route('/<int:request_id>/transfer', methods=['POST'])
+@login_required
+def transfer_approver(request_id):
+    req = ReimbursementRequest.query.get_or_404(request_id)
+    # 仅待审批且当前用户为审批人才能转交
+    if req.status != ReimbursementStatus.PENDING or req.approver_id != current_user.user_id:
+        flash('仅待审批且您为当前审批人时可转交', 'danger')
+        return redirect(url_for('reimbursement.list_requests'))
+    new_approver_id = request.form.get('new_approver_id')
+    if not new_approver_id:
+        flash('请选择新的审批人', 'warning')
+        return redirect(url_for('reimbursement.list_requests'))
+    # 校验新审批人权限
+    new_approver = User.query.get(int(new_approver_id))
+    if not new_approver or new_approver.role.value not in ['FINANCE', 'ADMIN']:
+        flash('新审批人无审批权限', 'danger')
+        return redirect(url_for('reimbursement.list_requests'))
+    # 更新审批人
+    req.approver_id = new_approver.user_id
+    db.session.commit()
+    # 邮件通知新审批人
+    if new_approver.email:
+        subject = "【系统通知】有报销申请已转交给您审批"
+        body = f"您好，报销申请(ID:{req.request_id})已由 {current_user.real_name or current_user.username} 转交给您。请及时登录系统处理。"
+        send_notify_mail(subject, [new_approver.email], body)
+    flash('已成功转交给新审批人', 'success')
     return redirect(url_for('reimbursement.list_requests'))

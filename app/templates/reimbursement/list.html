@@ -42,9 +42,10 @@
             {% endif %}
         </div>
         <div class="col-auto">
-            <!-- 去掉label，仅保留时间筛选下拉框 -->
+            <!-- 时间筛选下拉框，默认“全部时间” -->
             <select class="form-select" name="time_range"
                     onchange="if(this.value=='custom'){document.getElementById('custom-date').style.display='flex';}else{document.getElementById('custom-date').style.display='none';}">
+                <option value="all" {% if time_range=='all' or not time_range %}selected{% endif %}>全部时间</option>
                 <option value="24h" {% if time_range=='24h' %}selected{% endif %}>{{ lang['reimbursement_recent_24h']
                     }}
                 </option>
@@ -64,8 +65,9 @@
             <span class="mx-1">~</span>
             <input type="date" class="form-control" name="end_date" value="{{ end_date if end_date else '' }}">
         </div>
+        <!-- 删除状态筛选下拉框 -->
         <div class="col-auto align-self-end">
-            <button type="submit" class="btn btn-primary">{{ lang['reimbursement_filter'] }}</button>
+            <button type="submit" class="btn btn-primary">查询</button>
         </div>
     </form>
     <div class="table-responsive rounded shadow-sm">
@@ -107,6 +109,10 @@
                     {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
                     <a href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}"
                        class="btn btn-sm btn-success ms-1">{{ lang['reimbursement_approve_btn'] }}</a>
+                    <!-- 新增：转交按钮 -->
+                    <button type="button" class="btn btn-sm btn-warning ms-1" data-bs-toggle="modal"
+                            data-bs-target="#transferModal" data-request-id="{{ req.request_id }}">转交
+                    </button>
                     {% endif %}
                     {% if req.status.value == 'PENDING' and current_user.user_id == req.submitter_id %}
                     <form method="post" action="{{ url_for('reimbursement.withdraw', request_id=req.request_id) }}"
@@ -137,4 +143,96 @@
         </table>
     </div>
 </div>
+
+<!-- 转交审批人弹窗Modal -->
+<div class="modal fade" id="transferModal" tabindex="-1" aria-labelledby="transferModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="transferForm" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="transferModalLabel">转交审批人</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="new_approver_id" id="transfer_approver_id">
+                    <div class="mb-3">
+                        <label for="transfer_approver_search" class="form-label">搜索审批人（仅限财务/管理员）</label>
+                        <input type="text" id="transfer_approver_search" class="form-control"
+                               placeholder="输入姓名/账号/手机号..." autocomplete="off">
+                        <div id="transfer_approver_suggest" class="list-group position-absolute w-100"
+                             style="z-index:1000;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-warning">确认转交</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    // 转交审批人弹窗逻辑
+    let transferRequestId = null;
+    document.addEventListener('DOMContentLoaded', function() {
+      const transferModal = document.getElementById('transferModal');
+      const transferForm = document.getElementById('transferForm');
+      const transferApproverInput = document.getElementById('transfer_approver_search');
+      const transferApproverId = document.getElementById('transfer_approver_id');
+      const transferSuggestBox = document.getElementById('transfer_approver_suggest');
+
+      // 打开弹窗时，记录request_id
+      transferModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        transferRequestId = button.getAttribute('data-request-id');
+        transferForm.action = `/reimbursement/${transferRequestId}/transfer`;
+        transferApproverInput.value = '';
+        transferApproverId.value = '';
+        transferSuggestBox.innerHTML = '';
+      });
+
+      // 审批人自动补全
+      let searchTimer = null;
+      if (transferApproverInput && transferApproverId && transferSuggestBox) {
+        transferApproverInput.addEventListener('input', function() {
+          clearTimeout(searchTimer);
+          const query = this.value.trim();
+          if (!query) {
+            transferSuggestBox.innerHTML = '';
+            return;
+          }
+          searchTimer = setTimeout(function() {
+            fetch('/reimbursement/approver_search?q=' + encodeURIComponent(query))
+              .then(function(response) { return response.json(); })
+              .then(function(data) {
+                transferSuggestBox.innerHTML = '';
+                data.forEach(function(user) {
+                  const item = document.createElement('a');
+                  item.className = 'list-group-item list-group-item-action';
+                  item.textContent = user.label;
+                  item.href = '#';
+                  item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    transferApproverInput.value = user.label;
+                    transferApproverId.value = user.user_id;
+                    transferSuggestBox.innerHTML = '';
+                  });
+                  transferSuggestBox.appendChild(item);
+                });
+              })
+              .catch(function(error) {
+                console.error('搜索审批人失败:', error);
+              });
+          }, 300);
+        });
+        transferApproverInput.addEventListener('blur', function() {
+          setTimeout(function() { transferSuggestBox.innerHTML = ''; }, 200);
+        });
+      }
+    });
+</script>
 {% endblock %}
