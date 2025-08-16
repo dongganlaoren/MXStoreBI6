@@ -21,6 +21,12 @@ def send_notify_mail(subject, recipients, body, html=None):
     :param html: 邮件正文（HTML，可选）
     :return: True/False
     """
+    # 过滤掉无效邮箱
+    recipients = [r for r in recipients if r]
+    if not recipients:
+        # 没有有效收件人，直接返回 True
+        current_app.logger.info(f"邮件发送跳过：无有效收件人 subject={subject}")
+        return True
     try:
         msg = Message(subject=subject,
                       recipients=recipients,
@@ -213,10 +219,15 @@ def send_sales_report_mail(period: str, role: RoleType, user: User, recipients: 
     """
     发送销售汇总邮件（带统计周期和环比）
     """
+    # 过滤掉无效邮箱
+    recipients = [r for r in recipients if r]
+    if not recipients:
+        current_app.logger.info(f"销售报表邮件发送跳过：无有效收件人 period={period} role={role}")
+        return True
     stores, report_data, total_data, period_str, last_period_str = query_sales_reports(period, role, user)
     if total_data is None:
         # 数据不完整，无法发送邮件
-        current_app.logger.warning(f"销售报表邮件未���送：{period} {role} 数据不完整")
+        current_app.logger.warning(f"销售报表邮件未发送：{period} {role} 数据不完整")
         return False
     html = render_sales_report_html(period, report_data, total_data, period_str, last_period_str)
     # 邮件标题增强，示例：【销售日报】2025-08-16 汇总信息

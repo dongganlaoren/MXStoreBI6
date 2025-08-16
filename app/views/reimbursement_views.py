@@ -71,7 +71,7 @@ def list_requests():
             query = query.filter(ReimbursementRequest.created_at >= begin, ReimbursementRequest.created_at < end)
         except Exception:
             pass
-    requests = query.order_by(ReimbursementRequest.created_at.desc()).all()
+    requests = query.order_by(ReimbursementRequest.updated_at.desc()).all()
 
     # 优先从请求参数获取语言
     current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
@@ -137,7 +137,7 @@ def create():
                     )
                     db.session.add(att)
             db.session.commit()
-            logging.info(f"报销申请保存成功: {req}")
+            logging.info(f"报销申请保存���功: {req}")
             # 邮件通知审核人
             approver = User.query.get(approver_id) if approver_id else None
             if approver and approver.email:
