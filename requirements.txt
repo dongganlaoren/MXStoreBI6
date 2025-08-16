@@ -17,3 +17,7 @@ email_validator
 black
 gunicorn
 Flask-Mail
+celery
+apscheduler
+matplotlib
+pandas

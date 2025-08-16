@@ -46,3 +46,8 @@ build/
 # 用户上传文件目录
 uploads/
 app/static/uploads/
+
+# 本地数据库和初始化脚本不纳入版本管理
+init_all.sh
+db_reset.py
+reset_db.sh

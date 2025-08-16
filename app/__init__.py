@@ -6,12 +6,15 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, render_template, g, request, session
+from flask_login import current_user
 from flask_wtf.csrf import generate_csrf
 from markupsafe import Markup, escape
 
 from app import commands
 from app.extensions import csrf, db, login_manager, migrate, mail
+from app.views.email_report_views import register_email_report_tasks
 
 
 # -------------------- Jinja2 过滤器 --------------------
@@ -93,7 +96,7 @@ def create_app(config: object) -> Flask:
     app.context_processor(inject_lang_dict)
 
     def inject_csrf_token():
-        return dict(csrf_token=generate_csrf())
+        return dict(csrf_token=generate_csrf)
 
     app.context_processor(inject_csrf_token)
 
@@ -106,6 +109,11 @@ def create_app(config: object) -> Flask:
     def load_user(user_id: int) -> Optional["User"]:
         from app.models import User  # 本地导入解决循环引用
         return User.query.get(user_id)
+
+    # 注册定时任务（销售报表邮件）
+    scheduler = BackgroundScheduler()
+    register_email_report_tasks(scheduler, app)
+    scheduler.start()
 
     return app
 
@@ -142,14 +150,29 @@ def register_blueprints(app: Flask):
     from app.views.admin_user_views import admin_user_bp  # 管理员相关
     from app.views.reimbursement_views import bp as reimbursement_bp  # 财务报销模块
     from app.views.sales_manage_views import sales_manage_bp  # 营业信息管理相关
+    from app.views.email_report_views import email_report_bp  # 销售报表相关
 
-    # 注册蓝图及其路由前缀
+    # 注册��图及其路由前缀
     app.register_blueprint(root_bp)  # 根路由，无前缀
     app.register_blueprint(user_bp, url_prefix="/user")  # 用户模块
     app.register_blueprint(main_bp, url_prefix="/main")  # 主页面模块
     app.register_blueprint(admin_user_bp)  # 管理员相关
     app.register_blueprint(reimbursement_bp, url_prefix="/reimbursement")  # 财务报销模块
     app.register_blueprint(sales_manage_bp)  # 注册营业信息管理蓝图
+    app.register_blueprint(email_report_bp)  # 注册销售报表蓝图
+
+    # 系统菜单注入
+    @app.context_processor
+    def inject_system_menu():
+        menu_items = []
+        # 只允许admin角色看到邮件设置菜单
+        if hasattr(current_user, 'role') and str(current_user.role) == 'ADMIN':
+            menu_items.append({
+                'name': '邮件设置',
+                'url': '/email_report/config',
+                'group': '系统设置'
+            })
+        return dict(system_menu=menu_items)
 
 
 # -------------------- 错误处理 --------------------

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 style="color:#5470C6;">邮件发送任务执行日志</h2>
+    <table class="table table-bordered table-hover mt-3">
+        <thead class="table-light">
+        <tr>
+            <th>ID</th>
+            <th>任务类型</th>
+            <th>统计周期</th>
+            <th>收件人</th>
+            <th>状态</th>
+            <th>成功数</th>
+            <th>失败数</th>
+            <th>创建时间</th>
+            <th>更新时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.id }}</td>
+            <td>{{ log.task_type }}</td>
+            <td>{{ log.start_date }} ~ {{ log.end_date }}</td>
+            <td style="max-width:220px;word-break:break-all;">{{ log.recipients }}</td>
+            <td>
+                {% if log.status == 'success' %}
+                <span class="badge bg-success">成功</span>
+                {% elif log.status == 'partial_fail' %}
+                <span class="badge bg-warning text-dark">部分失败</span>
+                {% else %}
+                <span class="badge bg-danger">失败</span>
+                {% endif %}
+            </td>
+            <td>{{ log.success_count }}</td>
+            <td>{{ log.fail_count }}</td>
+            <td>{{ log.created_at }}</td>
+            <td>{{ log.updated_at }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="9" class="text-center text-muted">暂无日志记录</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

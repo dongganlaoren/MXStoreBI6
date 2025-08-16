@@ -1,59 +1,27 @@
 """
-fake_data.py
-
-功能说明：
-本模块用于开发和测试环境下，自动生成基础测试数据。
-主要功能：
-1. 自动清空当前数据库下所有业务表（排除 alembic_version），并根据数据库类型自动处理外键约束。
-2. 生成门店、用户等基础数据。
-3. 可扩展生成日报等业务数据（示例代码已注释）。
-
-注意事项：
-- 清空表数据时不会影响 alembic_version 表，确保数据库迁移版本管理正常。
-- 仅建议在开发或测试环境下使用，勿在生产环境运行。
+自动生成门店、用户、日报、财务报销申请测试数据，严格符合模型字段定义。
 """
-
 import random
-from datetime import datetime
+from datetime import datetime, timedelta, date
 
 from faker import Faker
 from sqlalchemy import text
+from werkzeug.security import generate_password_hash
 
 from app.extensions import db
-# 不再导入 StoreStaff
-from app.models import (AttachmentType, DailySalesAttachments,
-                        RoleType, Store, User)
+from app.models import Store, User, DailySales
+from app.models.enums import ReimbursementPrimaryCategory, ReimbursementSecondaryCategory, ReimbursementStatus
+from app.models.enums import RoleType, FinancialCheckStatus
+from app.models.reimbursement import ReimbursementRequest
 
-# 初始化 Faker
-fake = Faker("zh_CN")  # 使用中文数据，可以生成更逼真的中文名等
-
-
-def create_daily_sales_attachment(sales_record, faker_instance):
-    """
-    为日报创建并返回一个附件对象（仅用于测试数据生成）。
-    """
-    return DailySalesAttachments(
-        report_id=sales_record.report_id,
-        file_path=faker_instance.file_path(depth=2),
-        attachment_type=random.choice(list(AttachmentType)),
-        created_at=datetime.now()
-    )
+fake = Faker("zh_CN")
 
 
 def generate_fake_data():
-    """
-    生成基础测试数据：门店信息和admin用户。
-    如需生成日报等业务数据，请参考注释示例，自行扩展。
-    """
-
     try:
-        # --- 阶段一：清空并创建基础数据 (自动查询所有表并清空) ---
+        # 清空所有业务表（排除 alembic_version）
         with db.session.begin_nested():
-            print("开始清空所有表数据...")
-            # 查询所有表名
-            table_names = db.engine.table_names() if hasattr(db.engine, 'table_names') else db.inspect(
-                db.engine).get_table_names()
-            # 根据数据库类型判断外键约束语句
+            table_names = db.inspect(db.engine).get_table_names()
             db_url = db.engine.url.drivername
             if 'sqlite' in db_url:
                 db.session.execute(text('PRAGMA foreign_keys = OFF'))
@@ -67,176 +35,207 @@ def generate_fake_data():
                 db.session.execute(text('PRAGMA foreign_keys = ON'))
             elif 'mysql' in db_url:
                 db.session.execute(text('SET FOREIGN_KEY_CHECKS=1'))
-            print("所有表数据已清空。")
 
-            print("开始生成基础数据 (门店和用户)...")
-            # 1. 门店数据
-            store_data = [
-                {"store_id": "190", "store_name": "Central WestGate",
-                 "store_address": "Central WestGate, 190, 191 Moo 6 Tambon Sao Thong Hin, Amphoe Bang Yai, Nonthaburi 11140, Thailand",
-                 "third_party_platform": True},
-                {"store_id": "191", "store_name": "Central Rama 2",
-                 "store_address": "Central Rama 2, 128 ถนน พระรามที่ 2 Bang Mot, Chom Thong, Bangkok 10150, Thailand",
-                 "third_party_platform": False},
-                {"store_id": "76", "store_name": "Lasalle 32 Alley",
-                 "store_address": "Lasalle's 32 Alley Ice cream, 28 Soi Lasalle 32 Bang Na Tai, Bang Na, Bangkok 10260, Thailand",
-                 "third_party_platform": False},
-                {"store_id": "83", "store_name": "Gateway at Bang Sue",
-                 "store_address": "Gateway at Bangsue, 28 Pracharat Sai 2 Rd, Khwaeng Bang Sue, Khet Bang Sue, Krung Thep Maha Nakhon 10800, Thailand",
-                 "third_party_platform": True},
-                {"store_id": "91", "store_name": "Terminal 21 Pattaya",
-                 "store_address": "Terminal 21 Pattaya, 456, 777, 777/1 Moo 6 Bang Lamung District, Chon Buri 20150, Thailand",
-                 "third_party_platform": True},
-                {"store_id": "92", "store_name": "The Mail Life Store Ngamwongwan",
-                 "store_address": "The Mall Life Store Ngamwongwan, 6/188-189 Moo 2,Thanon Ngamwongwan, Bang Khen, Nonthaburi 11000, Thailand",
-                 "third_party_platform": False},
-            ]
-            stores = []
-            for data in store_data:
-                store = Store(**data)
-                db.session.add(store)
-                stores.append(store)
-            print("✅ 门店数据生成完成")
-
-            # 2. 只保留admin用户，密码同用户名，employee_number 为空
-            users = []
-            admin_user = User(
-                username="admin",
-                role=RoleType.ADMIN,
-                real_name=fake.name(),
-                email=fake.email(),
-                phone=fake.phone_number(),
-                store_id=None,
-                employee_number=None
-            )
-            admin_user.set_password("admin")
-            db.session.add(admin_user)
-            users.append(admin_user)
-
-            # 3. 生成所有角色的简单用户，用户名如 aaa、bbb、ccc、ddd、eee，密码同用户名
-            simple_users = []
-            role_list = [RoleType.ADMIN, RoleType.FINANCE, RoleType.HEAD_MANAGER]
-            for idx, role in enumerate(role_list):
-                uname = chr(97 + idx) * 3  # aaa, bbb, ccc
-                user = User(
-                    username=uname,
-                    role=role,
-                    real_name=fake.name(),
-                    email=fake.email(),
-                    phone=fake.phone_number(),
-                    store_id=None,
-                    employee_number=None
-                )
-                user.set_password(uname)
-                db.session.add(user)
-                simple_users.append(user)
-            # 为每个门店生成至少一个分店长和一个员工
-            store_employee_counter = {s.store_id: 0 for s in stores}
-            for store in stores:
-                # 分店长
-                store_employee_counter[store.store_id] += 1
-                emp_seq_mgr = str(store_employee_counter[store.store_id]).zfill(3)
-                employee_number_mgr = int(f"{store.store_id}{emp_seq_mgr}")
-                mgr_username = f"mgr_{store.store_id}"
-                mgr = User(
-                    username=mgr_username,
-                    role=RoleType.BRANCH_MANAGER,
-                    real_name=fake.name(),
-                    email=fake.email(),
-                    phone=fake.phone_number(),
-                    store_id=store.store_id,
-                    employee_number=employee_number_mgr
-                )
-                mgr.set_password(mgr_username)
-                db.session.add(mgr)
-                simple_users.append(mgr)
-                # 员工
-                store_employee_counter[store.store_id] += 1
-                emp_seq_emp = str(store_employee_counter[store.store_id]).zfill(3)
-                employee_number_emp = int(f"{store.store_id}{emp_seq_emp}")
-                emp_username = f"emp_{store.store_id}"
-                emp = User(
-                    username=emp_username,
-                    role=RoleType.EMPLOYEE,
-                    real_name=fake.name(),
-                    email=fake.email(),
-                    phone=fake.phone_number(),
-                    store_id=store.store_id,
-                    employee_number=employee_number_emp
-                )
-                emp.set_password(emp_username)
-                db.session.add(emp)
-                simple_users.append(emp)
-            users.extend(simple_users)
-            print("✅ 简单用户生成完成（含所有角色，且每个门店至少有分店长和员工）")
-
+        # 生成门店数据
+        store_data = [
+            {"store_id": "190", "store_name": "Central WestGate",
+             "store_address": "Central WestGate, 190, 191 Moo 6 Tambon Sao Thong Hin, Amphoe Bang Yai, Nonthaburi 11140, Thailand",
+             "third_party_platform": True},
+            {"store_id": "191", "store_name": "Central Rama 2",
+             "store_address": "Central Rama 2, 128 ถนน พระรามที่ 2 Bang Mot, Chom Thong, Bangkok 10150, Thailand",
+             "third_party_platform": False},
+            {"store_id": "76", "store_name": "Lasalle 32 Alley",
+             "store_address": "Lasalle's 32 Alley Ice cream, 28 Soi Lasalle 32 Bang Na Tai, Bang Na, Bangkok 10260, Thailand",
+             "third_party_platform": False},
+            {"store_id": "83", "store_name": "Gateway at Bang Sue",
+             "store_address": "Gateway at Bangsue, 28 Pracharat Sai 2 Rd, Khwaeng Bang Sue, Khet Bang Sue, Krung Thep Maha Nakhon 10800, Thailand",
+             "third_party_platform": True},
+            {"store_id": "91", "store_name": "Terminal 21 Pattaya",
+             "store_address": "Terminal 21 Pattaya, 456, 777, 777/1 Moo 6 Bang Lamung District, Chon Buri 20150, Thailand",
+             "third_party_platform": True},
+            {"store_id": "92", "store_name": "The Mail Life Store Ngamwongwan",
+             "store_address": "The Mall Life Store Ngamwongwan, 6/188-189 Moo 2,Thanon Ngamwongwan, Bang Khen, Nonthaburi 11000, Thailand",
+             "third_party_platform": False},
+        ]
+        stores = []
+        for data in store_data:
+            store = Store(**data)
+            db.session.add(store)
+            stores.append(store)
         db.session.commit()
 
-        # --- 阶段二：生成100条合理的日报数据 ---
-        # print("开始生成日报数据...")
-        # today = date.today()
-        # all_users = users  # admin + simple_users
-        # num_reports = 1000
-        # store_no_t1 = {"92", "76", "191"}
-        # for i in range(num_reports):
-        #     store = random.choice(stores)
-        #     user = random.choice(all_users)
-        #     report_date = today - timedelta(days=random.randint(0, 29))
-        #     # 状态分布更均匀
-        #     status = random.choice([FinancialCheckStatus.PENDING, FinancialCheckStatus.APPROVED])
-        #     # 这三家门店不生成T1
-        #     if store.store_id in store_no_t1:
-        #         t1 = None
-        #     else:
-        #         t1 = round(random.uniform(100, 400), 2)
-        #     cash_income = round(random.uniform(100, 500), 2)
-        #     pos_income = round(random.uniform(200, 800), 2)
-        #     day_pass_income = round(random.uniform(50, 300), 2)
-        #     voucher_amount = round(random.uniform(0, 50), 2)
-        #     electronic_actual_arrival = round(random.uniform(200, 800), 2)
-        #     bank_deposit = round(random.uniform(100, 500), 2)
-        #     bank_fee = round(random.uniform(0, 10), 2)
-        #     cash_difference = round(random.uniform(-10, 10), 2)
-        #     electronic_difference = round(random.uniform(-10, 10), 2)
-        #     pos_total = round(cash_income + pos_income + day_pass_income + voucher_amount, 2)
-        #     actual_sales = round((t1 or 0) + day_pass_income + electronic_actual_arrival + bank_deposit, 2)
-        #     total_error = round(electronic_actual_arrival + bank_deposit + bank_fee - pos_income - cash_income, 2)
-        #     sales = DailySales(
-        #         user_id=user.user_id,
-        #         store_id=store.store_id,
-        #         report_date=report_date,
-        #         cash_income=cash_income,
-        #         pos_income=pos_income,
-        #         day_pass_income=day_pass_income,
-        #         voucher_amount=voucher_amount,
-        #         pos_total=pos_total,
-        #         electronic_actual_arrival=electronic_actual_arrival,
-        #         bank_deposit=bank_deposit,
-        #         bank_fee=bank_fee,
-        #         takeaway_amount=t1,
-        #         actual_sales=actual_sales,
-        #         total_error=total_error,
-        #         cash_difference=cash_difference,
-        #         electronic_difference=electronic_difference,
-        #         remark=fake.sentence(),
-        #         pos_info_completed=True,
-        #         takeaway_info_completed=True,
-        #         actual_arrival_info_completed=True,
-        #         is_submitted=True,
-        #         financial_check_status=status,
-        #         created_at=datetime.now() - timedelta(days=random.randint(0, 29)),
-        #         updated_at=datetime.now() - timedelta(days=random.randint(0, 29))
-        #     )
-        #     db.session.add(sales)
-        #     db.session.flush()  # 确保sales.report_id有值
-        #     # 附件
-        #     for _ in range(random.randint(1, 2)):
-        #         att = create_daily_sales_attachment(sales, fake)
-        #         db.session.add(att)
-        # db.session.commit()
-        # print("✅ 日报数据生成完成")
+        # 生成用户数据（admin、管理组、每门店分店长和员工）
+        admin_user = User()
+        admin_user.username = "admin"
+        admin_user.password_hash = generate_password_hash("admin")
+        admin_user.role = RoleType.ADMIN
+        admin_user.user_status = 1
+        admin_user.real_name = fake.name()
+        admin_user.email = fake.email()
+        admin_user.phone = fake.phone_number()
+        admin_user.created_at = datetime.now()
+        admin_user.updated_at = datetime.now()
+        db.session.add(admin_user)
+        db.session.commit()
+        # 管理组用户
+        for idx, role in enumerate([RoleType.FINANCE, RoleType.HEAD_MANAGER]):
+            uname = chr(97 + idx) * 3  # bbb, ccc
+            user = User()
+            user.username = uname
+            user.password_hash = generate_password_hash(uname)
+            user.role = role
+            user.user_status = 1
+            user.real_name = fake.name()
+            user.email = fake.email()
+            user.phone = fake.phone_number()
+            user.created_at = datetime.now()
+            user.updated_at = datetime.now()
+            db.session.add(user)
+        db.session.commit()
+        # 门店分店长和员工
+        for store in stores:
+            # 分店长
+            mgr_username = f"mgr_{store.store_id}"
+            mgr = User()
+            mgr.username = mgr_username
+            mgr.password_hash = generate_password_hash(mgr_username)
+            mgr.role = RoleType.BRANCH_MANAGER
+            mgr.user_status = 1
+            mgr.store_id = store.store_id
+            mgr.real_name = fake.name()
+            mgr.email = fake.email()
+            mgr.phone = fake.phone_number()
+            mgr.created_at = datetime.now()
+            mgr.updated_at = datetime.now()
+            db.session.add(mgr)
+            # 员工
+            emp_username = f"emp_{store.store_id}"
+            emp = User()
+            emp.username = emp_username
+            emp.password_hash = generate_password_hash(emp_username)
+            emp.role = RoleType.EMPLOYEE
+            emp.user_status = 1
+            emp.store_id = store.store_id
+            emp.real_name = fake.name()
+            emp.email = fake.email()
+            emp.phone = fake.phone_number()
+            emp.created_at = datetime.now()
+            emp.updated_at = datetime.now()
+            db.session.add(emp)
+        db.session.commit()
+
+        # 生成日报测试数据（3个月，每门店每天一条）
+        users = User.query.all()
+        store_users = {}
+        for store in stores:
+            store_users[store.store_id] = [u for u in users if
+                                           u.store_id == store.store_id and u.role in [RoleType.BRANCH_MANAGER,
+                                                                                       RoleType.EMPLOYEE]]
+        today = date.today()
+        start_date = (today.replace(day=1) - timedelta(days=3 * 31)).replace(day=1)
+        end_date = today
+        db.session.query(DailySales).delete()
+        db.session.commit()
+        for store in stores:
+            d = start_date
+            while d <= end_date:
+                user_list = store_users.get(store.store_id, [])
+                if not user_list:
+                    d += timedelta(days=1)
+                    continue
+                user = random.choice(user_list)
+                cash_income = round(random.uniform(100, 500), 2)
+                pos_income = round(random.uniform(200, 800), 2)
+                day_pass_income = round(random.uniform(50, 300), 2)
+                voucher_amount = round(random.uniform(0, 50), 2)
+                pos_total = round(cash_income + pos_income + day_pass_income + voucher_amount, 2)
+                electronic_actual_arrival = round(random.uniform(200, 800), 2)
+                bank_deposit = round(random.uniform(100, 500), 2)
+                bank_fee = round(random.uniform(0, 10), 2)
+                takeaway_amount = round(random.uniform(100, 400), 2)
+                actual_sales = round(takeaway_amount + day_pass_income + electronic_actual_arrival + bank_deposit, 2)
+                theoretical_total = round(pos_total + takeaway_amount - voucher_amount - bank_deposit, 2)
+                # 昨日数据全部设为 APPROVED，其他日期随机
+                if d == today - timedelta(days=1):
+                    financial_check_status = FinancialCheckStatus.APPROVED
+                else:
+                    financial_check_status = random.choice([
+                        FinancialCheckStatus.PENDING,
+                        FinancialCheckStatus.APPROVED
+                    ])
+                sales = DailySales()
+                sales.store_id = store.store_id
+                sales.user_id = user.user_id
+                sales.report_date = d
+                sales.cash_income = cash_income
+                sales.pos_income = pos_income
+                sales.day_pass_income = day_pass_income
+                sales.voucher_amount = voucher_amount
+                sales.pos_total = pos_total
+                sales.electronic_actual_arrival = electronic_actual_arrival
+                sales.bank_deposit = bank_deposit
+                sales.bank_fee = bank_fee
+                sales.takeaway_amount = takeaway_amount
+                sales.actual_sales = actual_sales
+                sales.theoretical_total = theoretical_total
+                sales.financial_check_status = financial_check_status
+                db.session.add(sales)
+                d += timedelta(days=1)
+        db.session.commit()
+        print(f"已生成3个月测试日报数据（昨日全部为 APPROVED）")
+
+        # 生成财务报销申请测试数据（2个月，每门店每天一条）
+        db.session.query(ReimbursementRequest).delete()
+        db.session.commit()
+        admin_user = User.query.filter_by(username='admin').first()
+        admin_id = admin_user.user_id if admin_user else None
+        start_date = (today.replace(day=1) - timedelta(days=2 * 31)).replace(day=1)
+        end_date = today
+        for store in stores:
+            d = start_date
+            while d <= end_date:
+                user_list = store_users.get(store.store_id, [])
+                if not user_list:
+                    d += timedelta(days=1)
+                    continue
+                user = random.choice(user_list)
+                amount = round(random.uniform(100, 2000), 2)
+                primary_category = random.choice(list(ReimbursementPrimaryCategory))
+                secondary_category = random.choice(list(ReimbursementSecondaryCategory))
+                status = random.choice([
+                    ReimbursementStatus.APPROVED, ReimbursementStatus.PENDING, ReimbursementStatus.REJECTED])
+                approval_comments = fake.sentence() if status == ReimbursementStatus.APPROVED else None
+                approved_at = datetime.combine(d,
+                                               datetime.min.time()) if status == ReimbursementStatus.APPROVED else None
+                reimb = ReimbursementRequest()
+                reimb.store_id = store.store_id
+                reimb.submitter_id = user.user_id
+                reimb.primary_category = primary_category
+                reimb.secondary_category = secondary_category
+                reimb.amount = amount
+                reimb.currency = 'THB'
+                reimb.description = f"测试报销申请 {store.store_id} {d}"
+                reimb.status = status
+                reimb.approver_id = admin_id
+                reimb.approval_comments = approval_comments
+                reimb.created_at = datetime.combine(d, datetime.min.time())
+                reimb.updated_at = datetime.combine(d, datetime.min.time())
+                reimb.approved_at = approved_at
+                db.session.add(reimb)
+                d += timedelta(days=1)
+        db.session.commit()
+        print(f"已生成2个月财务报销申请测试数据（审批人仅admin，审批意见和审批时间有值）")
 
     except Exception as e:
         db.session.rollback()
         print(f"❌ 生成测试数据时发生严重错误: {e}")
         raise e
+
+
+if __name__ == "__main__":
+    from app import create_app
+    from config import Config
+
+    app = create_app(Config)
+    with app.app_context():
+        generate_fake_data()

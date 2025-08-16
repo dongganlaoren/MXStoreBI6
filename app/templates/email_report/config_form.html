@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5 mb-5">
+    <h2 style="color:#5470C6; margin-bottom:32px;">销售汇总信息发送任务配置管理</h2>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+    <form method="post" id="configForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" id="formAction" value="save">
+        <div class="table-responsive mb-4">
+            <table class="table table-bordered table-hover align-middle shadow-sm"
+                   style="background:#fff;border-radius:10px;">
+                <thead class="table-light">
+                <tr>
+                    <th>角色</th>
+                    <th>日报开关</th>
+                    <th>日报时间</th>
+                    <th>周报开关</th>
+                    <th>周报时间</th>
+                    <th>周报星期</th>
+                    <th>月报开关</th>
+                    <th>月报时间</th>
+                    <th>月报日期</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for role, info in config.roles.items() %}
+                <tr>
+                    <td style="font-weight:600;color:#5470C6;">{{ role }}</td>
+                    <td><input type="checkbox" name="{{ role }}_daily_enabled" class="form-check-input" {% if
+                               info.daily_enabled %}checked{% endif %}></td>
+                    <td><input type="time" name="{{ role }}_daily_time" class="form-control"
+                               value="{{ info.daily_time }}"></td>
+                    <td><input type="checkbox" name="{{ role }}_weekly_enabled" class="form-check-input" {% if
+                               info.weekly_enabled %}checked{% endif %}></td>
+                    <td><input type="time" name="{{ role }}_weekly_time" class="form-control"
+                               value="{{ info.weekly_time }}"></td>
+                    <td>
+                        <select name="{{ role }}_weekly_day" class="form-select">
+                            {% for d in range(1,8) %}
+                            <option value="{{ d }}" {% if info.weekly_day== d|string %}selected{% endif %}>周{{
+                                ['一','二','三','四','五','六','日'][d-1] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="checkbox" name="{{ role }}_monthly_enabled" class="form-check-input" {% if
+                               info.monthly_enabled %}checked{% endif %}></td>
+                    <td><input type="time" name="{{ role }}_monthly_time" class="form-control"
+                               value="{{ info.monthly_time }}"></td>
+                    <td>
+                        <select name="{{ role }}_monthly_day" class="form-select">
+                            {% for d in range(1,32) %}
+                            <option value="{{ d }}" {% if info.monthly_day== d|string %}selected{% endif %}>{{ d }}号
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            <button type="button" class="btn btn-primary mt-3" id="saveConfigBtn">保存配置</button>
+            <button type="button" class="btn btn-success mt-3 ms-3" id="sendMailBtn">立即发送邮件</button>
+        </div>
+        <div class="progress mt-2 mb-2" id="sendProgress" style="height:22px;display:none;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar"
+                 style="width: 0%;font-weight:600;" id="sendProgressBar">0%
+            </div>
+        </div>
+        <div class="mt-4 p-3 bg-light border rounded shadow-sm"
+             style="font-size:1rem;line-height:1.7;">
+            <b style="color:#5470C6;font-size:1.08rem;">发送频率及统计周期说明：</b><br>
+            {% for desc in config.freq_desc %}
+            <div class="mb-1">{{ desc|safe }}</div>
+            {% endfor %}
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var sendBtn = document.getElementById('sendMailBtn');
+        var saveBtn = document.getElementById('saveConfigBtn');
+        var progress = document.getElementById('sendProgress');
+        var progressBar = document.getElementById('sendProgressBar');
+        var form = document.getElementById('configForm');
+        var formAction = document.getElementById('formAction');
+        if (sendBtn && form) {
+            sendBtn.addEventListener('click', function(e) {
+                formAction.value = 'send';
+                sendBtn.disabled = true;
+                sendBtn.innerText = '正在发送...';
+                progress.style.display = 'block';
+                progressBar.style.width = '100%';
+                progressBar.innerText = '正在发送...';
+                form.submit();
+            });
+        }
+        if (saveBtn && form) {
+            saveBtn.addEventListener('click', function(e) {
+                formAction.value = 'save';
+                form.submit();
+            });
+        }
+        window.addEventListener('pageshow', function() {
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.innerText = '立即发送邮件';
+                progress.style.display = 'none';
+                progressBar.style.width = '0%';
+                progressBar.innerText = '0%';
+            }
+        });
+    });
+</script>
+{% endblock %}
