@@ -129,7 +129,7 @@ lang_dict = {
         'reimbursement_status': '状态',
         'reimbursement_submitter': '申请人',
         'reimbursement_approver': '审批人',
-        'reimbursement_submission_date': '����请日期',
+        'reimbursement_submission_date': '申请请日期',
         'reimbursement_reason': '报销事由',
         'reimbursement_attachments': '相关附件',
         'reimbursement_approval_comments': '审批意见',

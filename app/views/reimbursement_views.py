@@ -123,7 +123,7 @@ def create():
             # ��理抄送人
             cc_recipients_data = form.cc_recipients.data
             cc_emails = []  # 用于收集抄送人邮箱
-            processed_user_ids = set()  # 避免重��添加
+            processed_user_ids = set()  # 避免����添加
 
             # 首先添加用户手动选择的抄送人
             if cc_recipients_data:
@@ -201,7 +201,7 @@ def create():
                 body = f"您好，您有一条新的报销申请待审批。申请人：{current_user.real_name or current_user.username}，金额：{form.amount.data} {form.currency.data}。请及时登录系统处理。"
                 send_notify_mail(subject, [approver.email], body)
             else:
-                logging.warning(f"审核人未填写邮箱，无法发送报销通知邮件。审核人ID: {approver_id}")
+                logging.warning(f"审核人未填写邮箱��无法发送报销通知邮件。审核人ID: {approver_id}")
 
             # 邮件通知抄送人
             if cc_emails:
@@ -277,7 +277,11 @@ def approve(request_id):
             logging.warning(f"提交人未填写邮箱，无法发送审批通过通知邮件。提交人ID: {req.submitter_id}")
         flash('审批已通过', 'success')
         return redirect(url_for('reimbursement.detail', request_id=request_id))
-    return render_template('reimbursement/approve.html', form=form, req=req)
+
+    # 获取当前语言并传递给模板
+    current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
+    lang = lang_dict.get(current_lang, lang_dict['zh'])
+    return render_template('reimbursement/approve.html', form=form, req=req, lang=lang, current_lang=current_lang)
 
 
 @bp.route('/approver_search')
