@@ -6,6 +6,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask import current_app
 from flask_login import login_required, current_user
+from flask_wtf import FlaskForm
 from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 
@@ -82,6 +83,12 @@ def list_requests():
     # 优先从请求参数获取语言
     current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
     lang = lang_dict.get(current_lang, lang_dict['zh'])
+
+    class DummyForm(FlaskForm):
+        pass
+
+    form = DummyForm()
+
     return render_template('reimbursement/list.html',
                            requests=requests,
                            category=category,
@@ -89,7 +96,8 @@ def list_requests():
                            start_date=start_date,
                            end_date=end_date,
                            lang=lang,
-                           current_lang=current_lang
+                           current_lang=current_lang,
+                           form=form
                            )
 
 
@@ -123,7 +131,7 @@ def create():
             # ��理抄送人
             cc_recipients_data = form.cc_recipients.data
             cc_emails = []  # 用于收集抄送人邮箱
-            processed_user_ids = set()  # 避免����添加
+            processed_user_ids = set()  # 避免�����添加
 
             # 首先添加用户手动选择的抄送人
             if cc_recipients_data:
@@ -560,7 +568,12 @@ def default_cc_config():
     # 获取当前的默认抄送人配置
     default_ccs = ReimbursementDefaultCCRecipient.query.filter_by(is_active=True).all()
 
-    return render_template('reimbursement/default_cc_config.html', default_ccs=default_ccs)
+    # 获取当前语言并传递给模板
+    current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
+    lang = lang_dict.get(current_lang, lang_dict['zh'])
+
+    return render_template('reimbursement/default_cc_config.html', default_ccs=default_ccs, lang=lang,
+                           current_lang=current_lang)
 
 
 @bp.route('/default_cc_search')

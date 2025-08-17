@@ -6,9 +6,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, render_template, g, request, session
-from flask_login import current_user
 from flask_wtf.csrf import generate_csrf
 from markupsafe import Markup, escape
 
@@ -65,12 +63,19 @@ def create_app(config: object) -> Flask:
     app.url_map.strict_slashes = False
     validate_production_config(app)
 
+    # 配置Flask-Login用户加载器
+    @login_manager.user_loader
+    def load_user(user_id):
+        """加载用户的回调函数"""
+        from app.models.user import User
+        return User.query.filter_by(user_id=int(user_id)).first()
+
     # 注册自定义 Jinja2 过滤器
     app.jinja_env.filters["date"] = date_filter
     app.jinja_env.filters["nl2br"] = nl2br_filter
     app.jinja_env.filters["strftime"] = strftime_filter  # 注册 strftime 过滤器
 
-    # 注入当前时间到模板
+    # ��入当前时间到模板
     @app.context_processor
     def inject_now():
         """
@@ -101,21 +106,62 @@ def create_app(config: object) -> Flask:
     app.context_processor(inject_csrf_token)
 
     # 注册蓝图
-    with app.app_context():
-        register_blueprints(app)
+    register_blueprints(app)
 
-    # 用户加载回调
-    @login_manager.user_loader
-    def load_user(user_id: int) -> Optional["User"]:
-        from app.models import User  # 本地导入解决循环引用
-        return User.query.get(user_id)
+    # 初始化监控系统
+    init_monitoring(app)
 
-    # 注册定时任务（销售报表邮件）
-    scheduler = BackgroundScheduler()
-    register_email_report_tasks(scheduler, app)
-    scheduler.start()
+    # 注册邮件报告任务 - 注释掉直到我们有调度器实例
+    # with app.app_context():
+    #     register_email_report_tasks()
 
     return app
+
+
+def register_blueprints(app: Flask) -> None:
+    """注册所有蓝图"""
+    # 导入所有蓝图
+    from app.views.main_views import main_bp
+    from app.views.user_views import user_bp
+    from app.views.sales_manage_views import sales_manage_bp
+    from app.views.reimbursement_views import bp as reimbursement_bp  # 修正导入名称
+    from app.views.admin_user_views import admin_user_bp
+    from app.views.email_report_views import email_report_bp
+    from app.views.root_views import root_bp
+    from app.views.monitor_views import monitor_bp
+
+    # 注册蓝图
+    app.register_blueprint(main_bp)
+    app.register_blueprint(user_bp)
+    app.register_blueprint(sales_manage_bp)
+    app.register_blueprint(reimbursement_bp)
+    app.register_blueprint(admin_user_bp)
+    app.register_blueprint(email_report_bp)
+    app.register_blueprint(root_bp)
+    app.register_blueprint(monitor_bp)  # 注册监控蓝图
+
+
+def init_monitoring(app: Flask) -> None:
+    """初始化监控系统"""
+    # 设置数据库日志处理器
+    if app.config.get('ENV') == 'production':
+        from app.utils.monitor import DatabaseLogHandler, setup_request_logging
+
+        # 添加数据库日志处理器
+        db_handler = DatabaseLogHandler()
+        db_handler.setLevel(logging.WARNING)  # 只记录WARNING及以上级别的日志到数据库
+        app.logger.addHandler(db_handler)
+
+        # 设置请求日志记录
+        setup_request_logging()
+
+    # 启动监控定时任务 - 在应用初始化时直接启动
+    try:
+        from app.utils.scheduler import start_monitoring_tasks
+        start_monitoring_tasks()
+        app.logger.info("监控定时任务已启动")
+    except Exception as e:
+        app.logger.error(f"启动监控任务失败: {e}")
 
 
 # -------------------- 日志配置 --------------------
@@ -138,41 +184,6 @@ def validate_production_config(app: Flask):
             if not app.config.get(key):
                 app.logger.error(f"生产环境必须配置 {key}")
                 raise ValueError(f"生产环境必须配置 {key}")
-
-
-# -------------------- 蓝图注册 --------------------
-def register_blueprints(app: Flask):
-    """注册所有蓝图"""
-    # 导入各功能模块的蓝图
-    from app.views.main_views import main_bp  # 主页面相关
-    from app.views.root_views import root_bp  # 根路由和通用页面
-    from app.views.user_views import user_bp  # 用户相关
-    from app.views.admin_user_views import admin_user_bp  # 管理员相关
-    from app.views.reimbursement_views import bp as reimbursement_bp  # 财务报销模块
-    from app.views.sales_manage_views import sales_manage_bp  # 营业信息管理相关
-    from app.views.email_report_views import email_report_bp  # 销售报表相关
-
-    # 注册��图及其路由前缀
-    app.register_blueprint(root_bp)  # 根路由，无前缀
-    app.register_blueprint(user_bp, url_prefix="/user")  # 用户模块
-    app.register_blueprint(main_bp, url_prefix="/main")  # 主页面模块
-    app.register_blueprint(admin_user_bp)  # 管理员相关
-    app.register_blueprint(reimbursement_bp, url_prefix="/reimbursement")  # 财务报销模块
-    app.register_blueprint(sales_manage_bp)  # 注册营业信息管理蓝图
-    app.register_blueprint(email_report_bp)  # 注册销售报表蓝图
-
-    # 系统菜单注入
-    @app.context_processor
-    def inject_system_menu():
-        menu_items = []
-        # 只允许admin角色看到邮件设置菜单
-        if hasattr(current_user, 'role') and str(current_user.role) == 'ADMIN':
-            menu_items.append({
-                'name': '邮件设置',
-                'url': '/email_report/config',
-                'group': '系统设置'
-            })
-        return dict(system_menu=menu_items)
 
 
 # -------------------- 错误处理 --------------------

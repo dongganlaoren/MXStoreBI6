@@ -125,7 +125,7 @@
                     <form method="post" action="{{ url_for('reimbursement.withdraw', request_id=req.request_id) }}"
                           style="display:inline;"
                           onsubmit="return confirm('{{ lang['confirm_withdraw_msg'] }}');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        {{ form.csrf_token }}
                         <button type="submit" class="btn btn-sm btn-warning ms-1">{{ lang['withdraw_btn'] }}</button>
                     </form>
                     {% endif %}
@@ -135,7 +135,7 @@
                     <form method="post" action="{{ url_for('reimbursement.delete', request_id=req.request_id) }}"
                           style="display:inline;"
                           onsubmit="return confirm('{{ lang['confirm_delete_draft_msg'] }}');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        {{ form.csrf_token }}
                         <button type="submit" class="btn btn-sm btn-danger ms-1">{{ lang['reimbursement_delete'] }}
                         </button>
                     </form>
@@ -157,13 +157,13 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form id="transferForm" method="post">
+                {{ form.hidden_tag() }}
                 <div class="modal-header">
                     <h5 class="modal-title" id="transferModalLabel">{{ lang['transfer_approver'] }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"
                             aria-label="{{ lang['close'] }}"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <input type="hidden" name="new_approver_id" id="transfer_approver_id">
                     <div class="mb-3">
                         <label for="transfer_approver_search" class="form-label">{{

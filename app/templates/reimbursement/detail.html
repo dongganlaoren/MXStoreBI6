@@ -1,68 +1,71 @@
 {% extends 'base.html' %}
-{% block title %}{{ lang['reimbursement_detail_title'] }}{% endblock %}
+{% block title %}{{ lang_dict['reimbursement_detail_title'] }}{% endblock %}
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex align-items-center mb-3">
-        <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">{{
-            lang['reimbursement_detail_title'] }}</h2>
-        <span class="badge bg-primary bg-opacity-75 fs-6">{{ lang['reimbursement_finance'] }}</span>
+        <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">
+            {{ lang_dict['reimbursement_detail_title'] }}
+        </h2>
+        <span class="badge bg-primary bg-opacity-75 fs-6">{{ lang_dict['reimbursement_finance'] }}</span>
     </div>
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <div class="row mb-4">
                 <div class="col-md-6">
-                    <h5 class="mb-3 text-primary">{{ lang['reimbursement_create_title'] }}{{
-                        lang['reimbursement_submitter'] }}</h5>
+                    <h5 class="mb-3 text-primary">{{ lang_dict['reimbursement_create_title'] }} - {{
+                        lang_dict['reimbursement_submitter'] }}</h5>
                     <table class="table table-borderless mb-0">
                         <tr>
                             <th class="text-end text-secondary">ID：</th>
                             <td>{{ req.request_id }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_primary_category'] }}：</th>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_primary_category'] }}：</th>
                             <td>{{ req.primary_category.value }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_secondary_category'] }}：</th>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_secondary_category'] }}：
+                            </th>
                             <td>{{ req.secondary_category.value }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_store'] }}：</th>
-                            <td>{{ req.store.store_name if req.store else lang['SHARED_COST'] }}</td>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_store'] }}：</th>
+                            <td>{{ req.store.store_name if req.store else lang_dict['SHARED_COST'] }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_amount'] }}：</th>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_amount'] }}：</th>
                             <td class="fw-bold text-danger">{{ req.amount }} {{ req.currency }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_submission_date'] }}：</th>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_submission_date'] }}：</th>
                             <td>{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else '' }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_reason'] }}：</th>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_reason'] }}：</th>
                             <td>{{ req.description }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_submitter'] }}：</th>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_submitter'] }}：</th>
                             <td>{{ req.submitter.real_name or req.submitter.username }}</td>
                         </tr>
-                        <!-- 新增：显��抄送人信息 -->
+                        <!-- 新增：显示抄送人信息 -->
                         {% set cc_recipients = req.cc_recipients.all() %}
                         {% if cc_recipients %}
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_cc_recipients'] }}：</th>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_cc_recipients'] }}：</th>
                             <td>
                                 {% for cc in cc_recipients %}
                                 {% set default_cc = cc.user.default_cc_configs|selectattr('is_active', 'equalto',
                                 true)|first %}
                                 {% if default_cc %}
                                 <span class="badge bg-secondary text-white me-1"
-                                      title="{{ lang['default_cc_recipient_badge'] }}">
+                                      title="{{ lang_dict['default_cc_recipient_badge'] }}">
                                             {{ cc.user.real_name or cc.user.username }}
                                             <i class="bi bi-gear-fill ms-1"></i>
                                         </span>
                                 {% else %}
-                                <span class="badge bg-info text-dark me-1" title="{{ lang['manual_added_cc_badge'] }}">
+                                <span class="badge bg-info text-dark me-1"
+                                      title="{{ lang_dict['manual_added_cc_badge'] }}">
                                             {{ cc.user.real_name or cc.user.username }}
                                         </span>
                                 {% endif %}
@@ -71,72 +74,80 @@
                         </tr>
                         {% endif %}
                     </table>
-                    <h6 class="mt-4">{{ lang['reimbursement_attachment_submission'] }}</h6>
+                    <h6 class="mt-4">{{ lang_dict['reimbursement_attachment_submission'] }}</h6>
                     <ul class="list-group mb-4">
                         {% for att in attachments %}
                         {% set att_type = att.attachment_type.value if att.attachment_type is not string and
                         att.attachment_type is not none else att.attachment_type %}
                         {% if att_type == 'SUBMISSION' %}
                         <li class="list-group-item d-flex align-items-center justify-content-between">
-                <span>
-                  <i class="bi bi-paperclip me-2 text-primary"></i>
-                  <a href="/{{ att.file_path }}" target="_blank" class="attachment-link" style="color: #0d6efd;">{{ att.original_filename }}</a>
-                  <span class="badge bg-primary bg-opacity-75 text-white ms-2 attachment-badge-blue">{{ lang['reimbursement_attachment_submission'] }}</span>
-                </span>
+                                    <span>
+                                        <i class="bi bi-paperclip me-2 text-primary"></i>
+                                        <a href="/{{ att.file_path }}" target="_blank" class="attachment-link"
+                                           style="color: #0d6efd;">{{ att.original_filename }}</a>
+                                        <span class="badge bg-primary bg-opacity-75 text-white ms-2 attachment-badge-blue">{{ lang_dict['reimbursement_attachment_submission'] }}</span>
+                                    </span>
                             <a href="#" class="btn btn-link btn-sm text-primary preview-btn"
                                data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">{{
-                                lang['reimbursement_preview'] }}</a>
+                                lang_dict['reimbursement_preview'] }}</a>
                         </li>
                         {% endif %}
                         {% endfor %}
                     </ul>
                 </div>
                 <div class="col-md-6">
-                    <h5 class="mb-3 text-success">{{ lang['reimbursement_approver'] }}</h5>
+                    <h5 class="mb-3 text-success">{{ lang_dict['reimbursement_approver'] }}</h5>
                     <table class="table table-borderless mb-0">
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_status'] }}：</th>
-                            <td>{% if req.status.value == 'PENDING' %}<span class="badge bg-warning text-dark">{{ lang['reimbursement_pending'] }}</span>{%
-                                elif req.status.value == 'APPROVED' %}<span class="badge bg-success">{{ lang['reimbursement_approved'] }}</span>{%
-                                elif req.status.value == 'REJECTED' %}<span class="badge bg-danger">{{ lang['reimbursement_rejected'] }}</span>{%
-                                else %}{{ req.status.value }}{% endif %}
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_status'] }}：</th>
+                            <td>
+                                {% if req.status.value == 'PENDING' %}
+                                <span class="badge bg-warning text-dark">{{ lang_dict['reimbursement_pending'] }}</span>
+                                {% elif req.status.value == 'APPROVED' %}
+                                <span class="badge bg-success">{{ lang_dict['reimbursement_approved'] }}</span>
+                                {% elif req.status.value == 'REJECTED' %}
+                                <span class="badge bg-danger">{{ lang_dict['reimbursement_rejected'] }}</span>
+                                {% else %}
+                                {{ req.status.value }}
+                                {% endif %}
                             </td>
                         </tr>
                         {% if req.status.value != 'PENDING' %}
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_approval_time'] }}：</th>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_approval_time'] }}：</th>
                             <td>{{ req.approved_at or '' }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_approver'] }}：</th>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_approver'] }}：</th>
                             <td>{{ req.approver.real_name or req.approver.username }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_approval_comments'] }}：</th>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_approval_comments'] }}：</th>
                             <td>{{ req.approval_comments or '' }}</td>
                         </tr>
                         {% else %}
                         <tr>
-                            <th class="text-end text-secondary">{{ lang['reimbursement_approver'] }}：</th>
+                            <th class="text-end text-secondary">{{ lang_dict['reimbursement_approver'] }}：</th>
                             <td>{{ req.approver.real_name or req.approver.username }}</td>
                         </tr>
                         {% endif %}
                     </table>
-                    <h6 class="mt-4">{{ lang['reimbursement_attachment_approval'] }}</h6>
+                    <h6 class="mt-4">{{ lang_dict['reimbursement_attachment_approval'] }}</h6>
                     <ul class="list-group mb-4">
                         {% for att in attachments %}
                         {% set att_type = att.attachment_type.value if att.attachment_type is not string and
                         att.attachment_type is not none else att.attachment_type %}
                         {% if att_type == 'APPROVAL' %}
                         <li class="list-group-item d-flex align-items-center justify-content-between">
-                <span>
-                  <i class="bi bi-paperclip me-2 text-success"></i>
-                  <a href="/{{ att.file_path }}" target="_blank" class="attachment-link" style="color: #198754;">{{ att.original_filename }}</a>
-                  <span class="badge bg-success bg-opacity-75 text-white ms-2 attachment-badge-green">{{ lang['reimbursement_attachment_approval'] }}</span>
-                </span>
+                                    <span>
+                                        <i class="bi bi-paperclip me-2 text-success"></i>
+                                        <a href="/{{ att.file_path }}" target="_blank" class="attachment-link"
+                                           style="color: #198754;">{{ att.original_filename }}</a>
+                                        <span class="badge bg-success bg-opacity-75 text-white ms-2 attachment-badge-green">{{ lang_dict['reimbursement_attachment_approval'] }}</span>
+                                    </span>
                             <a href="#" class="btn btn-link btn-sm text-success preview-btn"
                                data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">{{
-                                lang['reimbursement_preview'] }}</a>
+                                lang_dict['reimbursement_preview'] }}</a>
                         </li>
                         {% endif %}
                         {% endfor %}
@@ -149,10 +160,10 @@
                 <div class="modal-dialog modal-xl modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="previewModalLabel">{{ lang['reimbursement_preview_modal_title']
-                                }}</h5>
+                            <h5 class="modal-title" id="previewModalLabel">{{
+                                lang_dict['reimbursement_preview_modal_title'] }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="{{ lang['close'] }}"></button>
+                                    aria-label="{{ lang_dict['close'] }}"></button>
                         </div>
                         <div class="modal-body" id="previewBody"
                              style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>
@@ -163,82 +174,77 @@
                 {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
                 <a class="btn btn-success px-4"
                    href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}">{{
-                    lang['reimbursement_approve_btn'] }}</a>
+                    lang_dict['reimbursement_approve_btn'] }}</a>
                 {% endif %}
                 <a class="btn btn-secondary px-4" href="{{ url_for('reimbursement.list_requests') }}">{{
-                    lang['reimbursement_back_to_list'] }}</a>
+                    lang_dict['reimbursement_back_to_list'] }}</a>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
 <style>
     .attachment-link {
-      max-width: 120px;
-      display: inline-block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      vertical-align: middle;
-      font-weight: 500;
+        max-width: 120px;
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: middle;
+        font-weight: 500;
     }
     @media (max-width: 768px) {
-      .attachment-link {
-        max-width: 80px;
-      }
+        .attachment-link {
+            max-width: 80px;
+        }
     }
     .attachment-badge-blue {
-      background: #0d6efd !important;
-      color: #fff !important;
+        background: #0d6efd !important;
+        color: #fff !important;
     }
     .attachment-badge-green {
-      background: #198754 !important;
-      color: #fff !important;
+        background: #198754 !important;
+        color: #fff !important;
     }
 </style>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-      const previewBtns = document.querySelectorAll('.preview-btn');
-      const previewBody = document.getElementById('previewBody');
-      const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
-      previewBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-          e.preventDefault();
-          const fileUrl = btn.getAttribute('data-file');
-          const filename = btn.getAttribute('data-filename');
-          previewBody.innerHTML = '';
-          if (/(.jpg|.jpeg|.png|.gif|.bmp|.webp)$/i.test(fileUrl)) {
-            previewBody.innerHTML = `<img src="${fileUrl}" alt="${filename}" style="max-width:100%;max-height:70vh;">`;
-          } else if (/(.pdf)$/i.test(fileUrl)) {
-            previewBody.innerHTML = `<iframe src="${fileUrl}" style="width:100%;height:70vh;" frameborder="0"></iframe>`;
-          } else if (/(.mp4|.webm|.ogg)$/i.test(fileUrl)) {
-            previewBody.innerHTML = `<video src="${fileUrl}" controls style="max-width:100%;max-height:70vh;"></video>`;
-          } else {
-            previewBody.innerHTML = `<a href="${fileUrl}" target="_blank">{{ lang['download_view'] }}</a>`;
-          }
-          previewModal.show();
+        // 预览功能
+        const previewButtons = document.querySelectorAll('.preview-btn');
+        previewButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const filePath = this.getAttribute('data-file');
+                const filename = this.getAttribute('data-filename');
+
+                const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+                const previewBody = document.getElementById('previewBody');
+
+                // 清空预览内容
+                previewBody.innerHTML = '<div class="spinner-border" role="status"><span class="visually-hidden">加载中...</span></div>';
+
+                // 显示模态框
+                previewModal.show();
+
+                // 根据文件类型显示预览
+                const extension = filename.split('.').pop().toLowerCase();
+                if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+                    previewBody.innerHTML = `<img src="${filePath}" class="img-fluid" style="max-width:100%;max-height:80vh;" alt="${filename}">`;
+                } else if (['pdf'].includes(extension)) {
+                    previewBody.innerHTML = `<embed src="${filePath}" type="application/pdf" width="100%" height="600px">`;
+                } else {
+                    previewBody.innerHTML = `
+                        <div class="text-center">
+                            <i class="bi bi-file-earmark display-1 text-muted mb-3"></i>
+                            <p class="text-muted">无法预览此文件类型</p>
+                            <a href="${filePath}" target="_blank" class="btn btn-primary">在新窗口中打开</a>
+                        </div>
+                    `;
+                }
+            });
         });
-      });
     });
-    // 粘贴板粘贴图片支持（如有上传控件）
-    const attachmentInput = document.getElementById('attachmentInput');
-    if (attachmentInput) {
-      attachmentInput.addEventListener('paste', function(event) {
-        const items = (event.clipboardData || event.originalEvent.clipboardData).items;
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          if (item.kind === 'file' && item.type.startsWith('image/')) {
-            const file = item.getAsFile();
-            const dt = new DataTransfer();
-            for (let j = 0; j < attachmentInput.files.length; j++) {
-              dt.items.add(attachmentInput.files[j]);
-            }
-            dt.items.add(file);
-            attachmentInput.files = dt.files;
-          }
-        }
-      });
-    }
 </script>
-{% endblock %
+{% endblock %}

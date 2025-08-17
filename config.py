@@ -35,6 +35,14 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
 
+    # 监控系统配置
+    MONITORING_ENABLED = os.environ.get('MONITORING_ENABLED', 'True') == 'True'
+    MONITORING_DATA_RETENTION_DAYS = int(os.environ.get('MONITORING_DATA_RETENTION_DAYS', 30))
+    MONITORING_METRICS_RETENTION_DAYS = int(os.environ.get('MONITORING_METRICS_RETENTION_DAYS', 7))
+    MONITORING_ALERT_EMAIL_ENABLED = os.environ.get('MONITORING_ALERT_EMAIL_ENABLED', 'False') == 'True'
+    MONITORING_ALERT_RECIPIENTS = os.environ.get('MONITORING_ALERT_RECIPIENTS', '').split(',') if os.environ.get(
+        'MONITORING_ALERT_RECIPIENTS') else []
+
 
 class DevelopmentConfig(Config):
     """开发环境的特定配置"""

@@ -1,0 +1,376 @@
+<!-- app/templates/monitor/logs.html -->
+{% extends "base.html" %}
+
+{% block title %}系统日志{% endblock %}
+
+{% block head %}
+<style>
+.log-filters {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+.log-entry {
+    border-left: 4px solid;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 0 4px 4px 0;
+}
+.log-DEBUG { border-left-color: #6c757d; background-color: #f8f9fa; }
+.log-INFO { border-left-color: #17a2b8; background-color: #d1ecf1; }
+.log-WARNING { border-left-color: #ffc107; background-color: #fff3cd; }
+.log-ERROR { border-left-color: #dc3545; background-color: #f8d7da; }
+.log-CRITICAL { border-left-color: #6f42c1; background-color: #e2d9f3; }
+.log-timestamp {
+    color: #6c757d;
+    font-size: 0.9em;
+    font-family: monospace;
+}
+.log-message {
+    margin-top: 5px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+.exception-info {
+    background: #f1f1f1;
+    padding: 10px;
+    border-radius: 3px;
+    margin-top: 10px;
+    font-family: monospace;
+    font-size: 0.8em;
+    white-space: pre-wrap;
+}
+.stats-card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+.auto-refresh {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 1000;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2>系统日志</h2>
+            <p class="text-muted">查看和分析系统运行日志</p>
+        </div>
+    </div>
+
+    <!-- 过滤器 -->
+    <div class="log-filters">
+        <form method="GET" id="filter-form">
+            <div class="row">
+                <div class="col-md-2">
+                    <label for="level">日志级别</label>
+                    <select class="form-control" name="level" id="level">
+                        <option value="">全部</option>
+                        <option value="DEBUG" {% if current_filters.level == 'DEBUG' %}selected{% endif %}>DEBUG</option>
+                        <option value="INFO" {% if current_filters.level == 'INFO' %}selected{% endif %}>INFO</option>
+                        <option value="WARNING" {% if current_filters.level == 'WARNING' %}selected{% endif %}>WARNING</option>
+                        <option value="ERROR" {% if current_filters.level == 'ERROR' %}selected{% endif %}>ERROR</option>
+                        <option value="CRITICAL" {% if current_filters.level == 'CRITICAL' %}selected{% endif %}>CRITICAL</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="logger">日志来源</label>
+                    <input type="text" class="form-control" name="logger" id="logger"
+                           value="{{ current_filters.logger }}" placeholder="logger名称">
+                </div>
+                <div class="col-md-2">
+                    <label for="start_date">开始日期</label>
+                    <input type="date" class="form-control" name="start_date" id="start_date"
+                           value="{{ current_filters.start_date }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="end_date">结束日期</label>
+                    <input type="date" class="form-control" name="end_date" id="end_date"
+                           value="{{ current_filters.end_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="search">搜索内容</label>
+                    <input type="text" class="form-control" name="search" id="search"
+                           value="{{ current_filters.search }}" placeholder="搜索日志消息">
+                </div>
+                <div class="col-md-1">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary btn-block">搜索</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="row">
+        <!-- 日志列表 -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>日志记录 (共 {{ logs.total }} 条)</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="exportLogs()">
+                            <i class="fas fa-download"></i> 导出
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshLogs()">
+                            <i class="fas fa-sync-alt"></i> 刷新
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" style="max-height: 800px; overflow-y: auto;" id="logs-container">
+                    {% for log in logs.items %}
+                    <div class="log-entry log-{{ log.level }}">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <span class="badge badge-{% if log.level == 'ERROR' or log.level == 'CRITICAL' %}danger{% elif log.level == 'WARNING' %}warning{% elif log.level == 'INFO' %}info{% else %}secondary{% endif %}">
+                                    {{ log.level }}
+                                </span>
+                                <strong>{{ log.logger_name }}</strong>
+                                {% if log.module %}
+                                    <span class="text-muted">{{ log.module }}</span>
+                                {% endif %}
+                                {% if log.function_name %}
+                                    <span class="text-muted">{{ log.function_name }}()</span>
+                                {% endif %}
+                            </div>
+                            <span class="log-timestamp">{{ log.timestamp }}</span>
+                        </div>
+                        <div class="log-message">{{ log.message }}</div>
+                        {% if log.exception_info %}
+                        <div class="exception-info">{{ log.exception_info }}</div>
+                        {% endif %}
+                        {% if log.request_id %}
+                        <small class="text-muted">请求ID: {{ log.request_id }}</small>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    {% if not logs.items %}
+                    <p class="text-center text-muted py-4">没有找到匹配的日志记录</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 分页 -->
+            {% if logs.pages > 1 %}
+            <nav aria-label="日志分页" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    {% if logs.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('monitor.logs', page=logs.prev_num, **current_filters) }}">上一页</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in logs.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != logs.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('monitor.logs', page=page_num, **current_filters) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">…</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if logs.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('monitor.logs', page=logs.next_num, **current_filters) }}">下一页</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+
+        <!-- 统计信息 -->
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h6>日志级别统计</h6>
+                {% for level, count in level_stats %}
+                <div class="d-flex justify-content-between">
+                    <span class="badge badge-{% if level.value == 'ERROR' or level.value == 'CRITICAL' %}danger{% elif level.value == 'WARNING' %}warning{% elif level.value == 'INFO' %}info{% else %}secondary{% endif %}">
+                        {{ level.value }}
+                    </span>
+                    <span>{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="stats-card">
+                <h6>日志来源统计</h6>
+                {% for logger, count in logger_stats %}
+                <div class="d-flex justify-content-between">
+                    <span class="text-truncate" style="max-width: 150px;" title="{{ logger }}">{{ logger }}</span>
+                    <span>{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 自动刷新控制 -->
+<div class="auto-refresh">
+    <div class="card">
+        <div class="card-body text-center" style="padding: 10px;">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="auto-refresh" onchange="toggleAutoRefresh()">
+                <label class="form-check-label" for="auto-refresh">
+                    自动刷新
+                </label>
+            </div>
+            <small class="text-muted" id="refresh-status">已关闭</small>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let autoRefreshInterval;
+let lastLogId = 0;
+
+// 刷新日志
+function refreshLogs() {
+    location.reload();
+}
+
+// 导出日志
+function exportLogs() {
+    const params = new URLSearchParams(window.location.search);
+    const exportUrl = '/monitor/api/logs/export?' + params.toString();
+
+    fetch(exportUrl)
+        .then(response => response.json())
+        .then(data => {
+            const blob = new Blob([JSON.stringify(data.logs, null, 2)], {type: 'application/json'});
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `logs_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+            console.error('导出失败:', error);
+            alert('导出失败，请重试');
+        });
+}
+
+// 切换自动刷新
+function toggleAutoRefresh() {
+    const checkbox = document.getElementById('auto-refresh');
+    const status = document.getElementById('refresh-status');
+
+    if (checkbox.checked) {
+        autoRefreshInterval = setInterval(() => {
+            loadNewLogs();
+        }, 10000); // 每10秒检查新日志
+        status.textContent = '每10秒刷新';
+        status.className = 'text-success';
+    } else {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+        status.textContent = '已关闭';
+        status.className = 'text-muted';
+    }
+}
+
+// 加载新日志（实时流）
+function loadNewLogs() {
+    const level = document.getElementById('level').value;
+    const url = `/monitor/api/logs/stream?last_id=${lastLogId}&level=${level}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.logs.length > 0) {
+                // 有新日志，刷新页面或动态添加
+                const container = document.getElementById('logs-container');
+                data.logs.forEach(log => {
+                    const logElement = createLogElement(log);
+                    container.insertBefore(logElement, container.firstChild);
+                });
+
+                lastLogId = data.last_id;
+
+                // 限制显示的日志数量，避免页面过长
+                const logEntries = container.querySelectorAll('.log-entry');
+                if (logEntries.length > 100) {
+                    for (let i = 100; i < logEntries.length; i++) {
+                        logEntries[i].remove();
+                    }
+                }
+            }
+        })
+        .catch(error => console.error('加载新日志失败:', error));
+}
+
+// 创建日志元素
+function createLogElement(log) {
+    const div = document.createElement('div');
+    div.className = `log-entry log-${log.level}`;
+
+    const levelBadgeClass = getLevelBadgeClass(log.level);
+
+    div.innerHTML = `
+        <div class="d-flex justify-content-between">
+            <div>
+                <span class="badge badge-${levelBadgeClass}">${log.level}</span>
+                <strong>${log.logger_name}</strong>
+                ${log.module ? `<span class="text-muted">${log.module}</span>` : ''}
+                ${log.function_name ? `<span class="text-muted">${log.function_name}()</span>` : ''}
+            </div>
+            <span class="log-timestamp">${log.timestamp}</span>
+        </div>
+        <div class="log-message">${log.message}</div>
+        ${log.exception_info ? `<div class="exception-info">${log.exception_info}</div>` : ''}
+        ${log.request_id ? `<small class="text-muted">请求ID: ${log.request_id}</small>` : ''}
+    `;
+
+    return div;
+}
+
+// 获取级别徽章样式
+function getLevelBadgeClass(level) {
+    switch(level) {
+        case 'ERROR':
+        case 'CRITICAL':
+            return 'danger';
+        case 'WARNING':
+            return 'warning';
+        case 'INFO':
+            return 'info';
+        default:
+            return 'secondary';
+    }
+}
+
+// 页面加载时获取最后一条日志ID
+document.addEventListener('DOMContentLoaded', function() {
+    const logEntries = document.querySelectorAll('.log-entry');
+    if (logEntries.length > 0) {
+        // 从第一个日志元素中提取ID（需要在模板中添加data-id属性）
+        // 这里简化处理，使用时间戳
+        lastLogId = Date.now();
+    }
+});
+</script>
+{% endblock %}

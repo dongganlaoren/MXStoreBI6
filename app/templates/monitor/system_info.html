@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}系统信息{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-info-circle me-2"></i>系统信息</h2>
+                <button type="button" class="btn btn-outline-primary" onclick="refreshSystemInfo()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>刷新
+                </button>
+            </div>
+
+            <!-- 环境信息卡片 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-gear-wide-connected me-2"></i>应用信息</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <strong>运行环境：</strong>
+                                    <span class="badge bg-{{ 'success' if app_info.flask_env == 'production' else 'warning' }}">
+                                        {{ app_info.flask_env|upper }}
+                                    </span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <strong>调试模式：</strong>
+                                    <span class="badge bg-{{ 'danger' if app_info.debug else 'success' }}">
+                                        {{ '开启' if app_info.debug else '关闭' }}
+                                    </span>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <strong>项目路径：</strong>
+                                    <code>{{ app_info.project_path }}</code>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <strong>数据库连接：</strong>
+                                    {% if app_info.database_uri %}
+                                    <small class="text-muted">{{ app_info.database_uri }}</small>
+                                    {% else %}
+                                    <span class="badge bg-warning">未配置</span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-sm-6">
+                                    <strong>密钥配置：</strong>
+                                    <span class="badge bg-{{ 'success' if app_info.secret_key_set else 'danger' }}">
+                                        {{ '已配置' if app_info.secret_key_set else '未配置' }}
+                                    </span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <strong>监控系统：</strong>
+                                    <span class="badge bg-{{ 'success' if app_info.monitoring_enabled else 'secondary' }}">
+                                        {{ '已启用' if app_info.monitoring_enabled else '未启用' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="bi bi-laptop me-2"></i>平台信息</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-6 mb-2">
+                                    <strong>操作系统：</strong><br>
+                                    <small>{{ system_data.platform.system }} {{ system_data.platform.release }}</small>
+                                </div>
+                                <div class="col-sm-6 mb-2">
+                                    <strong>主机名：</strong><br>
+                                    <small>{{ system_data.platform.node }}</small>
+                                </div>
+                                <div class="col-sm-6 mb-2">
+                                    <strong>架构：</strong><br>
+                                    <small>{{ system_data.platform.machine }}</small>
+                                </div>
+                                <div class="col-sm-6 mb-2">
+                                    <strong>处理器：</strong><br>
+                                    <small class="text-truncate" title="{{ system_data.platform.processor }}">
+                                        {{ system_data.platform.processor[:30] }}{{ '...' if
+                                        system_data.platform.processor|length > 30 else '' }}
+                                    </small>
+                                </div>
+                                <div class="col-12">
+                                    <strong>Python版本：</strong><br>
+                                    <small>{{ system_data.platform.python_version.split()[0] }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统资源信息 -->
+            <div class="row mb-4">
+                <!-- CPU信息 -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0"><i class="bi bi-cpu me-2"></i>CPU</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="mb-2">
+                                <h4 class="text-success">{{ "%.1f"|format(system_data.resources.cpu_percent) }}%</h4>
+                                <small class="text-muted">使用率</small>
+                            </div>
+                            <div class="progress mb-2" style="height: 8px;">
+                                <div class="progress-bar bg-success"
+                                     style="width: {{ system_data.resources.cpu_percent }}%"></div>
+                            </div>
+                            <small class="text-muted">{{ system_data.resources.cpu_count }} 核心</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 内存信息 -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-header bg-warning text-white">
+                            <h6 class="mb-0"><i class="bi bi-memory me-2"></i>内存</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="mb-2">
+                                <h4 class="text-warning">{{ "%.1f"|format(system_data.resources.memory.percent) }}%</h4>
+                                <small class="text-muted">使用率</small>
+                            </div>
+                            <div class="progress mb-2" style="height: 8px;">
+                                <div class="progress-bar bg-warning"
+                                     style="width: {{ system_data.resources.memory.percent }}%"></div>
+                            </div>
+                            <small class="text-muted">
+                                {{ "%.1f"|format(system_data.resources.memory.total / (1024**3)) }} GB 总量
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 磁盘信息 -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-header bg-danger text-white">
+                            <h6 class="mb-0"><i class="bi bi-hdd me-2"></i>磁盘</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="mb-2">
+                                <h4 class="text-danger">{{ "%.1f"|format(system_data.resources.disk.percent) }}%</h4>
+                                <small class="text-muted">使用率</small>
+                            </div>
+                            <div class="progress mb-2" style="height: 8px;">
+                                <div class="progress-bar bg-danger"
+                                     style="width: {{ system_data.resources.disk.percent }}%"></div>
+                            </div>
+                            <small class="text-muted">
+                                {{ "%.1f"|format(system_data.resources.disk.total / (1024**3)) }} GB 总量
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 网络信息 -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="bi bi-wifi me-2"></i>网络</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="mb-2">
+                                <h4 class="text-primary">{{ system_data.network.connections }}</h4>
+                                <small class="text-muted">活跃连接</small>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    {{ system_data.network.interfaces|length }} 个网络接口
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 详细信息表格 -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>系统详细信息</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tbody>
+                                <tr>
+                                    <td><strong>系统启动时间</strong></td>
+                                    <td>{{ system_data.boot_time[:19]|replace('T', ' ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>当前时间</strong></td>
+                                    <td>{{ system_data.current_time[:19]|replace('T', ' ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>进程总数</strong></td>
+                                    <td>{{ system_data.processes.total }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>运行中进程</strong></td>
+                                    <td>{{ system_data.processes.running }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>系统版本</strong></td>
+                                    <td>{{ system_data.platform.version[:50] }}{{ '...' if
+                                        system_data.platform.version|length > 50 else '' }}
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>资源使用详情</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <h6>内存使用情况</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small>已使用: {{ "%.1f"|format(system_data.resources.memory.used / (1024**3))
+                                            }} GB</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <small>可用: {{ "%.1f"|format(system_data.resources.memory.available /
+                                            (1024**3)) }} GB</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <h6>磁盘使用情况</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small>已使用: {{ "%.1f"|format(system_data.resources.disk.used / (1024**3)) }}
+                                            GB</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <small>可用: {{ "%.1f"|format(system_data.resources.disk.free / (1024**3)) }}
+                                            GB</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h6>网络接口</h6>
+                                <div class="row">
+                                    {% for interface in system_data.network.interfaces[:4] %}
+                                    <div class="col-6">
+                                        <small><code>{{ interface }}</code></small>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% if system_data.network.interfaces|length > 4 %}
+                                <small class="text-muted">等 {{ system_data.network.interfaces|length }} 个接口</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MXStoreBI6 特定信息 -->
+            {% if app_info.flask_env == 'production' %}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0"><i class="bi bi-server me-2"></i>MXStoreBI6 生产环境信息</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h6>项目配置</h6>
+                                    <ul class="list-unstyled">
+                                        <li><strong>部署路径：</strong> <code>/var/www/MXStoreBI6</code></li>
+                                        <li><strong>虚拟环境：</strong> <code>/var/www/MXStoreBI6/venv</code></li>
+                                        <li><strong>项目名称：</strong> <code>MXStoreBI6</code></li>
+                                        <li><strong>服务器：</strong> <code>gothaieasy.fun</code></li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>日志路径</h6>
+                                    <ul class="list-unstyled">
+                                        <li><code>/var/log/nginx/mixuebi_*.log</code></li>
+                                        <li><code>/var/log/supervisor/MXStoreBI6*.log</code></li>
+                                        <li><code>/var/www/MXStoreBI6/app.log</code></li>
+                                        <li><code>/var/log/mysql/</code></li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>备份路径</h6>
+                                    <ul class="list-unstyled">
+                                        <li><strong>代码备份：</strong> <code>/var/backups/MXStoreBI6/</code></li>
+                                        <li><strong>数据库备份：</strong> <code>/var/backups/db/MXStoreBI6/</code></li>
+                                        <li><strong>日志备份：</strong> <code>/var/backups/MXStoreBI6/logs/</code></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function refreshSystemInfo() {
+        window.location.reload();
+    }
+
+    // 自动刷新系统资源信息
+    setInterval(function() {
+        // 这里可以添加异步刷新系统资源的逻辑
+        // fetch('/monitor/api/system-status')
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         // 更新页面上的系统资源信息
+        //     });
+    }, 30000); // 每30秒刷新一次
+</script>
+{% endblock %}

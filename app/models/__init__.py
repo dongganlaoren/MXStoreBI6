@@ -7,10 +7,16 @@ from .daily_sales import DailySales
 from .email_task_log import EmailTaskLog, EmailTaskType, EmailTaskStatus
 from .enums import AttachmentType, FinancialCheckStatus, RoleType
 from .store import Store
+# 导入监控相关模型
+from .system_monitor import (
+    SystemLog, SystemMetric, SystemAlert, HealthCheck,
+    LogLevel, AlertLevel, AlertStatus
+)
 # 从各个模型文件中导出核心的模型类
 from .user import User
 
 # 清理说明：
-# 1. 我们不再从 daily_sales.py 和 user.py ���导入它们内部的枚举，因为这些定义已被移走。
+# 1. 我们不再从 daily_sales.py 和 user.py 中导入它们内部的枚举，因为这些定义已被移走。
 # 2. 所有需要被外部使用的类和枚举都在这里被统一导出，结构非常清晰。
 # 3. 旧的 ReportStatus 枚举已被彻底废弃。
+# 4. 新增了监控系统相关的模型和枚举导出。

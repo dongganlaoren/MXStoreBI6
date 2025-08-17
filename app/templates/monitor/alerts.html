@@ -1,0 +1,242 @@
+<!-- app/templates/monitor/alerts.html -->
+{% extends "base.html" %}
+
+{% block title %}系统告警管理{% endblock %}
+
+{% block head %}
+<style>
+.alert-item {
+    border-left: 4px solid;
+    margin-bottom: 10px;
+}
+.alert-critical { border-left-color: #dc3545; }
+.alert-high { border-left-color: #fd7e14; }
+.alert-medium { border-left-color: #ffc107; }
+.alert-low { border-left-color: #17a2b8; }
+.alert-status-open { background-color: #fff5f5; }
+.alert-status-acknowledged { background-color: #fffbf0; }
+.alert-status-resolved { background-color: #f0fff4; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2>系统告警管理</h2>
+            <p class="text-muted">管理和处理系统告警</p>
+        </div>
+    </div>
+
+    <!-- 过滤器 -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" class="row align-items-end">
+                <div class="col-md-3">
+                    <label for="status">告警状态</label>
+                    <select class="form-control" name="status">
+                        <option value="">全部</option>
+                        <option value="OPEN" {% if current_filters.status == 'OPEN' %}selected{% endif %}>未处理</option>
+                        <option value="ACKNOWLEDGED" {% if current_filters.status == 'ACKNOWLEDGED' %}selected{% endif %}>已确认</option>
+                        <option value="RESOLVED" {% if current_filters.status == 'RESOLVED' %}selected{% endif %}>已解决</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="level">告警级别</label>
+                    <select class="form-control" name="level">
+                        <option value="">全部</option>
+                        <option value="CRITICAL" {% if current_filters.level == 'CRITICAL' %}selected{% endif %}>严重</option>
+                        <option value="HIGH" {% if current_filters.level == 'HIGH' %}selected{% endif %}>高</option>
+                        <option value="MEDIUM" {% if current_filters.level == 'MEDIUM' %}selected{% endif %}>中</option>
+                        <option value="LOW" {% if current_filters.level == 'LOW' %}selected{% endif %}>低</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary">筛选</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 告警列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h5>告警列表 (共 {{ alerts.total }} 条)</h5>
+        </div>
+        <div class="card-body">
+            {% for alert in alerts.items %}
+            <div class="alert-item alert-{{ alert.level.lower() }} alert-status-{{ alert.status.lower() }} card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>
+                                <span class="badge badge-{% if alert.level == 'CRITICAL' %}danger{% elif alert.level == 'HIGH' %}warning{% elif alert.level == 'MEDIUM' %}info{% else %}secondary{% endif %}">
+                                    {{ alert.level }}
+                                </span>
+                                {{ alert.title }}
+                            </h6>
+                            <p class="mb-2">{{ alert.description }}</p>
+                            <small class="text-muted">
+                                创建时间: {{ alert.created_at }} |
+                                类型: {{ alert.alert_type }}
+                                {% if alert.acknowledged_at %}
+                                | 确认时间: {{ alert.acknowledged_at }}
+                                {% endif %}
+                                {% if alert.resolved_at %}
+                                | 解决时间: {{ alert.resolved_at }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="col-md-4 text-right">
+                            <span class="badge badge-{% if alert.status == 'OPEN' %}danger{% elif alert.status == 'ACKNOWLEDGED' %}warning{% else %}success{% endif %} mb-2">
+                                {{ alert.status }}
+                            </span>
+                            <br>
+                            {% if alert.status == 'OPEN' %}
+                            <button class="btn btn-sm btn-warning mr-1" onclick="acknowledgeAlert({{ alert.id }})">
+                                确认
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="resolveAlert({{ alert.id }})">
+                                解决
+                            </button>
+                            {% elif alert.status == 'ACKNOWLEDGED' %}
+                            <button class="btn btn-sm btn-success" onclick="resolveAlert({{ alert.id }})">
+                                解决
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if not alerts.items %}
+            <p class="text-center text-muted py-4">没有找到匹配的告警记录</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 运维命令快速参考 -->
+    <div class="card mt-3">
+        <div class="card-header">
+            <h6><i class="fas fa-tools"></i> 告警处理常用命令</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6 class="text-danger">CPU告警处理</h6>
+                    <code class="d-block bg-light p-1 mb-1">top -c</code>
+                    <small class="text-muted mb-2 d-block">查看CPU占用进程</small>
+                    <code class="d-block bg-light p-1">systemctl restart your-app</code>
+                    <small class="text-muted">重启应用服务</small>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-warning">内存告警处理</h6>
+                    <code class="d-block bg-light p-1 mb-1">free -h && ps aux --sort=-%mem</code>
+                    <small class="text-muted mb-2 d-block">查看内存使用详情</small>
+                    <code class="d-block bg-light p-1">flask cleanup-monitoring-data</code>
+                    <small class="text-muted">清理监控数据释放内存</small>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-info">磁盘告警处理</h6>
+                    <code class="d-block bg-light p-1 mb-1">du -sh /var/log/* | sort -hr</code>
+                    <small class="text-muted mb-2 d-block">查找大日志文件</small>
+                    <code class="d-block bg-light p-1">find . -name "*.log" -size +100M</code>
+                    <small class="text-muted">查找大于100M的日志文件</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分页 -->
+    {% if alerts.pages > 1 %}
+    <nav aria-label="告警分页" class="mt-3">
+        <ul class="pagination justify-content-center">
+            {% if alerts.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('monitor.alerts', page=alerts.prev_num, **current_filters) }}">上一页</a>
+            </li>
+            {% endif %}
+
+            {% for page_num in alerts.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num != alerts.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('monitor.alerts', page=page_num, **current_filters) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if alerts.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('monitor.alerts', page=alerts.next_num, **current_filters) }}">下一页</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 确认告警
+function acknowledgeAlert(alertId) {
+    if (confirm('确定要确认这个告警吗？')) {
+        fetch(`/monitor/api/alerts/${alertId}/acknowledge`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('操作失败，请重试');
+            }
+        })
+        .catch(error => {
+            console.error('确���告警失败:', error);
+            alert('操作失败，请重试');
+        });
+    }
+}
+
+// 解决告警
+function resolveAlert(alertId) {
+    if (confirm('确定要标记这个告警为已解决吗？')) {
+        fetch(`/monitor/api/alerts/${alertId}/resolve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('操作失败，请重试');
+            }
+        })
+        .catch(error => {
+            console.error('解决告警失败:', error);
+            alert('操作失败，请重试');
+        });
+    }
+}
+</script>
+{% endblock %}

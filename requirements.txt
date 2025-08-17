@@ -21,3 +21,4 @@ celery
 apscheduler
 matplotlib
 pandas
+psutil
