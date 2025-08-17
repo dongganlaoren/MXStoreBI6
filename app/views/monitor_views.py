@@ -1,5 +1,6 @@
 # app/views/monitor_views.py
 
+import os
 from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, request, jsonify, current_app
@@ -286,7 +287,6 @@ def logfiles():
 @login_required
 def api_logfiles_list():
     """API: 获取可用的日志文件列表"""
-    import os
     import glob
 
     log_files = []
@@ -495,7 +495,7 @@ def api_logfile_content():
             except UnicodeDecodeError:
                 continue
         else:
-            # 如果所有编码都失败，使用二进制模式
+            # ��果所有编码都失败，使用二进制模式
             with open(file_path, 'rb') as f:
                 content = f.read()
                 all_lines = content.decode('utf-8', errors='replace').splitlines(True)
