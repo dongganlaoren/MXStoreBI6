@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SelectField, DecimalField, DateField, FileField, SubmitField, \
-    MultipleFileField
+    MultipleFileField, HiddenField
 from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 from app.models.enums import ReimbursementPrimaryCategory, ReimbursementStatus
@@ -18,6 +18,8 @@ class ReimbursementCreateForm(FlaskForm):
     currency = SelectField('货币单位', choices=[('THB', '泰铢'), ('CNY', '人民币')], default='THB',
                            validators=[DataRequired()])
     approver_id = StringField('审批人', validators=[DataRequired(message='请选择审批人')])
+    # 新增：抄送人字段
+    cc_recipients = HiddenField('抄送人', validators=[Optional()])
     attachments = MultipleFileField('报销附件', validators=[Optional()])
     submit = SubmitField('提交申请')
 

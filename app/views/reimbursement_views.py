@@ -13,7 +13,8 @@ from app.extensions import db
 from app.forms.reimbursement_forms import ReimbursementCreateForm, ReimbursementApproveForm
 from app.models.enums import ReimbursementAttachmentType
 from app.models.enums import ReimbursementStatus
-from app.models.reimbursement import ReimbursementRequest, ReimbursementAttachment
+from app.models.reimbursement import ReimbursementRequest, ReimbursementAttachment, ReimbursementCCRecipient, \
+    ReimbursementDefaultCCRecipient
 from app.models.user import User
 from app.utils.lang_dict import lang_dict
 from app.utils.notify import send_notify_mail
@@ -50,6 +51,11 @@ def list_requests():
         elif category == 'mine':
             # 只查提交人为自己
             query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
+        elif category == 'cc':
+            # 新增：查看抄送给自己的申请
+            query = query.join(ReimbursementCCRecipient).filter(
+                ReimbursementCCRecipient.user_id == current_user.user_id
+            )
         else:
             # 默认：审批人为自己
             query = query.filter(ReimbursementRequest.approver_id == current_user.user_id)
@@ -113,6 +119,55 @@ def create():
             )
             db.session.add(req)
             db.session.flush()  # 先获取request_id
+
+            # ��理抄送人
+            cc_recipients_data = form.cc_recipients.data
+            cc_emails = []  # 用于收集抄送人邮箱
+            processed_user_ids = set()  # 避免重��添加
+
+            # 首先添加用户手动选择的抄送人
+            if cc_recipients_data:
+                try:
+                    import json
+                    cc_user_ids = json.loads(cc_recipients_data)
+                    for user_id in cc_user_ids:
+                        if user_id and user_id != approver_id and user_id != current_user.user_id:
+                            user_id = int(user_id)
+                            if user_id not in processed_user_ids:
+                                cc_recipient = ReimbursementCCRecipient(
+                                    request_id=req.request_id,
+                                    user_id=user_id
+                                )
+                                db.session.add(cc_recipient)
+                                processed_user_ids.add(user_id)
+                                # 收集抄送人邮箱
+                                cc_user = User.query.get(user_id)
+                                if cc_user and cc_user.email:
+                                    cc_emails.append(cc_user.email)
+                except (json.JSONDecodeError, ValueError) as e:
+                    logging.warning(f"解析抄送人数据失败: {e}")
+
+            # 自动添加默认抄送人
+            default_cc_recipients = ReimbursementDefaultCCRecipient.query.filter_by(is_active=True).all()
+            for default_cc in default_cc_recipients:
+                user_id = default_cc.user_id
+                # 避免重复添加（���除审批人、申请人和已经手动添加的用户）
+                if (user_id != approver_id and
+                        user_id != current_user.user_id and
+                        user_id not in processed_user_ids):
+                    try:
+                        cc_recipient = ReimbursementCCRecipient(
+                            request_id=req.request_id,
+                            user_id=user_id
+                        )
+                        db.session.add(cc_recipient)
+                        processed_user_ids.add(user_id)
+                        # 收集默认抄送人邮箱
+                        if default_cc.user and default_cc.user.email:
+                            cc_emails.append(default_cc.user.email)
+                    except Exception as e:
+                        logging.warning(f"添加默认抄送人失败: user_id={user_id}, error={e}")
+
             # 多文件保存
             files = form.attachments.data or []
             upload_folder = current_app.config.get('UPLOAD_FOLDER', 'app/static/uploads')
@@ -137,8 +192,9 @@ def create():
                     )
                     db.session.add(att)
             db.session.commit()
-            logging.info(f"报销申请保存���功: {req}")
-            # 邮件通知审核人
+            logging.info(f"报销申请保存成功: {req}")
+
+            # ���件通知审核人
             approver = User.query.get(approver_id) if approver_id else None
             if approver and approver.email:
                 subject = "【系统通知】有新的财务报销申请待您审批"
@@ -146,6 +202,13 @@ def create():
                 send_notify_mail(subject, [approver.email], body)
             else:
                 logging.warning(f"审核人未填写邮箱，无法发送报销通知邮件。审核人ID: {approver_id}")
+
+            # 邮件通知抄送人
+            if cc_emails:
+                subject = "【系统通知】财务报销申请抄送"
+                body = f"您好，有一条报销申请抄送给您查看。申请人：{current_user.real_name or current_user.username}，金额：{form.amount.data} {form.currency.data}。您可以登录系统查看详情。"
+                send_notify_mail(subject, cc_emails, body)
+
             flash('报销申请已提交', 'success')
             return redirect(url_for('reimbursement.list_requests'))
         except Exception as e:
@@ -177,7 +240,7 @@ def approve(request_id):
     req = ReimbursementRequest.query.get_or_404(request_id)
     form = ReimbursementApproveForm()
     if form.validate_on_submit():
-        # 直接审批通过，无需status字段
+        # 直接审批通���，无需status字段
         req.status = ReimbursementStatus.APPROVED
         req.approval_comments = form.approval_comments.data
         req.approved_at = datetime.now()
@@ -246,6 +309,42 @@ def approver_search():
             'phone': u.phone,
             'line_id': u.line_id,
             'email': u.email
+        }
+        for u in users
+    ]
+    return jsonify(result)
+
+
+@bp.route('/cc_recipients_search')
+@login_required
+def cc_recipients_search():
+    """抄送人搜索接口 - 可搜索所有在职用户"""
+    q = request.args.get('q', '').strip()
+    if not q:
+        return jsonify([])
+    users = User.query.filter(
+        User.user_status == 1,  # 只搜索在职用户
+        or_(
+            User.user_id.like(f"%{q}%"),
+            User.username.like(f"%{q}%"),
+            User.employee_number.like(f"%{q}%"),
+            User.real_name.like(f"%{q}%"),
+            User.phone.like(f"%{q}%"),
+            User.line_id.like(f"%{q}%"),
+            User.email.like(f"%{q}%")
+        )
+    ).limit(20).all()
+    result = [
+        {
+            'user_id': u.user_id,
+            'label': f"{u.real_name or ''}({u.username}) [{u.user_id}]",
+            'username': u.username,
+            'real_name': u.real_name,
+            'employee_number': u.employee_number,
+            'phone': u.phone,
+            'line_id': u.line_id,
+            'email': u.email,
+            'role': u.role.value if u.role else ''
         }
         for u in users
     ]
@@ -394,5 +493,112 @@ def transfer_approver(request_id):
         subject = "【系统通知】有报销申请已转交给您审批"
         body = f"您好，报销申请(ID:{req.request_id})已由 {current_user.real_name or current_user.username} 转交给您。请及时登录系统处理。"
         send_notify_mail(subject, [new_approver.email], body)
-    flash('已成功转交给新审批人', 'success')
+    flash('已成功转交给新审批���', 'success')
     return redirect(url_for('reimbursement.list_requests'))
+
+
+# 新增：默认抄送人管理接口（仅管理员可访问）
+@bp.route('/default_cc_config', methods=['GET', 'POST'])
+@login_required
+def default_cc_config():
+    """默认抄送人配置管理 - 仅管理员可访问"""
+    if not (current_user.role and current_user.role.value in ['ADMIN']):
+        flash('无权限访问该功能', 'danger')
+        return redirect(url_for('reimbursement.list_requests'))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        user_id = request.form.get('user_id')
+
+        if action == 'add' and user_id:
+            try:
+                user_id = int(user_id)
+                # 检查用户是否存在且有效
+                user = User.query.filter_by(user_id=user_id, user_status=1).first()
+                if not user:
+                    flash('用户不存在或已禁用', 'danger')
+                else:
+                    # 检查是否已经是默认抄送人
+                    existing = ReimbursementDefaultCCRecipient.query.filter_by(user_id=user_id).first()
+                    if existing:
+                        if existing.is_active:
+                            flash('该用户已经是默认抄送人', 'warning')
+                        else:
+                            # 重新启用
+                            existing.is_active = True
+                            db.session.commit()
+                            flash('已重新启用该默认抄送人', 'success')
+                    else:
+                        # 新增默认抄送人
+                        default_cc = ReimbursementDefaultCCRecipient(
+                            user_id=user_id,
+                            created_by=current_user.user_id
+                        )
+                        db.session.add(default_cc)
+                        db.session.commit()
+                        flash('已添加默认抄送人', 'success')
+            except (ValueError, TypeError):
+                flash('无效的用户ID', 'danger')
+
+        elif action == 'disable' and user_id:
+            try:
+                user_id = int(user_id)
+                default_cc = ReimbursementDefaultCCRecipient.query.filter_by(user_id=user_id, is_active=True).first()
+                if default_cc:
+                    default_cc.is_active = False
+                    db.session.commit()
+                    flash('已禁用该默认抄送人', 'success')
+                else:
+                    flash('默认抄送人不存在', 'danger')
+            except (ValueError, TypeError):
+                flash('无效的用户ID', 'danger')
+
+    # 获取当前的默认抄送人配置
+    default_ccs = ReimbursementDefaultCCRecipient.query.filter_by(is_active=True).all()
+
+    return render_template('reimbursement/default_cc_config.html', default_ccs=default_ccs)
+
+
+@bp.route('/default_cc_search')
+@login_required
+def default_cc_search():
+    """默认抄送人搜索接口 - 仅管理员可访问"""
+    if not (current_user.role and current_user.role.value in ['ADMIN']):
+        return jsonify([])
+
+    q = request.args.get('q', '').strip()
+    if not q:
+        return jsonify([])
+
+    # 排除已经是默认抄送人的用户
+    existing_user_ids = db.session.query(ReimbursementDefaultCCRecipient.user_id).filter_by(is_active=True).subquery()
+
+    users = User.query.filter(
+        User.user_status == 1,  # 只搜索在职用户
+        ~User.user_id.in_(existing_user_ids),  # 排除已经是默认抄送人的用户
+        or_(
+            User.user_id.like(f"%{q}%"),
+            User.username.like(f"%{q}%"),
+            User.employee_number.like(f"%{q}%"),
+            User.real_name.like(f"%{q}%"),
+            User.phone.like(f"%{q}%"),
+            User.line_id.like(f"%{q}%"),
+            User.email.like(f"%{q}%")
+        )
+    ).limit(20).all()
+
+    result = [
+        {
+            'user_id': u.user_id,
+            'label': f"{u.real_name or ''}({u.username}) [{u.user_id}] - {u.role.value if u.role else ''}",
+            'username': u.username,
+            'real_name': u.real_name,
+            'employee_number': u.employee_number,
+            'phone': u.phone,
+            'line_id': u.line_id,
+            'email': u.email,
+            'role': u.role.value if u.role else ''
+        }
+        for u in users
+    ]
+    return jsonify(result)

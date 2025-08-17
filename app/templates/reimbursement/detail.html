@@ -46,6 +46,29 @@
                             <th class="text-end text-secondary">{{ lang['reimbursement_submitter'] }}：</th>
                             <td>{{ req.submitter.real_name or req.submitter.username }}</td>
                         </tr>
+                        <!-- 新增：显示抄送人信息 -->
+                        {% set cc_recipients = req.cc_recipients.all() %}
+                        {% if cc_recipients %}
+                        <tr>
+                            <th class="text-end text-secondary">抄送人：</th>
+                            <td>
+                                {% for cc in cc_recipients %}
+                                {% set default_cc = cc.user.default_cc_configs|selectattr('is_active', 'equalto',
+                                true)|first %}
+                                {% if default_cc %}
+                                <span class="badge bg-secondary text-white me-1" title="默认抄送人">
+                                            {{ cc.user.real_name or cc.user.username }}
+                                            <i class="bi bi-gear-fill ms-1"></i>
+                                        </span>
+                                {% else %}
+                                <span class="badge bg-info text-dark me-1" title="手动添加的抄送人">
+                                            {{ cc.user.real_name or cc.user.username }}
+                                        </span>
+                                {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endif %}
                     </table>
                     <h6 class="mt-4">{{ lang['reimbursement_attachment_submission'] }}</h6>
                     <ul class="list-group mb-4">

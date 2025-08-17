@@ -67,6 +67,28 @@
                     <div class="text-danger small mt-1">{{ form.approver_id.errors[0] }}</div>
                     {% endif %}
                 </div>
+                <!-- 新增：抄送人选择 -->
+                <div class="mb-3 position-relative">
+                    <label for="cc_recipients_search" class="form-label fw-bold">抄送人（可选）</label>
+                    <input type="text" id="cc_recipients_search" class="form-control"
+                           placeholder="搜索并添加抄送人..." autocomplete="off">
+                    {{ form.cc_recipients(id="cc_recipients") }}
+                    <div id="cc_recipients_suggest" class="list-group position-absolute w-100"
+                         style="z-index:1000;"></div>
+                    <!-- 已选择的抄送人显示区域 -->
+                    <div id="selected_cc_recipients" class="mt-2 d-flex flex-wrap gap-2"></div>
+                    <!-- 默认抄送人提示 -->
+                    <div class="form-text">
+                        <i class="bi bi-info-circle me-1"></i>
+                        可添加多个抄送人，他们将收到申请通知邮件。
+                        <span class="text-primary">系统将自动抄送给默认抄送人。</span>
+                        {% if current_user.role and current_user.role.value == 'ADMIN' %}
+                        <a href="{{ url_for('reimbursement.default_cc_config') }}" class="text-decoration-none ms-2">
+                            <i class="bi bi-gear"></i> 管理默认抄送人
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
                 <div class="mb-3">
                     {{ form.attachments.label(class="form-label fw-bold", text=lang['reimbursement_attachments']) }}
                     {{ form.attachments(class="form-control", multiple=True, id="attachmentInput") }}
@@ -195,7 +217,99 @@
             });
         }
 
-        // 附件预览功能
+        // 抄送人自动补全
+        const ccInput = document.getElementById('cc_recipients_search');
+        const ccRecipientsField = document.getElementById('cc_recipients');
+        const ccSuggestBox = document.getElementById('cc_recipients_suggest');
+        let ccSearchTimer = null;
+
+        if (ccInput && ccRecipientsField && ccSuggestBox) {
+            ccInput.addEventListener('input', function() {
+                clearTimeout(ccSearchTimer);
+                const query = this.value.trim();
+
+                if (!query) {
+                    ccSuggestBox.innerHTML = '';
+                    return;
+                }
+
+                ccSearchTimer = setTimeout(function() {
+                    fetch('/reimbursement/cc_recipients_search?q=' + encodeURIComponent(query))
+                        .then(function(response) {
+                            return response.json();
+                        })
+                        .then(function(data) {
+                            ccSuggestBox.innerHTML = '';
+                            data.forEach(function(user) {
+                                const item = document.createElement('a');
+                                item.className = 'list-group-item list-group-item-action';
+                                item.textContent = user.label;
+                                item.href = '#';
+                                item.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    addCcRecipient(user.label, user.user_id);
+                                    ccInput.value = '';
+                                    ccSuggestBox.innerHTML = '';
+                                });
+                                ccSuggestBox.appendChild(item);
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error('搜索抄送人失败:', error);
+                        });
+                }, 300);
+            });
+
+            // 失焦时隐藏建议列表
+            ccInput.addEventListener('blur', function() {
+                setTimeout(function() {
+                    ccSuggestBox.innerHTML = '';
+                }, 200);
+            });
+        }
+
+        // 添加抄送人到已选择列表
+        function addCcRecipient(label, userId) {
+            const selectedContainer = document.getElementById('selected_cc_recipients');
+            const existing = document.getElementById('cc_recipient_' + userId);
+            if (existing) {
+                return; // 已存在，不重复添加
+            }
+
+            const recipientDiv = document.createElement('div');
+            recipientDiv.className = 'badge bg-info text-dark d-flex align-items-center';
+            recipientDiv.id = 'cc_recipient_' + userId;
+            recipientDiv.style.cursor = 'default';
+            recipientDiv.innerHTML = `
+                <span class="me-2">${label}</span>
+                <i class="bi bi-x-circle" style="cursor:pointer;" onclick="removeCcRecipient(${userId})"></i>
+            `;
+            selectedContainer.appendChild(recipientDiv);
+            updateCcRecipientsField();
+        }
+
+        // 移除抄送人
+        window.removeCcRecipient = function(userId) {
+            const recipientDiv = document.getElementById('cc_recipient_' + userId);
+            if (recipientDiv) {
+                recipientDiv.remove();
+                updateCcRecipientsField();
+            }
+        };
+
+        // 更新抄送人字段值
+        function updateCcRecipientsField() {
+            const selectedContainer = document.getElementById('selected_cc_recipients');
+            const ccRecipientsField = document.getElementById('cc_recipients');
+            const recipients = Array.from(selectedContainer.children).map(function(div) {
+                return parseInt(div.id.replace('cc_recipient_', ''));
+            }).filter(function(id) {
+                return !isNaN(id);
+            });
+            ccRecipientsField.value = JSON.stringify(recipients);
+        }
+
+        // 附件���览功能
         const attachmentInput = document.getElementById('attachmentInput');
         const previewContainer = document.getElementById('attachmentPreview');
         // 预览弹窗
@@ -313,7 +427,7 @@
         const storeIdSelect = document.getElementById('store-id-select');
         function updateStoreIdVisibility() {
             if (!primarySelect || !storeIdLabel || !storeIdSelect) return;
-            // "公摊成本"的值通常为 SHARED_COST（请根据实际表单值调整）
+            // "公摊成本"的值通常�� SHARED_COST（请根据实际表单值调整）
             if (primarySelect.value === 'SHARED_COST') {
                 storeIdLabel.style.display = 'none';
                 storeIdSelect.style.display = 'none';

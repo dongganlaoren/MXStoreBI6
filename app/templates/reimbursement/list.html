@@ -29,6 +29,7 @@
                 </option>
                 <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}
                 </option>
+                <option value="cc" {% if category=='cc' %}selected{% endif %}>抄送给我</option>
             </select>
             {% else %} {# ADMIN #}
             <select class="form-select" name="category">
@@ -38,6 +39,7 @@
                 </option>
                 <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}
                 </option>
+                <option value="cc" {% if category=='cc' %}selected{% endif %}>抄送给我</option>
             </select>
             {% endif %}
         </div>
@@ -109,7 +111,7 @@
                     {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
                     <a href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}"
                        class="btn btn-sm btn-success ms-1">{{ lang['reimbursement_approve_btn'] }}</a>
-                    <!-- 新增：转交按钮 -->
+                    <!-- ���增：转交按钮 -->
                     <button type="button" class="btn btn-sm btn-warning ms-1" data-bs-toggle="modal"
                             data-bs-target="#transferModal" data-request-id="{{ req.request_id }}">转交
                     </button>

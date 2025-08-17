@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block title %}默认抄送人配置{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center">
+            <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">默认抄送人配置</h2>
+            <span class="badge bg-warning bg-opacity-75 fs-6">系统管理</span>
+        </div>
+        <a href="{{ url_for('reimbursement.list_requests') }}" class="btn btn-secondary">返回报销列表</a>
+    </div>
+
+    <!-- 说明文字 -->
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>说明：</strong>配置的默认抄送人将自动收到所有报销申请的通知邮件，用户无法修改或删除这些默认抄送人。
+    </div>
+
+    <!-- 添加默认抄送人 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>添加默认抄送人</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="add">
+                <input type="hidden" name="user_id" id="selected_user_id">
+
+                <div class="col-md-8">
+                    <div class="position-relative">
+                        <label for="user_search" class="form-label">搜索用户</label>
+                        <input type="text" id="user_search" class="form-control"
+                               placeholder="输入姓名、账号、手机号等搜索用户..." autocomplete="off">
+                        <div id="user_suggest" class="list-group position-absolute w-100" style="z-index:1000;"></div>
+                    </div>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-success" id="add_btn" disabled>
+                        <i class="bi bi-plus-circle me-1"></i>添加为默认抄送人
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 当前默认抄送人列表 -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-people me-2"></i>当前默认抄送人 ({{ default_ccs|length }} 人)</h5>
+        </div>
+        <div class="card-body">
+            {% if default_ccs %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th>用户ID</th>
+                        <th>用户名</th>
+                        <th>真实姓名</th>
+                        <th>角色</th>
+                        <th>邮箱</th>
+                        <th>添加时间</th>
+                        <th>添加人</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for cc in default_ccs %}
+                    <tr>
+                        <td>{{ cc.user_id }}</td>
+                        <td>{{ cc.user.username }}</td>
+                        <td>{{ cc.user.real_name or '-' }}</td>
+                        <td>
+                            <span class="badge bg-primary">{{ cc.user.role.value if cc.user.role else '-' }}</span>
+                        </td>
+                        <td>{{ cc.user.email or '-' }}</td>
+                        <td>{{ cc.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ cc.creator.real_name or cc.creator.username }}</td>
+                        <td>
+                            <form method="post" style="display:inline;"
+                                  onsubmit="return confirm('确定要禁用该默认抄送人吗？');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="disable">
+                                <input type="hidden" name="user_id" value="{{ cc.user_id }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-x-circle me-1"></i>禁用
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-inbox display-4 d-block mb-3"></i>
+                <p>暂无默认抄送人配置</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const userInput = document.getElementById('user_search');
+        const userIdField = document.getElementById('selected_user_id');
+        const suggestBox = document.getElementById('user_suggest');
+        const addBtn = document.getElementById('add_btn');
+        let searchTimer = null;
+
+        if (userInput && userIdField && suggestBox) {
+            userInput.addEventListener('input', function() {
+                clearTimeout(searchTimer);
+                const query = this.value.trim();
+
+                // 重置状态
+                userIdField.value = '';
+                addBtn.disabled = true;
+
+                if (!query) {
+                    suggestBox.innerHTML = '';
+                    return;
+                }
+
+                searchTimer = setTimeout(function() {
+                    fetch('/reimbursement/default_cc_search?q=' + encodeURIComponent(query))
+                        .then(function(response) {
+                            return response.json();
+                        })
+                        .then(function(data) {
+                            suggestBox.innerHTML = '';
+                            data.forEach(function(user) {
+                                const item = document.createElement('a');
+                                item.className = 'list-group-item list-group-item-action';
+                                item.textContent = user.label;
+                                item.href = '#';
+                                item.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    userInput.value = user.label;
+                                    userIdField.value = user.user_id;
+                                    addBtn.disabled = false;
+                                    suggestBox.innerHTML = '';
+                                });
+                                suggestBox.appendChild(item);
+                            });
+                        })
+                        .catch(function(error) {
+                            console.error('搜索用户失败:', error);
+                        });
+                }, 300);
+            });
+
+            // 失焦时隐藏建议列表
+            userInput.addEventListener('blur', function() {
+                setTimeout(function() {
+                    suggestBox.innerHTML = '';
+                }, 200);
+            });
+        }
+    });
+</script>
+{% endblock %}
