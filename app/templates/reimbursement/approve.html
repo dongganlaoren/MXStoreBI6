@@ -1,56 +1,58 @@
 {% extends "base.html" %}
-{% block title %}报销审批{% endblock %}
+{% block title %}{{ lang['reimbursement_approval_title'] }}{% endblock %}
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex align-items-center mb-3">
-        <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">报销审批</h2>
-        <span class="badge bg-success bg-opacity-75 fs-6">财务报销</span>
+        <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">{{
+            lang['reimbursement_approval_title'] }}</h2>
+        <span class="badge bg-success bg-opacity-75 fs-6">{{ lang['reimbursement_finance'] }}</span>
     </div>
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <div class="row mb-4">
                 <div class="col-md-6">
-                    <h5 class="mb-3 text-primary">申请信息</h5>
+                    <h5 class="mb-3 text-primary">{{ lang['reimbursement_application_info'] }}</h5>
                     <table class="table table-borderless mb-0">
                         <tr>
-                            <th class="text-end text-secondary">ID：</th>
+                            <th class="text-end text-secondary">{{ lang['reimbursement_id'] }}：</th>
                             <td>{{ req.request_id }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">一级分类：</th>
+                            <th class="text-end text-secondary">{{ lang['reimbursement_primary_category'] }}：</th>
                             <td>{{ req.primary_category.value }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">二级分类：</th>
+                            <th class="text-end text-secondary">{{ lang['reimbursement_secondary_category'] }}：</th>
                             <td>{{ req.secondary_category.value }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">所属店铺：</th>
-                            <td>{% if req.store %}{{ req.store.store_id }}（{{ req.store.store_name }}）{% else %}公摊{%
+                            <th class="text-end text-secondary">{{ lang['reimbursement_store'] }}：</th>
+                            <td>{% if req.store %}{{ req.store.store_id }}（{{ req.store.store_name }}）{% else %}{{
+                                lang['SHARED_COST'] }}{%
                                 endif %}
                             </td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">金额：</th>
+                            <th class="text-end text-secondary">{{ lang['reimbursement_amount'] }}：</th>
                             <td class="fw-bold text-danger">{{ req.amount }} {{ req.currency }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">申请日期：</th>
+                            <th class="text-end text-secondary">{{ lang['reimbursement_submission_date'] }}：</th>
                             <td>{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else '' }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">报销事由：</th>
+                            <th class="text-end text-secondary">{{ lang['reimbursement_reason'] }}：</th>
                             <td>{{ req.description }}</td>
                         </tr>
                         <tr>
-                            <th class="text-end text-secondary">申请人：</th>
+                            <th class="text-end text-secondary">{{ lang['reimbursement_submitter'] }}：</th>
                             <td>{{ req.submitter.real_name or req.submitter.username }}</td>
                         </tr>
                         <!-- 新增：显示抄送人信息 -->
                         {% set cc_recipients = req.cc_recipients.all() %}
                         {% if cc_recipients %}
                         <tr>
-                            <th class="text-end text-secondary">抄送人：</th>
+                            <th class="text-end text-secondary">{{ lang['reimbursement_cc_recipients'] }}：</th>
                             <td>
                                 {% for cc in cc_recipients %}
                                 {% set default_cc = cc.user.default_cc_configs|selectattr('is_active', 'equalto',
@@ -70,7 +72,7 @@
                         </tr>
                         {% endif %}
                     </table>
-                    <h6 class="mt-4">报销相关附件</h6>
+                    <h6 class="mt-4">{{ lang['reimbursement_related_attachments'] }}</h6>
                     <ul class="list-group mb-4">
                         {% for att in req.attachments %}
                         {% set att_type = att.attachment_type.value if att.attachment_type is not string and
@@ -80,17 +82,18 @@
                 <span>
                   <i class="bi bi-paperclip me-2 text-primary"></i>
                   <a href="/{{ att.file_path }}" target="_blank" class="attachment-link" style="color: #0d6efd;">{{ att.original_filename }}</a>
-                  <span class="badge bg-primary bg-opacity-75 text-white ms-2 attachment-badge-blue">报销附件</span>
+                  <span class="badge bg-primary bg-opacity-75 text-white ms-2 attachment-badge-blue">{{ lang['reimbursement_attachment'] }}</span>
                 </span>
                             <a href="#" class="btn btn-link btn-sm text-primary preview-btn"
-                               data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">预览查看</a>
+                               data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">{{
+                                lang['preview'] }}</a>
                         </li>
                         {% endif %}
                         {% endfor %}
                     </ul>
                 </div>
                 <div class="col-md-6">
-                    <h5 class="mb-3 text-success">审批操作</h5>
+                    <h5 class="mb-3 text-success">{{ lang['reimbursement_approval_operation'] }}</h5>
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="mb-3">
@@ -100,17 +103,17 @@
                         <div class="mb-3">
                             {{ form.attachments.label(class="form-label fw-bold") }}
                             {{ form.attachments(class="form-control", multiple=True, id="attachmentInput") }}
-                            <div class="form-text">可上传多个附件，支持直接粘贴截图</div>
+                            <div class="form-text">{{ lang['reimbursement_upload_attachments_tips'] }}</div>
                         </div>
                         <div class="d-flex justify-content-end">
                             <button type="submit" class="btn btn-success px-4 py-2"><i class="bi bi-check-circle"></i>
-                                审批通过
+                                {{ lang['reimbursement_approval_pass'] }}
                             </button>
                             <a href="{{ url_for('reimbursement.list_requests') }}"
-                               class="btn btn-secondary ms-2">返回</a>
+                               class="btn btn-secondary ms-2">{{ lang['reimbursement_return'] }}</a>
                         </div>
                     </form>
-                    <h6 class="mt-4">审批相关附件</h6>
+                    <h6 class="mt-4">{{ lang['reimbursement_approval_attachments'] }}</h6>
                     <ul class="list-group mb-4">
                         {% for att in req.attachments %}
                         {% set att_type = att.attachment_type.value if att.attachment_type is not string and
@@ -120,10 +123,11 @@
                 <span>
                   <i class="bi bi-paperclip me-2 text-success"></i>
                   <a href="/{{ att.file_path }}" target="_blank" class="attachment-link" style="color: #198754;">{{ att.original_filename }}</a>
-                  <span class="badge bg-success bg-opacity-75 text-white ms-2 attachment-badge-green">审批附件</span>
+                  <span class="badge bg-success bg-opacity-75 text-white ms-2 attachment-badge-green">{{ lang['reimbursement_attachment'] }}</span>
                 </span>
                             <a href="#" class="btn btn-link btn-sm text-success preview-btn"
-                               data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">预览查看</a>
+                               data-file="/{{ att.file_path }}" data-filename="{{ att.original_filename }}">{{
+                                lang['preview'] }}</a>
                         </li>
                         {% endif %}
                         {% endfor %}
@@ -138,8 +142,9 @@
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="previewModalLabel">附件预览</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                <h5 class="modal-title" id="previewModalLabel">{{ lang['reimbursement_attachment_preview'] }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="{{ lang['close'] }}"></button>
             </div>
             <div class="modal-body" id="previewBody"
                  style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>

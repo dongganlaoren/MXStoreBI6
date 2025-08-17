@@ -29,7 +29,8 @@
                 </option>
                 <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}
                 </option>
-                <option value="cc" {% if category=='cc' %}selected{% endif %}>抄送给我</option>
+                <option value="cc" {% if category=='cc' %}selected{% endif %}>{{ lang['reimbursement_cc_to_me'] }}
+                </option>
             </select>
             {% else %} {# ADMIN #}
             <select class="form-select" name="category">
@@ -39,15 +40,18 @@
                 </option>
                 <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}
                 </option>
-                <option value="cc" {% if category=='cc' %}selected{% endif %}>抄送给我</option>
+                <option value="cc" {% if category=='cc' %}selected{% endif %}>{{ lang['reimbursement_cc_to_me'] }}
+                </option>
             </select>
             {% endif %}
         </div>
         <div class="col-auto">
-            <!-- 时间筛选下拉框，默认“全部时间” -->
+            <!-- 时间筛选下拉框，默认"全部时间" -->
             <select class="form-select" name="time_range"
                     onchange="if(this.value=='custom'){document.getElementById('custom-date').style.display='flex';}else{document.getElementById('custom-date').style.display='none';}">
-                <option value="all" {% if time_range=='all' or not time_range %}selected{% endif %}>全部时间</option>
+                <option value="all" {% if time_range=='all' or not time_range %}selected{% endif %}>{{
+                    lang['reimbursement_all_time'] }}
+                </option>
                 <option value="24h" {% if time_range=='24h' %}selected{% endif %}>{{ lang['reimbursement_recent_24h']
                     }}
                 </option>
@@ -69,7 +73,7 @@
         </div>
         <!-- 删除状态筛选下拉框 -->
         <div class="col-auto align-self-end">
-            <button type="submit" class="btn btn-primary">查询</button>
+            <button type="submit" class="btn btn-primary">{{ lang['reimbursement_query_btn'] }}</button>
         </div>
     </form>
     <div class="table-responsive rounded shadow-sm">
@@ -92,7 +96,7 @@
             {% for req in requests %}
             <tr>
                 <td>{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else '' }}</td>
-                <td>{% if req.store %}{{ req.store.store_id }}{% else %}公摊{% endif %}</td>
+                <td>{% if req.store %}{{ req.store.store_id }}{% else %}{{ lang['SHARED_COST'] }}{% endif %}</td>
                 <td>{{ req.submitter.real_name or req.submitter.username }}</td>
                 <td>{{ req.approver.real_name if req.approver else '' }}</td>
                 <td>{{ req.amount }}</td>
@@ -102,7 +106,7 @@
                     {% if req.status.value == 'PENDING' %}{{ lang['reimbursement_pending'] }}
                     {% elif req.status.value == 'APPROVED' %}{{ lang['reimbursement_approved'] }}
                     {% elif req.status.value == 'REJECTED' %}{{ lang['reimbursement_rejected'] }}
-                    {% elif req.status.value == 'DRAFT' %}草稿
+                    {% elif req.status.value == 'DRAFT' %}{{ lang['reimbursement_draft'] }}
                     {% else %}{{ req.status.value }}{% endif %}
                 </td>
                 <td>
@@ -111,27 +115,29 @@
                     {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
                     <a href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}"
                        class="btn btn-sm btn-success ms-1">{{ lang['reimbursement_approve_btn'] }}</a>
-                    <!-- ���增：转交按钮 -->
+                    <!-- 新增：转交按钮 -->
                     <button type="button" class="btn btn-sm btn-warning ms-1" data-bs-toggle="modal"
-                            data-bs-target="#transferModal" data-request-id="{{ req.request_id }}">转交
+                            data-bs-target="#transferModal" data-request-id="{{ req.request_id }}">{{
+                        lang['reimbursement_transfer'] }}
                     </button>
                     {% endif %}
                     {% if req.status.value == 'PENDING' and current_user.user_id == req.submitter_id %}
                     <form method="post" action="{{ url_for('reimbursement.withdraw', request_id=req.request_id) }}"
                           style="display:inline;"
-                          onsubmit="return confirm('确定要撤回该申请吗？撤回后可在草稿箱编辑。');">
+                          onsubmit="return confirm('{{ lang['confirm_withdraw_msg'] }}');">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button type="submit" class="btn btn-sm btn-warning ms-1">{{ lang['withdraw_btn'] }}</button>
                     </form>
                     {% endif %}
                     {% if req.status.value == 'DRAFT' and current_user.user_id == req.submitter_id %}
                     <a href="{{ url_for('reimbursement.edit', request_id=req.request_id) }}"
-                       class="btn btn-sm btn-info ms-1">编辑</a>
+                       class="btn btn-sm btn-info ms-1">{{ lang['reimbursement_edit'] }}</a>
                     <form method="post" action="{{ url_for('reimbursement.delete', request_id=req.request_id) }}"
                           style="display:inline;"
-                          onsubmit="return confirm('确定要删除该草稿吗？删除后无法恢复。');">
+                          onsubmit="return confirm('{{ lang['confirm_delete_draft_msg'] }}');">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <button type="submit" class="btn btn-sm btn-danger ms-1">删除</button>
+                        <button type="submit" class="btn btn-sm btn-danger ms-1">{{ lang['reimbursement_delete'] }}
+                        </button>
                     </form>
                     {% endif %}
                 </td>
@@ -152,23 +158,26 @@
         <div class="modal-content">
             <form id="transferForm" method="post">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="transferModalLabel">转交审批人</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                    <h5 class="modal-title" id="transferModalLabel">{{ lang['transfer_approver'] }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="{{ lang['close'] }}"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <input type="hidden" name="new_approver_id" id="transfer_approver_id">
                     <div class="mb-3">
-                        <label for="transfer_approver_search" class="form-label">搜索审批人（仅限财务/管理员）</label>
+                        <label for="transfer_approver_search" class="form-label">{{
+                            lang['search_approver_finance_admin_only'] }}</label>
                         <input type="text" id="transfer_approver_search" class="form-control"
-                               placeholder="输入姓名/账号/手机号..." autocomplete="off">
+                               placeholder="{{ lang['enter_name_account_phone'] }}" autocomplete="off">
                         <div id="transfer_approver_suggest" class="list-group position-absolute w-100"
                              style="z-index:1000;"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-warning">确认转交</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ lang['cancel'] }}
+                    </button>
+                    <button type="submit" class="btn btn-warning">{{ lang['confirm_transfer'] }}</button>
                 </div>
             </form>
         </div>

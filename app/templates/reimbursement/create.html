@@ -47,8 +47,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            {{ form.currency.label(class="form-label fw-bold", text=lang['reimbursement_currency'] if
-                            lang.get('reimbursement_currency') else '货币单位') }}
+                            {{ form.currency.label(class="form-label fw-bold", text=lang['reimbursement_currency']) }}
                             {{ form.currency(class="form-select") }}
                         </div>
                     </div>
@@ -69,9 +68,10 @@
                 </div>
                 <!-- 新增：抄送人选择 -->
                 <div class="mb-3 position-relative">
-                    <label for="cc_recipients_search" class="form-label fw-bold">抄送人（可选）</label>
+                    <label for="cc_recipients_search" class="form-label fw-bold">{{ lang['cc_recipients_optional']
+                        }}</label>
                     <input type="text" id="cc_recipients_search" class="form-control"
-                           placeholder="搜索并添加抄送人..." autocomplete="off">
+                           placeholder="{{ lang['search_and_add_cc'] }}" autocomplete="off">
                     {{ form.cc_recipients(id="cc_recipients") }}
                     <div id="cc_recipients_suggest" class="list-group position-absolute w-100"
                          style="z-index:1000;"></div>
@@ -80,11 +80,11 @@
                     <!-- 默认抄送人提示 -->
                     <div class="form-text">
                         <i class="bi bi-info-circle me-1"></i>
-                        可添加多个抄送人，他们将收到申请通知邮件。
-                        <span class="text-primary">系统将自动抄送给默认抄送人。</span>
+                        {{ lang['can_add_multiple_cc'] }}
+                        <span class="text-primary">{{ lang['system_auto_cc_default'] }}</span>
                         {% if current_user.role and current_user.role.value == 'ADMIN' %}
                         <a href="{{ url_for('reimbursement.default_cc_config') }}" class="text-decoration-none ms-2">
-                            <i class="bi bi-gear"></i> 管理默认抄送人
+                            <i class="bi bi-gear"></i> {{ lang['manage_default_cc'] }}
                         </a>
                         {% endif %}
                     </div>
@@ -115,25 +115,25 @@
         // 一级分类与二级分类联动配置
         const secondaryOptions = {
             'SHARED_COST': [
-                {value: 'SHARED_REIMBURSEMENT', text: '公摊报销'},
-                {value: 'AGENCY_ACCOUNTING', text: '代理记账'},
-                {value: 'TAXES', text: '各种税费'},
-                {value: 'EMPLOYEE_SOCIAL_SECURITY', text: '员工社保'},
-                {value: 'STORE_MANAGEMENT', text: '店铺管理'},
-                {value: 'OTHER_SHARED_COST', text: '其它公摊'}
+                {value: 'SHARED_REIMBURSEMENT', text: '{{ lang["reimbursement_category_shared_reimbursement"] }}'},
+                {value: 'AGENCY_ACCOUNTING', text: '{{ lang["reimbursement_category_agency_accounting"] }}'},
+                {value: 'TAXES', text: '{{ lang["reimbursement_category_taxes"] }}'},
+                {value: 'EMPLOYEE_SOCIAL_SECURITY', text: '{{ lang["reimbursement_category_employee_social_security"] }}'},
+                {value: 'STORE_MANAGEMENT', text: '{{ lang["reimbursement_category_store_management"] }}'},
+                {value: 'OTHER_SHARED_COST', text: '{{ lang["reimbursement_category_other_shared_cost"] }}'}
             ],
             'STORE_COST': [
-                {value: 'MIXTURE_MATERIAL', text: '蜜雪物料'},
-                {value: 'MATERIAL_TRANSPORT', text: '物料运输'},
-                {value: 'FIXED_SALARY', text: '固定工资'},
-                {value: 'TEMPORARY_SALARY', text: '临时工工资'},
-                {value: 'EXTERNAL_LEMON', text: '外部柠檬'},
-                {value: 'STORE_PETTY_CASH', text: '店铺备用金'},
-                {value: 'RENTAL_TAX', text: '租房税'},
-                {value: 'UTILITIES', text: '水电费'},
-                {value: 'STORE_RENT', text: '店铺房租'},
-                {value: 'WAREHOUSE_RENT', text: '仓库房租'},
-                {value: 'OTHER_COST', text: '其它成本'}
+                {value: 'MIXTURE_MATERIAL', text: '{{ lang["reimbursement_category_mixture_material"] }}'},
+                {value: 'MATERIAL_TRANSPORT', text: '{{ lang["reimbursement_category_material_transport"] }}'},
+                {value: 'FIXED_SALARY', text: '{{ lang["reimbursement_category_fixed_salary"] }}'},
+                {value: 'TEMPORARY_SALARY', text: '{{ lang["reimbursement_category_temporary_salary"] }}'},
+                {value: 'EXTERNAL_LEMON', text: '{{ lang["reimbursement_category_external_lemon"] }}'},
+                {value: 'STORE_PETTY_CASH', text: '{{ lang["reimbursement_category_store_petty_cash"] }}'},
+                {value: 'RENTAL_TAX', text: '{{ lang["reimbursement_category_rental_tax"] }}'},
+                {value: 'UTILITIES', text: '{{ lang["reimbursement_category_utilities"] }}'},
+                {value: 'STORE_RENT', text: '{{ lang["reimbursement_category_store_rent"] }}'},
+                {value: 'WAREHOUSE_RENT', text: '{{ lang["reimbursement_category_warehouse_rent"] }}'},
+                {value: 'OTHER_COST', text: '{{ lang["reimbursement_category_other_cost"] }}'}
             ]
         };
 
@@ -322,8 +322,8 @@
   <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="previewModalLabel">附件预览</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        <h5 class="modal-title" id="previewModalLabel">{{ lang["reimbursement_attachment_preview_modal_title"] }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ lang["reimbursement_modal_close_label"] }}"></button>
       </div>
       <div class="modal-body" id="previewBody" style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>
     </div>
@@ -392,7 +392,7 @@
                     const icon = document.createElement('span');
                     icon.innerHTML = '<i class="bi bi-file-earmark" style="font-size:2rem;color:#6c757d;"></i>';
                     icon.addEventListener('click', function() {
-                        showPreviewModal(`<div class='text-center'><p>${fileName}</p><p>不支持预览，可在提交后下载查看。</p></div>`);
+                        showPreviewModal(`<div class='text-center'><p>${fileName}</p><p>{{ lang["reimbursement_no_preview_message"] }}</p></div>`);
                     });
                     wrapper.appendChild(icon);
                 }
@@ -419,7 +419,7 @@
                 }
             });
         }
-        // 页面加载时初始化预览
+        // 页面加载时初始��预览
         renderAttachmentPreview();
 
         // 一级分类变化时，控制所属店铺下拉框显示/隐藏

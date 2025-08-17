@@ -46,22 +46,23 @@
                             <th class="text-end text-secondary">{{ lang['reimbursement_submitter'] }}：</th>
                             <td>{{ req.submitter.real_name or req.submitter.username }}</td>
                         </tr>
-                        <!-- 新增：显示抄送人信息 -->
+                        <!-- 新增：显��抄送人信息 -->
                         {% set cc_recipients = req.cc_recipients.all() %}
                         {% if cc_recipients %}
                         <tr>
-                            <th class="text-end text-secondary">抄送人：</th>
+                            <th class="text-end text-secondary">{{ lang['reimbursement_cc_recipients'] }}：</th>
                             <td>
                                 {% for cc in cc_recipients %}
                                 {% set default_cc = cc.user.default_cc_configs|selectattr('is_active', 'equalto',
                                 true)|first %}
                                 {% if default_cc %}
-                                <span class="badge bg-secondary text-white me-1" title="默认抄送人">
+                                <span class="badge bg-secondary text-white me-1"
+                                      title="{{ lang['default_cc_recipient_badge'] }}">
                                             {{ cc.user.real_name or cc.user.username }}
                                             <i class="bi bi-gear-fill ms-1"></i>
                                         </span>
                                 {% else %}
-                                <span class="badge bg-info text-dark me-1" title="手动添加的抄送人">
+                                <span class="badge bg-info text-dark me-1" title="{{ lang['manual_added_cc_badge'] }}">
                                             {{ cc.user.real_name or cc.user.username }}
                                         </span>
                                 {% endif %}
@@ -150,7 +151,8 @@
                         <div class="modal-header">
                             <h5 class="modal-title" id="previewModalLabel">{{ lang['reimbursement_preview_modal_title']
                                 }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="{{ lang['close'] }}"></button>
                         </div>
                         <div class="modal-body" id="previewBody"
                              style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>
@@ -213,7 +215,7 @@
           } else if (/(.mp4|.webm|.ogg)$/i.test(fileUrl)) {
             previewBody.innerHTML = `<video src="${fileUrl}" controls style="max-width:100%;max-height:70vh;"></video>`;
           } else {
-            previewBody.innerHTML = `<a href="${fileUrl}" target="_blank">点击下载/查看</a>`;
+            previewBody.innerHTML = `<a href="${fileUrl}" target="_blank">{{ lang['download_view'] }}</a>`;
           }
           previewModal.show();
         });
@@ -239,4 +241,4 @@
       });
     }
 </script>
-{% endblock %}
+{% endblock %
