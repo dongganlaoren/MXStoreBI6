@@ -1,4 +1,5 @@
 # app/utils/notify.py
+import threading
 from datetime import date, timedelta
 
 import matplotlib
@@ -12,13 +13,23 @@ from app.models import DailySales, Store, User, RoleType
 from app.models.enums import FinancialCheckStatus
 
 
-def send_notify_mail(subject, recipients, body, html=None):
+def send_async_email(app, msg):
+    """异步发送邮件的辅助函数"""
+    with app.app_context():
+        try:
+            mail.send(msg)
+        except Exception as e:
+            app.logger.error(f"异步邮件发送失败: {e}")
+
+
+def send_notify_mail(subject, recipients, body, html=None, async_send=True):
     """
-    发送系统通知邮件（同步测试版）
+    发送系统通知邮件
     :param subject: 邮件主题
     :param recipients: 收件人列表（如：["xxx@163.com"]）
     :param body: 邮件正文（纯文本）
     :param html: 邮件正文（HTML，可选）
+    :param async_send: 是否异步发送，默认True
     :return: True/False
     """
     # 过滤掉无效邮箱
@@ -27,13 +38,27 @@ def send_notify_mail(subject, recipients, body, html=None):
         # 没有有效收件人，直接返回 True
         current_app.logger.info(f"邮件发送跳过：无有效收件人 subject={subject}")
         return True
+
     try:
         msg = Message(subject=subject,
                       recipients=recipients,
                       body=body,
                       html=html)
-        # 同步发送邮件（不使用线程）
-        mail.send(msg)
+
+        if async_send:
+            # 异步发送邮件（推荐）
+            thread = threading.Thread(
+                target=send_async_email,
+                args=(current_app._get_current_object(), msg)
+            )
+            thread.daemon = True
+            thread.start()
+            current_app.logger.info(f"邮件已提交异步发送队列 subject={subject} recipients={len(recipients)}")
+        else:
+            # 同步发送邮件（仅用于测试或特殊情况）
+            mail.send(msg)
+            current_app.logger.info(f"邮件同步发送成功 subject={subject}")
+
         return True
     except Exception as e:
         current_app.logger.error(f"邮件发送失败: {e}")
@@ -77,7 +102,7 @@ def query_sales_reports(period: str, role: RoleType, user: User):
         last_month = (today.replace(day=1) - timedelta(days=1))
         start_date = date(last_month.year, last_month.month, 1)
         end_date = date(last_month.year, last_month.month, last_month.day)
-        # 环比周期：上上个月1号~上上个月最后一天
+        # 环比周期：上上个月1号~上上���月最后一天
         prev_month = (start_date - timedelta(days=1))
         last_start = date(prev_month.year, prev_month.month, 1)
         last_end = date(prev_month.year, prev_month.month, prev_month.day)
@@ -158,7 +183,7 @@ def query_sales_reports(period: str, role: RoleType, user: User):
 
 def render_sales_report_html(period: str, report_data: list, total_data: dict, period_str: str, last_period_str: str):
     """
-    按日报/周报/月报分别渲染邮件内容，货币符号为泰铢฿，销售明细用HTML表格展示
+    按日报/周报/月报分别渲染邮��内容，货币符号为泰铢฿，销售明细用HTML表格展示
     """
     # 获取统计周��的实际日期（日报为统计日期，周报/月报为周期字符串）
     if period == 'day':

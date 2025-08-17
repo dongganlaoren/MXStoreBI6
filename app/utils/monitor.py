@@ -24,41 +24,45 @@ class DatabaseLogHandler(logging.Handler):
 
     def emit(self, record):
         try:
-            # 获取请求上下文信息
-            request_id = getattr(g, 'request_id', None)
-            user_id = None
-            ip_address = None
-            user_agent = None
-
-            if request:
-                ip_address = request.remote_addr
-                user_agent = request.headers.get('User-Agent', '')[:500]
-
-            if current_user and hasattr(current_user, 'id') and current_user.is_authenticated:
-                user_id = current_user.id
-
-            # 创建系统日志记录
-            log_entry = SystemLog(
-                timestamp=datetime.fromtimestamp(record.created),
-                level=LogLevel(record.levelname),
-                logger_name=record.name,
-                module=record.module if hasattr(record, 'module') else None,
-                function_name=record.funcName,
-                line_number=record.lineno,
-                message=record.getMessage(),
-                exception_info=self.format_exception(record) if record.exc_info else None,
-                request_id=request_id,
-                user_id=user_id,
-                ip_address=ip_address,
-                user_agent=user_agent
-            )
-
-            db.session.add(log_entry)
-            db.session.commit()
-
+            from flask import has_app_context
+            if not has_app_context():
+                # 自动获取当前app并进入上下文
+                from flask import current_app
+                with current_app.app_context():
+                    self._emit_with_context(record)
+            else:
+                self._emit_with_context(record)
         except Exception as e:
-            # 避免日志处理器本身出错导致应用崩溃
             print(f"数据库日志处理器错误: {e}")
+
+    def _emit_with_context(self, record):
+        # 获取请求上下文信息
+        request_id = getattr(g, 'request_id', None)
+        user_id = None
+        ip_address = None
+        user_agent = None
+        if request:
+            ip_address = request.remote_addr
+            user_agent = request.headers.get('User-Agent', '')[:500]
+        if current_user and hasattr(current_user, 'id') and current_user.is_authenticated:
+            user_id = current_user.id
+        # 创建系统日志记录
+        log_entry = SystemLog(
+            timestamp=datetime.fromtimestamp(record.created),
+            level=LogLevel(record.levelname),
+            logger_name=record.name,
+            module=record.module if hasattr(record, 'module') else None,
+            function_name=record.funcName,
+            line_number=record.lineno,
+            message=record.getMessage(),
+            exception_info=self.format_exception(record) if record.exc_info else None,
+            request_id=request_id,
+            user_id=user_id,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        db.session.add(log_entry)
+        db.session.commit()
 
     def format_exception(self, record):
         """格式化异常信息"""
@@ -104,66 +108,79 @@ class SystemMonitor:
         }
 
     def collect_system_metrics(self):
-        """收集系统指标"""
+        """收集系统指标（仅生产环境启用）"""
+        from flask import has_app_context, current_app
+        # 环境保护：仅生产环境且MONITORING_ENABLED为True时才执行
+        env = current_app.config.get('ENV', 'development')
+        monitoring_enabled = current_app.config.get('MONITORING_ENABLED', True)
+        if env != 'production' or not monitoring_enabled:
+            current_app.logger.info(f"跳过系统指标收集（当前环境: {env}, MONITORING_ENABLED: {monitoring_enabled}）")
+            return
         try:
-            now = datetime.utcnow()
-            metrics = []
-
-            # CPU使用率
-            cpu_percent = psutil.cpu_percent(interval=1)
-            metrics.append(SystemMetric(
-                timestamp=now,
-                metric_name='cpu_usage',
-                metric_value=cpu_percent,
-                metric_unit='percent'
-            ))
-
-            # 内存使用率
-            memory = psutil.virtual_memory()
-            metrics.append(SystemMetric(
-                timestamp=now,
-                metric_name='memory_usage',
-                metric_value=memory.percent,
-                metric_unit='percent'
-            ))
-
-            # 磁盘使用率
-            disk = psutil.disk_usage('/')
-            disk_percent = (disk.used / disk.total) * 100
-            metrics.append(SystemMetric(
-                timestamp=now,
-                metric_name='disk_usage',
-                metric_value=disk_percent,
-                metric_unit='percent'
-            ))
-
-            # 网络连接数
-            connections = len(psutil.net_connections())
-            metrics.append(SystemMetric(
-                timestamp=now,
-                metric_name='network_connections',
-                metric_value=connections,
-                metric_unit='count'
-            ))
-
-            # 进程数
-            process_count = len(psutil.pids())
-            metrics.append(SystemMetric(
-                timestamp=now,
-                metric_name='process_count',
-                metric_value=process_count,
-                metric_unit='count'
-            ))
-
-            # 批量保存指标
-            db.session.add_all(metrics)
-            db.session.commit()
-
-            # 检查告警条件
-            self._check_alert_conditions(metrics)
-
+            if not has_app_context():
+                with current_app.app_context():
+                    self._collect_system_metrics_with_context()
+            else:
+                self._collect_system_metrics_with_context()
         except Exception as e:
             current_app.logger.error(f"收集系统指标失败: {e}")
+
+    def _collect_system_metrics_with_context(self):
+        now = datetime.utcnow()
+        metrics = []
+
+        # CPU使用率
+        cpu_percent = psutil.cpu_percent(interval=1)
+        metrics.append(SystemMetric(
+            timestamp=now,
+            metric_name='cpu_usage',
+            metric_value=cpu_percent,
+            metric_unit='percent'
+        ))
+
+        # 内存使用率
+        memory = psutil.virtual_memory()
+        metrics.append(SystemMetric(
+            timestamp=now,
+            metric_name='memory_usage',
+            metric_value=memory.percent,
+            metric_unit='percent'
+        ))
+
+        # 磁盘使用率
+        disk = psutil.disk_usage('/')
+        disk_percent = (disk.used / disk.total) * 100
+        metrics.append(SystemMetric(
+            timestamp=now,
+            metric_name='disk_usage',
+            metric_value=disk_percent,
+            metric_unit='percent'
+        ))
+
+        # 网络连接数
+        connections = len(psutil.net_connections())
+        metrics.append(SystemMetric(
+            timestamp=now,
+            metric_name='network_connections',
+            metric_value=connections,
+            metric_unit='count'
+        ))
+
+        # 进程数
+        process_count = len(psutil.pids())
+        metrics.append(SystemMetric(
+            timestamp=now,
+            metric_name='process_count',
+            metric_value=process_count,
+            metric_unit='count'
+        ))
+
+        # 批量保存指标
+        db.session.add_all(metrics)
+        db.session.commit()
+
+        # 检查告警条件
+        self._check_alert_conditions(metrics)
 
     def _check_alert_conditions(self, metrics: List[SystemMetric]):
         """检查告警条件"""
@@ -266,15 +283,25 @@ class HealthChecker:
         }
 
     def run_all_checks(self) -> Dict[str, Dict]:
-        """运行所有健康检查"""
+        from flask import has_app_context, current_app
         results = {}
+        try:
+            if not has_app_context():
+                with current_app.app_context():
+                    results = self._run_all_checks_with_context()
+            else:
+                results = self._run_all_checks_with_context()
+        except Exception as e:
+            current_app.logger.error(f"健康检查任务失败: {e}")
+        return results
 
+    def _run_all_checks_with_context(self) -> Dict[str, Dict]:
+        results = {}
         for check_name, check_func in self.checks.items():
             start_time = time.time()
             try:
                 result = check_func()
                 response_time = (time.time() - start_time) * 1000  # 毫秒
-
                 health_check = HealthCheck(
                     check_name=check_name,
                     status=result['status'],
@@ -282,14 +309,12 @@ class HealthChecker:
                     details=result.get('details', {})
                 )
                 db.session.add(health_check)
-
                 results[check_name] = {
                     'status': result['status'],
                     'response_time': response_time,
                     'details': result.get('details', {}),
                     'message': result.get('message', '')
                 }
-
             except Exception as e:
                 response_time = (time.time() - start_time) * 1000
                 health_check = HealthCheck(
@@ -299,19 +324,17 @@ class HealthChecker:
                     details={'error': str(e)}
                 )
                 db.session.add(health_check)
-
                 results[check_name] = {
                     'status': 'ERROR',
                     'response_time': response_time,
                     'details': {'error': str(e)},
                     'message': f'检查失败: {str(e)}'
                 }
-
         try:
             db.session.commit()
         except Exception as e:
+            from flask import current_app
             current_app.logger.error(f"保存健康检查结果失败: {e}")
-
         return results
 
     def _check_database(self) -> Dict:
@@ -391,7 +414,7 @@ class HealthChecker:
             }
 
     def _check_external_api(self) -> Dict:
-        """检查外部API连接"""
+        """检查外��API连接"""
         # 这里可以添加对外部服务的检查
         return {
             'status': 'OK',
@@ -544,7 +567,7 @@ class HealthChecker:
         except Exception as e:
             return {
                 'status': 'ERROR',
-                'message': f'MySQL检查失败: {str(e)}'
+                'message': f'MySQL检���失败: {str(e)}'
             }
 
 

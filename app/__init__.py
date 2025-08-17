@@ -75,7 +75,7 @@ def create_app(config: object) -> Flask:
     app.jinja_env.filters["nl2br"] = nl2br_filter
     app.jinja_env.filters["strftime"] = strftime_filter  # 注册 strftime 过滤器
 
-    # ���入当前时间到模板
+    # ��当前时间到模板
     @app.context_processor
     def inject_now():
         """
@@ -155,16 +155,18 @@ def init_monitoring(app: Flask) -> None:
         # 设置请求日志记录
         setup_request_logging(app)
 
-    # 启动监控定时任务 - 在应用初始化时直接启动
-    try:
-        from app.utils.scheduler import start_monitoring_tasks
-        start_monitoring_tasks()
-        app.logger.info("监控定时任务已启动")
-    except Exception as e:
-        app.logger.error(f"启动监控任务失败: {e}")
+        # 启动监控定时任务 - 仅生产环境启动
+        try:
+            from app.utils.scheduler import start_monitoring_tasks
+            start_monitoring_tasks(app)
+            app.logger.info("监控定时任务已启动（仅生产环境）")
+        except Exception as e:
+            app.logger.error(f"启动监控任务失败: {e}")
+    else:
+        app.logger.info("开发/测试环境不启动监控定时任务。如需关闭生产环境监控，请在 .env 设置 MONITORING_ENABLED=False")
 
 
-# -------------------- 日���配置 --------------------
+# -------------------- 日�����配置 --------------------
 def configure_logging(app: Flask):
     """配置日志文件滚动"""
     handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3, encoding='utf-8')
