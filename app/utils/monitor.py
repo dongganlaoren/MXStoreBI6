@@ -518,7 +518,7 @@ class HealthChecker:
                     else:
                         return {
                             'status': 'WARNING',
-                            'message': 'MySQL服务运行但数据库连接异常',
+                            'message': 'MySQL服务运行但数据库��接异常',
                             'details': db_check
                         }
                 except Exception:
@@ -553,19 +553,19 @@ def generate_request_id():
     return str(uuid.uuid4())
 
 
-def setup_request_logging():
+def setup_request_logging(app):
     """设置请求日志记录"""
 
-    @current_app.before_request
+    @app.before_request
     def before_request():
         g.request_id = generate_request_id()
         g.start_time = time.time()
 
-    @current_app.after_request
+    @app.after_request
     def after_request(response):
         if hasattr(g, 'start_time'):
             response_time = (time.time() - g.start_time) * 1000
-            current_app.logger.info(
+            app.logger.info(
                 f"请求完成 - 方法: {request.method}, "
                 f"路径: {request.path}, "
                 f"状态码: {response.status_code}, "
