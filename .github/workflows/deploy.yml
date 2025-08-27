@@ -28,12 +28,19 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: test
-    if: ${{ github.ref == 'refs/heads/main' && secrets.SSH_HOST != '' }}
+    if: ${{ github.ref == 'refs/heads/main' }}
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: 未配置部署主机，跳过部署
+        if: ${{ env.SSH_HOST == '' }}
+        run: echo "SSH_HOST not set. Skipping deploy steps."
+
       - name: Prepare SSH key
+        if: ${{ env.SSH_HOST != '' }}
         env:
           SSH_KEY: ${{ secrets.SSH_KEY }}
         run: |
@@ -42,6 +49,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
 
       - name: 备份代码（远程）
+        if: ${{ env.SSH_HOST != '' }}
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -63,7 +71,8 @@ jobs:
             fi
           '
 
-      - name: 备份数据库（远程）
+      - name: 备份数据���（远程）
+        if: ${{ env.SSH_HOST != '' }}
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -86,6 +95,7 @@ jobs:
           '
 
       - name: 部署程序（同步代码 + 依赖安装 + 迁移 + 重启）
+        if: ${{ env.SSH_HOST != '' }}
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
