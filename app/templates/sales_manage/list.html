@@ -62,9 +62,9 @@
             <tr style="font-size:0.98rem;">
                 <td>{{ r.report_date }}</td>
                 <td><span class="fw-bold text-primary">{{ r.store_id }}</span></td>
-                <td style="word-break:break-all;"> <span class="fw-bold text-success">{{ '-' if r.actual_sales is none else '%.2f'|format(r.actual_sales) }}</span> </td>
-                <td style="word-break:break-all;"> <span class="fw-bold text-danger">{{ '-' if r.total_error is none else '%.2f'|format(r.total_error) }}</span> </td>
-                <td style="word-break:break-all;"> <span class="fw-bold text-info">{{ '-' if r.pos_total is none else '%.2f'|format(r.pos_total) }}</span> </td>
+                <td style="word-break:break-all;"> <span class="fw-bold text-success">{{ '-' if r.actual_sales is none else (r.actual_sales|money) }}</span> </td>
+                <td style="word-break:break-all;"> <span class="fw-bold text-danger">{{ '-' if r.total_error is none else (r.total_error|money) }}</span> </td>
+                <td style="word-break:break-all;"> <span class="fw-bold text-info">{{ '-' if r.pos_total is none else (r.pos_total|money) }}</span> </td>
                 <td>
                     {% if r.financial_check_status and r.financial_check_status.value == 'APPROVED' %}<span class="badge bg-success">{{ lang_dict['approved'] if lang_dict.get('approved') else '已审核' }}</span>
                     {% else %}<span class="badge bg-secondary">{{ lang_dict['pending'] if lang_dict.get('pending') else '待审核' }}</span>{% endif %}

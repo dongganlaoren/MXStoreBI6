@@ -52,7 +52,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.cash_income is none else '%.2f'|format(daily_sales.cash_income) }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.cash_income is none else (daily_sales.cash_income|money) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="cash_income" name="cash_income"
                                value="{{ '%.2f'|format(daily_sales.cash_income or 0) }}" readonly>
@@ -68,7 +68,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.pos_income is none else '%.2f'|format(daily_sales.pos_income) }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.pos_income is none else (daily_sales.pos_income|money) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="pos_income" name="pos_income"
                                value="{{ '%.2f'|format(daily_sales.pos_income or 0) }}" readonly>
@@ -84,7 +84,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.voucher_amount is none else '%.2f'|format(daily_sales.voucher_amount) }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.voucher_amount is none else (daily_sales.voucher_amount|money) }}</span>
                         {% else %}
                         <span class="input-group-text bg-light text-secondary">฿</span>
                         <input type="text" class="form-control editable-field" id="voucher_amount" name="voucher_amount"
@@ -106,7 +106,7 @@
             </div>
         </fieldset>
         {% if daily_sales.store and daily_sales.store.third_party_platform %}
-        <!-- 第三部分：第三方外卖平台销售信息 -->
+        <!-- 第三方外卖平台销售信息 -->
         <fieldset class="border rounded-4 p-4 mb-4 shadow-sm bg-white">
             <legend class="w-auto px-3 mb-0"
                     style="font-size:1.2rem;font-weight:600;color:#20c997;background:rgba(32,201,151,0.08);border-radius:0.7em;padding:0.2em 1.5em;box-shadow:0 2px 8px rgba(32,201,151,0.08);">
@@ -120,7 +120,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.takeaway_amount is none else '%.2f'|format(daily_sales.takeaway_amount) }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.takeaway_amount is none else (daily_sales.takeaway_amount|money) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="takeaway_amount"
                                name="takeaway_amount" value="{{ '%.2f'|format(daily_sales.takeaway_amount or 0) }}"
@@ -159,7 +159,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.electronic_actual_arrival is none else '%.2f'|format(daily_sales.electronic_actual_arrival) }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.electronic_actual_arrival is none else (daily_sales.electronic_actual_arrival|money) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="electronic_actual_arrival"
                                name="electronic_actual_arrival"
@@ -177,7 +177,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.bank_deposit is none else '%.2f'|format(daily_sales.bank_deposit) }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.bank_deposit is none else (daily_sales.bank_deposit|money) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="bank_deposit" name="bank_deposit"
                                value="{{ '%.2f'|format(daily_sales.bank_deposit or 0) }}" readonly>
@@ -193,7 +193,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.bank_fee is none else '%.2f'|format(daily_sales.bank_fee) }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.bank_fee is none else (daily_sales.bank_fee|money) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="bank_fee" name="bank_fee"
                                value="{{ '%.2f'|format(daily_sales.bank_fee or 0) }}" readonly>
@@ -329,8 +329,8 @@
                     {% for h in history_list %}
                     <tr>
                         <td>{{ h.field_name }}</td>
-                        <td>{{ '-' if h.old_value is none else '%.2f'|format(h.old_value) }}</td>
-                        <td class="fw-bold text-primary">{{ '-' if h.new_value is none else '%.2f'|format(h.new_value)
+                        <td>{{ '-' if h.old_value is none else (h.old_value|money) }}</td>
+                        <td class="fw-bold text-primary">{{ '-' if h.new_value is none else (h.new_value|money)
                             }}
                         </td>
                         <td>{{ h.operator_id }}</td>

@@ -64,9 +64,35 @@
                     <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2"
                        href="{{ url_for('reimbursement.list_requests') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
                         <i class="bi bi-credit-card"></i>
-                        <span class="menu-text">{{ lang_dict['reimbursement'] if lang_dict.get('reimbursement') else '财务报销' }}</span>
+                        <span class="menu-text">{{ lang_dict['reimbursement'] if lang_dict.get('reimbursement') else '���务报销' }}</span>
                     </a>
                 </li>
+
+                <!-- 报表中心菜单（仅管理员与财务可见） -->
+                {% if current_user.role and current_user.role.name in ['ADMIN','FINANCE'] %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link menu-link dropdown-toggle d-flex align-items-center gap-2 px-3 py-2" href="#"
+                       id="reportCenterDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bar-chart-line-fill"></i>
+                        <span class="menu-text">报表中心</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
+                        style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 15px; margin-top: 8px;">
+                        <li><a class="dropdown-item py-2"
+                               href="{{ url_for('email_report.sales_reports_center', period='daily') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                            <i class="bi bi-calendar-day me-2 text-primary"></i>销售日报
+                        </a></li>
+                        <li><a class="dropdown-item py-2"
+                               href="{{ url_for('email_report.sales_reports_center', period='weekly') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                            <i class="bi bi-calendar-week me-2 text-success"></i>销售周报
+                        </a></li>
+                        <li><a class="dropdown-item py-2"
+                               href="{{ url_for('email_report.sales_reports_center', period='monthly') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                            <i class="bi bi-calendar-month me-2 text-info"></i>销售月报
+                        </a></li>
+                    </ul>
+                </li>
+                {% endif %}
 
                 <!-- 管理功能菜单 -->
                 {% if current_user.role.name in ['ADMIN', 'HEAD_MANAGER', 'FINANCE'] %}
@@ -162,7 +188,7 @@
                 <li class="nav-item">
                     <a class="nav-link py-2 px-2 {% if current_lang == 'th' %}active-lang{% endif %}"
                        href="{{ request.path }}?lang=th{% if request.query_string and 'lang=th' not in request.query_string.decode() %}&{{ request.query_string.decode()|replace('lang=zh','')|replace('lang=th','')|trim('&') }}{% endif %}">
-                        <span class="d-inline d-lg-none">🇹🇭</span><span class="d-none d-lg-inline">ไทย</span>
+                        <span class="d-inline d-lg-none">🇹��</span><span class="d-none d-lg-inline">ไทย</span>
                     </a>
                 </li>
             </ul>

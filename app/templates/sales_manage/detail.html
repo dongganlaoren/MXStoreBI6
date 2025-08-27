@@ -416,26 +416,26 @@
                     <div class="data-label">{{ lang_dict['cash_income'] if lang_dict.get('cash_income') else '现金收入
                         (C)' }}
                     </div>
-                    <div class="data-value">{{ currency }}{{ '%.2f'|format(report.cash_income or 0) }}</div>
+                    <div class="data-value">{{ currency }}{{ (report.cash_income or 0)|money }}</div>
                 </div>
                 <div class="data-item">
                     <div class="data-label">{{ lang_dict['pos_income'] if lang_dict.get('pos_income') else '电子支付收入
                         (P)' }}
                     </div>
-                    <div class="data-value">{{ currency }}{{ '%.2f'|format(report.pos_income or 0) }}</div>
+                    <div class="data-value">{{ currency }}{{ (report.pos_income or 0)|money }}</div>
                 </div>
                 <div class="data-item">
                     <div class="data-label">{{ lang_dict['voucher_amount'] if lang_dict.get('voucher_amount') else
                         '代金券使用金额 (R)' }}
                     </div>
-                    <div class="data-value">{{ currency }}{{ '%.2f'|format(report.voucher_amount or 0) }}</div>
+                    <div class="data-value">{{ currency }}{{ (report.voucher_amount or 0)|money }}</div>
                 </div>
                 <div class="data-item">
                     <div class="data-label">{{ lang_dict['pos_total'] if lang_dict.get('pos_total') else 'POS机总营业额（T0）'
                         }}
                     </div>
                     <div class="data-value" style="border-left-color: #28a745;">{{ currency }}{{
-                        '%.2f'|format(report.pos_total or 0) }}
+                        (report.pos_total or 0)|money }}
                     </div>
                 </div>
             </div>
@@ -459,7 +459,7 @@
                         '第三方外卖平台销售额（T1）' }}
                     </div>
                     <div class="data-value" style="border-left-color: #28a745;">{{ currency }}{{
-                        '%.2f'|format(report.takeaway_amount or 0) }}
+                        (report.takeaway_amount or 0)|money }}
                     </div>
                 </div>
             </div>
@@ -482,7 +482,7 @@
                         lang_dict.get('electronic_actual_arrival') else '电子支付实际到账金额' }}
                     </div>
                     <div class="data-value" style="border-left-color: #ffc107;">{{ currency }}{{
-                        '%.2f'|format(report.electronic_actual_arrival or 0) }}
+                        (report.electronic_actual_arrival or 0)|money }}
                     </div>
                 </div>
                 <div class="data-item">
@@ -490,7 +490,7 @@
                         '银行存款金额(BC)' }}
                     </div>
                     <div class="data-value" style="border-left-color: #ffc107;">{{ currency }}{{
-                        '%.2f'|format(report.bank_deposit or 0) }}
+                        (report.bank_deposit or 0)|money }}
                     </div>
                 </div>
                 <div class="data-item">
@@ -498,7 +498,7 @@
                         }}
                     </div>
                     <div class="data-value" style="border-left-color: #ffc107;">{{ currency }}{{
-                        '%.2f'|format(report.bank_fee or 0) }}
+                        (report.bank_fee or 0)|money }}
                     </div>
                 </div>
                 <div class="data-item">
@@ -506,7 +506,7 @@
                         }}
                     </div>
                     <div class="data-value" style="border-left-color: #dc3545; font-size: 1.8rem;">{{ currency }}{{
-                        '%.2f'|format(report.actual_sales or 0) }}
+                        (report.actual_sales or 0)|money }}
                     </div>
                 </div>
             </div>
@@ -557,9 +557,9 @@
                     {% for h in history_list %}
                     <tr>
                         <td><strong>{{ h.field_name }}</strong></td>
-                        <td>{{ '-' if h.old_value is none else '%.2f'|format(h.old_value) }}</td>
-                        <td><strong style="color: #007bff;">{{ '-' if h.new_value is none else
-                            '%.2f'|format(h.new_value) }}</strong></td>
+                        <td>{{ '-' if h.old_value is none else (h.old_value|money) }}</td>
+                        <td><strong style="color: #007bff;">{{ '-' if h.new_value is none else (h.new_value|money)
+                            }}</strong></td>
                         <td>{{ h.operator_id }}</td>
                         <td>{{ h.operator_role }}</td>
                         <td>{{ h.remark }}</td>

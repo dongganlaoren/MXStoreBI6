@@ -1,131 +1,98 @@
-name: CI and Deploy
+name: CI/CD 自动部署 MXStoreBI6
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches:
+      - main
+
+env:
+  SSH_HOST: gothaieasy.fun
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run pytest
-        run: pytest -q
-
   deploy:
+    name: 部署到生产服务器
     runs-on: ubuntu-latest
-    needs: test
-    if: ${{ github.ref == 'refs/heads/main' }}
-    env:
-      SSH_HOST: ${{ secrets.SSH_HOST }}
+
     steps:
-      - name: Checkout
+      - name: 🧾 拉取仓库代码
         uses: actions/checkout@v4
 
-      - name: 未配置部署主机，跳过部署
-        if: ${{ env.SSH_HOST == '' }}
-        run: echo "SSH_HOST not set. Skipping deploy steps."
+      - name: 🚀 连接服务器并部署
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: deployuser
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            set -euo pipefail
 
-      - name: Prepare SSH key
-        if: ${{ env.SSH_HOST != '' }}
-        env:
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+            DEPLOY_PATH="/var/www/MXStoreBI6"
+            VENV_PATH="$DEPLOY_PATH/venv"
+            PROJECT_NAME="MXStoreBI6"
 
-      - name: 备份代码（远程）
-        if: ${{ env.SSH_HOST != '' }}
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
-          REMOTE_APP_DIR: ${{ secrets.REMOTE_APP_DIR }}
-        run: |
-          REMOTE_DIR=${REMOTE_APP_DIR:-"mixuebi"}
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -p ${SSH_PORT:-22} "$SSH_USER@$SSH_HOST" bash -lc '
-            set -e
-            APP_DIR="$HOME/'"$REMOTE_DIR"'"
-            BACKUP_DIR="$HOME/backups/code"
-            mkdir -p "$BACKUP_DIR"
-            TS=$(date +%Y%m%d_%H%M%S)
-            if [ -d "$APP_DIR" ]; then
-              tar -czf "$BACKUP_DIR/'"$REMOTE_DIR"'_$TS.tgz" -C "$APP_DIR" .
-              echo "Code backup saved: $BACKUP_DIR/'"$REMOTE_DIR"'_$TS.tgz"
+            DB_BACKUP_DIR="/var/backups/db/MXStoreBI6"
+            DB_BACKUP_FILE="$DB_BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).sql"
+            DB_USER="${{ secrets.DB_USER }}"
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            DB_NAME="${{ secrets.DB_NAME }}"
+
+            CODE_BACKUP_DIR="/var/backups/MXStoreBI6"
+            CODE_BACKUP_FILE="$CODE_BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).tar.gz"
+
+            echo "✅ [连接成功] 主机: $(hostname) | 用户: $(whoami)"
+
+            echo "💾 [备份] 数据库: $DB_NAME"
+            sudo mkdir -p "$DB_BACKUP_DIR"
+            sudo chown $(whoami):$(whoami) "$DB_BACKUP_DIR"
+            mysqldump --no-tablespaces -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "$DB_BACKUP_FILE"
+            echo "✅ 数据库备份完成: $DB_BACKUP_FILE"
+
+            echo "📦 [备份] 代码目录: $DEPLOY_PATH"
+            cd "$DEPLOY_PATH"
+            sudo mkdir -p "$CODE_BACKUP_DIR"
+            sudo chown $(whoami):$(whoami) "$CODE_BACKUP_DIR"
+            sudo tar czf "$CODE_BACKUP_FILE" --exclude='venv' --exclude='__pycache__' .
+            echo "✅ 代码备份完成: $CODE_BACKUP_FILE"
+
+            echo "🧹 [清理] 保留最近 7 个备份"
+            sudo ls -1t "$DB_BACKUP_DIR"/backup_*.sql | tail -n +8 | xargs -r sudo rm -f || true
+            sudo ls -1t "$CODE_BACKUP_DIR"/backup_*.tar.gz | tail -n +8 | xargs -r sudo rm -f || true
+
+            echo "📂 [步骤] 更新最新代码"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "🐍 [步骤] 激活虚拟环境并安装依赖"
+            source "$VENV_PATH/bin/activate"
+            pip install --upgrade pip
+            pip install --no-cache-dir --upgrade -r requirements.txt
+
+            echo "🛡️ [检测] 检查 sudo 免密权限 supervisorctl"
+            if sudo -n /usr/bin/supervisorctl status >/dev/null 2>&1; then
+              echo "✅ [权限验证] sudo 权限正常"
             else
-              echo "App dir not found, skip code backup: $APP_DIR"
+              echo "❌ [权限异常] sudo 权限不足，请检查 /etc/sudoers"
+              exit 1
             fi
-          '
 
-      - name: 备份数据���（远程）
-        if: ${{ env.SSH_HOST != '' }}
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -p ${SSH_PORT:-22} "$SSH_USER@$SSH_HOST" bash -lc '
-            set -e
-            BACKUP_DIR="$HOME/backups/db"
-            mkdir -p "$BACKUP_DIR"
-            TS=$(date +%Y%m%d_%H%M%S)
-            if command -v mysqldump >/dev/null 2>&1; then
-              mysqldump -u '"$DB_USER"' -p'"$DB_PASSWORD"' '"$DB_NAME"' | gzip > "$BACKUP_DIR/'"$DB_NAME"'_$TS.sql.gz"
-              echo "DB backup saved: $BACKUP_DIR/'"$DB_NAME"'_$TS.sql.gz"
+            echo "🌀 [步骤] 重启 Supervisor 项目: $PROJECT_NAME"
+            sudo -n /usr/bin/supervisorctl restart "$PROJECT_NAME"
+
+            echo "🔍 [步骤] 部署后健康检查"
+            CHECK_SCRIPT="$DEPLOY_PATH/tools/post_deploy_check.sh"
+            if [ -f "$CHECK_SCRIPT" ]; then
+              echo "🔧 [探测脚本] 检测到 $CHECK_SCRIPT"
+              chmod +x "$CHECK_SCRIPT"
+              if bash "$CHECK_SCRIPT"; then
+                echo "✅ [探测结果] 服务运行正常"
+              else
+                echo "❌ [探测失败] 服务异常，请检查日志"
+                exit 1
+              fi
             else
-              echo "mysqldump not found, skip DB backup" && exit 0
+              echo "⚠️ [跳过探测] 未找到 $CHECK_SCRIPT"
             fi
-          '
 
-      - name: 部署程序（同步代码 + 依赖安装 + 迁移 + 重启）
-        if: ${{ env.SSH_HOST != '' }}
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
-          REMOTE_APP_DIR: ${{ secrets.REMOTE_APP_DIR }}
-        run: |
-          REMOTE_DIR=${REMOTE_APP_DIR:-"mixuebi"}
-          # 同步代码到远端目录
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -p ${SSH_PORT:-22} "$SSH_USER@$SSH_HOST" "mkdir -p ~/$REMOTE_DIR"
-          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -p ${SSH_PORT:-22}" ./ "$SSH_USER@$SSH_HOST:~/$REMOTE_DIR/"
-          # 远端安装依赖、迁移并重启服务
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -p ${SSH_PORT:-22} "$SSH_USER@$SSH_HOST" bash -lc '
-            set -e
-            APP_DIR="$HOME/'"$REMOTE_DIR"'"
-            cd "$APP_DIR"
-            # Python 虚拟环境
-            if [ ! -d "venv" ]; then
-              python3 -m venv venv
-            fi
-            source venv/bin/activate
-            python -m pip install --upgrade pip
-            REQ_FILE="requirements.production.txt"
-            [ -f "$REQ_FILE" ] || REQ_FILE="requirements.txt"
-            pip install -r "$REQ_FILE"
-            # 迁移
-            export FLASK_APP=run.py
-            if command -v flask >/dev/null 2>&1; then
-              flask db upgrade || true
-            fi
-            # 重启服务（可选）
-            (sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl restart all) || true
-            (sudo systemctl reload nginx) || true
-          '
+            echo "📖 [提示] 可查看日志: sudo supervisorctl tail -100 $PROJECT_NAME"
+            echo "🎉 [完成] 自动部署流程执行完毕"

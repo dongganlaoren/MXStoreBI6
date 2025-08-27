@@ -1,4 +1,5 @@
 # app/utils/notify.py
+import re
 import threading
 from datetime import date, timedelta
 
@@ -22,26 +23,57 @@ def send_async_email(app, msg):
             app.logger.error(f"异步邮件发送失败: {e}")
 
 
+def _normalize_recipients(recipients):
+    """接受 str 或 list，归一化为收件人列表：按中英文逗号/分号/空白分隔，去空白与空项，去重。"""
+    items = []
+    if isinstance(recipients, str):
+        items = re.split(r"[\s,;，；]+", recipients)
+    elif isinstance(recipients, (list, tuple, set)):
+        for r in recipients:
+            if isinstance(r, str):
+                items.extend(re.split(r"[\s,;，；]+", r))
+            else:
+                items.append(r)
+    else:
+        items = [recipients]
+    # 清洗
+    cleaned = []
+    seen = set()
+    for it in items:
+        if not isinstance(it, str):
+            continue
+        x = it.strip()
+        if not x:
+            continue
+        if x not in seen:
+            seen.add(x)
+            cleaned.append(x)
+    return cleaned
+
+
 def send_notify_mail(subject, recipients, body, html=None, async_send=True):
     """
     发送系统通知邮件
     :param subject: 邮件主题
-    :param recipients: 收件人列表（如：["xxx@163.com"]）
+    :param recipients: 收件人列表或字符串（支持中英文逗号/分号/空白分隔）
     :param body: 邮件正文（纯文本）
     :param html: 邮件正文（HTML，可选）
     :param async_send: 是否异步发送，默认True
     :return: True/False
     """
-    # 过滤掉无效邮箱
-    recipients = [r for r in recipients if r]
+    # 归一化收件人
+    recipients = _normalize_recipients(recipients)
+    # 过滤掉无效邮箱（仅非空，格式校验交给服务商）
     if not recipients:
-        # 没有有效收件人，直接返回 True
         current_app.logger.info(f"邮件发送跳过：无有效收件人 subject={subject}")
         return True
 
     try:
+        # 确保 sender 有效（优先使用默认发件人，缺失则回退用户名）
+        sender = current_app.config.get('MAIL_DEFAULT_SENDER') or current_app.config.get('MAIL_USERNAME')
         msg = Message(subject=subject,
                       recipients=recipients,
+                      sender=sender,
                       body=body,
                       html=html)
 
@@ -57,7 +89,7 @@ def send_notify_mail(subject, recipients, body, html=None, async_send=True):
         else:
             # 同步发送邮件（仅用于测试或特殊情况）
             mail.send(msg)
-            current_app.logger.info(f"邮件同步发送成功 subject={subject}")
+            current_app.logger.info(f"邮件同步发送成功 subject={subject} recipients={len(recipients)}")
 
         return True
     except Exception as e:
@@ -158,7 +190,7 @@ def query_sales_reports(period: str, role: RoleType, user: User):
     # 判断是否所有门店都有数据
     is_data_complete = (all_store_ids == reported_store_ids)
     if not is_data_complete:
-        # 数据不完整，推迟邮件发送（可抛出异常或返回特殊标记）
+        # 数��不完整，推迟邮件发送（可抛出异常或返回特殊标记）
         return None, None, None, None, None
 
     # 统计周期字符串
@@ -194,9 +226,9 @@ def render_sales_report_html(period: str, report_data: list, total_data: dict, p
     thead_style = "background:#f7f9fa;font-weight:600;color:#5470C6;"
     if period == 'day':
         title = f"销售日报"
-        main_info = f"<div style='font-size:1.1rem;font-weight:bold;color:#5470C6;margin-bottom:10px;'>{stat_date}总营业额：฿{total_data['total_theory']:.2f}</div>"
-        main_info += f"<div style='font-size:1.1rem;font-weight:bold;color:#d43f3a;margin-bottom:10px;'>{stat_date}实际到账：฿{total_data['total_actual']:.2f}</div>"
-        main_info += f"<div style='font-size:1.1rem;font-weight:bold;color:#198754;margin-bottom:10px;'>营业额环比增长：฿{total_data['theory_diff']:.2f}</div>"
+        main_info = f"<div style='font-size:1.1rem;font-weight:bold;color:#5470C6;margin-bottom:10px;'>{stat_date}总营业额：฿{total_data['total_theory']:,.2f}</div>"
+        main_info += f"<div style='font-size:1.1rem;font-weight:bold;color:#d43f3a;margin-bottom:10px;'>{stat_date}实际到账：฿{total_data['total_actual']:,.2f}</div>"
+        main_info += f"<div style='font-size:1.1rem;font-weight:bold;color:#198754;margin-bottom:10px;'>营业额环比增长：฿{total_data['theory_diff']:,.2f}</div>"
         table_title = "销售明细表"
         if report_data:
             table_html = f"<div style='font-size:1.05rem;font-weight:600;margin:12px 0 6px 0;'>{table_title}</div>"
@@ -208,9 +240,9 @@ def render_sales_report_html(period: str, report_data: list, total_data: dict, p
             table_html = "<div class='text-muted'>暂无销售明细数据</div>"
     elif period in ['week', 'month']:
         title = f"销售{'周报' if period == 'week' else '月报'}"
-        main_info = f"<div style='font-size:1.1rem;font-weight:bold;color:#5470C6;margin-bottom:10px;'>本{'周' if period == 'week' else '月'}总营业额：฿{total_data['total_theory']:.2f}</div>"
-        main_info += f"<div style='font-size:1.1rem;font-weight:bold;color:#d43f3a;margin-bottom:10px;'>本{'周' if period == 'week' else '月'}总实际到账：฿{total_data['total_actual']:.2f}</div>"
-        main_info += f"<div style='font-size:1.1rem;font-weight:bold;color:#198754;margin-bottom:10px;'>营业额环比增长：฿{total_data['theory_diff']:.2f}</div>"
+        main_info = f"<div style='font-size:1.1rem;font-weight:bold;color:#5470C6;margin-bottom:10px;'>本{'周' if period == 'week' else '月'}总营业额：฿{total_data['total_theory']:,.2f}</div>"
+        main_info += f"<div style='font-size:1.1rem;font-weight:bold;color:#d43f3a;margin-bottom:10px;'>本{'周' if period == 'week' else '月'}���实际到账：฿{total_data['total_actual']:,.2f}</div>"
+        main_info += f"<div style='font-size:1.1rem;font-weight:bold;color:#198754;margin-bottom:10px;'>营业额环比增长：฿{total_data['theory_diff']:,.2f}</div>"
         table_title = "销售明细表"
         if report_data:
             from collections import defaultdict
@@ -230,7 +262,7 @@ def render_sales_report_html(period: str, report_data: list, total_data: dict, p
         title = "销售汇总信息"
         main_info = ""
         table_title = "销售明细表"
-        table_html = "<div class='text-muted'>暂无销售明细数据</div>"
+        table_html = "<div class='text-muted'>���无销售明细数据</div>"
     html = f"""
     <h2 style='color:#5470C6;'>{title}</h2>
     <div style='margin-bottom:8px;'>统计周期：<b>{period_str}</b> &nbsp; 环比周期：<b>{last_period_str}</b></div>

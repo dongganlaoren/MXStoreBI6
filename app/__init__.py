@@ -45,6 +45,23 @@ def strftime_filter(value, format='%Y-%m-%d %H:%M:%S'):
     return value  # 如果不是 datetime 对象，则原样返回
 
 
+def money_filter(value) -> str:
+    """
+    金额显示统一：千分位分隔，保留2位小数。
+    用法：{{ num|money }} -> 1,234.56
+    非数值则原样返回。
+    """
+    try:
+        # 支持 Decimal/字符串/None
+        if value is None or value == '':
+            v = 0.0
+        else:
+            v = float(value)
+        return f"{v:,.2f}"
+    except Exception:
+        return str(value) if value is not None else "0.00"
+
+
 # -------------------- Flask 应用工厂 --------------------
 def create_app(config: object) -> Flask:
     """Flask应用工厂函数"""
@@ -74,6 +91,7 @@ def create_app(config: object) -> Flask:
     app.jinja_env.filters["date"] = date_filter
     app.jinja_env.filters["nl2br"] = nl2br_filter
     app.jinja_env.filters["strftime"] = strftime_filter  # 注册 strftime 过滤器
+    app.jinja_env.filters["money"] = money_filter  # 注册金额显示过滤器
 
     # 当前时间到模板
     @app.context_processor
@@ -93,7 +111,7 @@ def create_app(config: object) -> Flask:
         if not lang:
             lang = getattr(g, 'lang', None) or 'zh'
         from app.utils.lang_dict import lang_dict
-        # 设置g.lang，方便后续代码使用
+        # 设置g.lang��方便后续代码使用
         g.lang = lang
         return {'lang_dict': lang_dict.get(lang, lang_dict['zh']), 'current_lang': lang}
 

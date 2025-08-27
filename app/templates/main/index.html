@@ -47,12 +47,12 @@
                             {% for report in daily_reports[store.store_id] %}
                             <tr class="table-data-row">
                                 <td>{{ report.date }}</td>
-                                <td>{{ '%.2f'|format(report.t0) }}</td>
+                                <td>{{ report.t0|money }}</td>
                                 {% if report.has_t1 %}
-                                    <td>{{ '%.2f'|format(report.t1 if report.t1 is not none else 0) }}</td>
+                                    <td>{{ (report.t1 if report.t1 is not none else 0)|money }}</td>
                                 {% endif %}
-                                <td>{{ '%.2f'|format(report.actual) }}</td>
-                                <td>{{ '%.2f'|format(report.total_error if report.total_error is not none else 0) }}</td>
+                                <td>{{ report.actual|money }}</td>
+                                <td>{{ (report.total_error if report.total_error is not none else 0)|money }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
