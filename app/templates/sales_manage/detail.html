@@ -535,7 +535,7 @@
         <div class="section-header warning">
             <h3 class="section-title">
                 <span class="section-icon">📋</span>
-                {{ lang_dict['key_change_history'] if lang_dict.get('key_change_history') else '关键字段��改历史' }}
+                {{ lang_dict['key_change_history'] if lang_dict.get('key_change_history') else '关键字段修改历史' }}
             </h3>
         </div>
         <div class="section-body">
@@ -557,8 +557,9 @@
                     {% for h in history_list %}
                     <tr>
                         <td><strong>{{ h.field_name }}</strong></td>
-                        <td>{{ h.old_value if h.old_value is not none else '-' }}</td>
-                        <td><strong style="color: #007bff;">{{ h.new_value }}</strong></td>
+                        <td>{{ '-' if h.old_value is none else '%.2f'|format(h.old_value) }}</td>
+                        <td><strong style="color: #007bff;">{{ '-' if h.new_value is none else
+                            '%.2f'|format(h.new_value) }}</strong></td>
                         <td>{{ h.operator_id }}</td>
                         <td>{{ h.operator_role }}</td>
                         <td>{{ h.remark }}</td>

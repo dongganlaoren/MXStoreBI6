@@ -50,6 +50,17 @@ class User(UserMixin, db.Model):
     profile_completed = db.Column(db.Boolean, default=False, comment="员工档案是否已完善（仅能一次性填写）")
     id_card_copy = db.Column(db.String(255), nullable=True, comment="身份证复印件文件路径（受控访问，避免隐私泄露）")
 
+    def __init__(self, **kwargs):
+        """宽松构造：接受任意字段关键字参数，便于测试用例直接创建。"""
+        super().__init__(**kwargs)
+        # 显式赋值常用字段，确保未由 SQLAlchemy 处理时也能生效
+        for key in [
+            'username', 'role', 'user_status', 'store_id', 'email',
+            'real_name', 'employee_number', 'id_card_number', 'phone', 'line_id'
+        ]:
+            if key in kwargs:
+                setattr(self, key, kwargs[key])
+
     def __repr__(self):
         return f"<User {self.username}>"
 

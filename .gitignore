@@ -7,7 +7,7 @@ __pycache__/
 *.pyo
 *.so
 
-# 虚拟环境目录（无论你是否用 .venv ���名）
+# 虚拟环境目录（无论你是否用 .venv）
 .venv/
 venv/
 env/

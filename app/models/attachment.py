@@ -1,7 +1,9 @@
 # app/models/attachment.py
 
 from datetime import datetime
+
 from flask import current_app
+
 from app.extensions import db
 from .enums import AttachmentType
 
@@ -34,6 +36,6 @@ class DailySalesAttachments(db.Model):
             "attachment_id": self.attachment_id,
             "report_id": self.report_id,
             "file_path": self.file_path,
-            "attachment_type": self.attachment_type.value,
-            "created_at": self.created_at.isoformat(),
+            "attachment_type": self.attachment_type.value if self.attachment_type is not None else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }

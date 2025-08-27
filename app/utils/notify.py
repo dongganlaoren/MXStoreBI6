@@ -102,7 +102,7 @@ def query_sales_reports(period: str, role: RoleType, user: User):
         last_month = (today.replace(day=1) - timedelta(days=1))
         start_date = date(last_month.year, last_month.month, 1)
         end_date = date(last_month.year, last_month.month, last_month.day)
-        # 环比周期：上上个月1号~上上���月最后一天
+        # 环比周期：上上个月1号~上上月最后一天
         prev_month = (start_date - timedelta(days=1))
         last_start = date(prev_month.year, prev_month.month, 1)
         last_end = date(prev_month.year, prev_month.month, prev_month.day)
@@ -151,7 +151,7 @@ def query_sales_reports(period: str, role: RoleType, user: User):
     theory_diff = total_theory - last_total_theory
 
     # 销售统计数据完整性判断
-    # 获取所有���店ID
+    # 获取所有店ID
     all_store_ids = set([s.store_id for s in stores])
     # 获取本期所有有数据的门店ID
     reported_store_ids = set([row.store_id for row in sales_rows])
@@ -183,9 +183,9 @@ def query_sales_reports(period: str, role: RoleType, user: User):
 
 def render_sales_report_html(period: str, report_data: list, total_data: dict, period_str: str, last_period_str: str):
     """
-    按日报/周报/月报分别渲染邮��内容，货币符号为泰铢฿，销售明细用HTML表格展示
+    按日报/周报/月报分别渲染邮件内容，货币符号为泰铢฿，销售明细用HTML表格展示
     """
-    # 获取统计周��的实际日期（日报为统计日期，周报/月报为周期字符串）
+    # 获取统计周的实际日期（日报为统计日期，周报/月报为周期字符串）
     if period == 'day':
         stat_date = period_str  # 昨天日期
     else:

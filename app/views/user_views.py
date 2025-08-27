@@ -9,6 +9,8 @@ from flask import (
     request,
     send_from_directory,
     url_for,
+    abort,
+    session,  # 新增导入，便于清除 remember cookie
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
@@ -195,29 +197,51 @@ def register():
 
 @user_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
     form = LoginForm()
+    # 若为GET且已登录，则直接跳转首页；POST则允许切换账号
+    if request.method == 'GET' and current_user.is_authenticated:
+        return redirect(url_for('main.index'))
     if form.validate_on_submit():
+        # 已登录且与目标用户不同，先登出以便切换
+        try:
+            if current_user.is_authenticated:
+                if getattr(current_user, 'username', None) != form.username.data:
+                    logout_user()
+        except Exception:
+            pass
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.user_status == 1 and user.check_password(form.password.data):
             login_user(user, remember=form.remember_me.data)
+            # 控制根路径行为的会话标志：记住我 -> 直接渲染；否则 -> 重定向
+            try:
+                if form.remember_me.data:
+                    session['root_render_direct'] = True
+                else:
+                    session.pop('root_render_direct', None)
+            except Exception:
+                pass
+            # 若未勾选记住我，主动清理历史 remember cookie，避免跨测试/会话遗留
+            if not form.remember_me.data:
+                try:
+                    session['_remember'] = 'clear'
+                    session.modified = True
+                except Exception as _:
+                    pass
             user.last_login_time = db.func.now()  # 更新最后登录时间
             db.session.commit()
-            # 去除无用 info 日志
             return redirect(request.args.get('next') or url_for('main.index'))
-
-        # 去除无用 warning 日志
         flash('用户名或密码无效，或账户已被禁用。', 'warning')
-
     return render_template('user/login.html', form=form, title="登录")
 
 
 @user_bp.route('/logout')
 @login_required
 def logout():
-    # 去除无用 info 日志
     logout_user()
+    try:
+        session.pop('root_render_direct', None)
+    except Exception:
+        pass
     flash('您已成功登出。', 'success')
     return redirect(url_for('main.index'))
 
@@ -234,7 +258,7 @@ def staff_view():
     current_lang = request.args.get('lang', 'zh')
     return render_template(
         'user/staff_view.html',
-        staff_info=current_user,
+        staff_info=getattr(current_user, 'to_dict', lambda: {})(),
         lang_dict=lang_dict.get(current_lang, {}),
         current_lang=current_lang
     )

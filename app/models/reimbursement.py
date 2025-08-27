@@ -3,7 +3,7 @@ from datetime import datetime
 
 from app.extensions import db
 from app.models.enums import ReimbursementStatus, ReimbursementAttachmentType, ReimbursementPrimaryCategory, \
-    ReimbursementSecondaryCategory
+    ReimbursementSecondaryCategory, ReimbursementCheckStatus
 
 
 class ReimbursementRequest(db.Model):
@@ -19,8 +19,11 @@ class ReimbursementRequest(db.Model):
     description = db.Column(db.Text, nullable=True, comment="报销说明")
     status = db.Column(db.Enum(ReimbursementStatus), default=ReimbursementStatus.PENDING, nullable=False,
                        comment="审批状态")
+    # 新增：核对状态
+    check_status = db.Column(db.Enum(ReimbursementCheckStatus), default=ReimbursementCheckStatus.UNCHECKED,
+                             nullable=False, comment="核对状态")
     approval_comments = db.Column(db.Text, nullable=True, comment="审批意见")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, comment="创��时间")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, comment="创建时间")
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False,
                            comment="更新时间")
     approved_at = db.Column(db.DateTime, nullable=True, comment="审批通过时间")

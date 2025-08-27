@@ -1,0 +1,20 @@
+2025年08月26日
+待修复任务：
+http://127.0.0.1:5000/manage/
+营业管理模块全部子功能包括但不限于：列表页、新增、编辑、删除、check_edit等。金额精确计算并显示到小数点后2位。实际计算可以到小数点后4位。
+已修复任务：
+- 营业信息管理模块（/manage/list）：使用 Employee/Branch Manager 登录后会默认看到全部门店的数据。
+  修复：限制门店员工/店长只能查看其自身 store_id 的数据；若未绑定门店则不返回任何记录。管理员/财务可按筛选查看任意门店。
+  提交日期：2025-08-26
+  变更位置：app/views/sales_manage_views.py -> manage_list 视图，强制按当前用户 store_id 过滤并同步下拉门店列表。
+  验证：已通过 pytest 全量测试（tests/test_sales_manage_views.py 等）。
+- 营业管理金额精度与展示规范（/manage/*）：
+  修复：模型计算统一到小数点后4位，页面展示统一到小数点后2位；核对页与详情页的“修改历史”金额也统一为2位小数显示。
+  提交日期：2025-08-26
+  变更位置：
+    * app/models/daily_sales.py -> auto_calculate 改为按 4 位小数四舍五入保存（Decimal + 0.0001）。
+    * app/templates/sales_manage/list.html -> 列表页 actual_sales/pos_total 按两位小数显示。
+    * app/templates/sales_manage/check_edit.html -> 顶部误差、各金额字段与修改历史按两位小数显示。
+    * app/templates/sales_manage/detail.html -> 各金额字段与修改历史按两位小数显示。
+    * tests/test_sales_precision.py -> 新增精度与展示测试（4 位计算 + 2 位展示）。
+  验证：已通过 pytest 全量测试（包含新增 tests/test_sales_precision.py）。

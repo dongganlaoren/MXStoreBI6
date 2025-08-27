@@ -116,7 +116,7 @@ lang_dict = {
         'bank_fee': '存款手续费 (BF)',
         'start_check': '开始核对',
         'back_to_list': '返回列表',
-        'report_date': '报告日期',
+        'report_date': '日期',
         'check': '核对',
         'reimbursement_create_title': '发起申请',
         'reimbursement_detail_title': '报销申请详情',
@@ -129,7 +129,7 @@ lang_dict = {
         'reimbursement_status': '状态',
         'reimbursement_submitter': '申请人',
         'reimbursement_approver': '审批人',
-        'reimbursement_submission_date': '申请请日期',
+        'reimbursement_submission_date': '申请日期',
         'reimbursement_reason': '报销事由',
         'reimbursement_attachments': '相关附件',
         'reimbursement_approval_comments': '审批意见',
@@ -143,6 +143,7 @@ lang_dict = {
         'reimbursement_no_data': '暂无数据',
         'reimbursement_search_approver': '输入姓名/工号/手机号等关键词搜索审批人',
         'reimbursement_attachment_tip': '可上传多个附件，支持直接粘贴截图',
+        'reimbursement_attachment': '报销附件',
         'reimbursement_preview': '预览查看',
         'reimbursement_back_to_list': '返回列表',
         'reimbursement_pending': '待审批',
@@ -233,7 +234,7 @@ lang_dict = {
         'default_cc_explanation': '配置的默认抄送人将自动收到所有报销申请的通知邮件，用户无法修改或删除这些默认抄送人。',
         'explanation': '说明',
         'add_default_cc_title': '添加默认抄送人',
-        'search_user_label': '搜索��户',
+        'search_user_label': '搜索用户',
         'search_user_placeholder': '输入姓名、账号、手机号等搜索用户...',
         'add_as_default_cc_btn': '添加为默认抄送人',
         'current_default_cc_title': '当前默认抄送人',
@@ -254,14 +255,7 @@ lang_dict = {
         'reimbursement_category_agency_accounting': '代理记账',
         'reimbursement_category_taxes': '各种税费',
         'reimbursement_category_employee_social_security': '员工社保',
-        'reimbursement_category_store_management': '店铺管��',
-        'reimbursement_category_other_shared_cost': '其它公摊',
-        'reimbursement_category_mixture_material': '蜜雪物料',
-        'reimbursement_category_material_transport': '物料运输',
-        'reimbursement_category_fixed_salary': '固定工资',
-        'reimbursement_category_temporary_salary': '临时工工资',
-        'reimbursement_category_external_lemon': '外部柠檬',
-        'reimbursement_category_store_petty_cash': '店铺备用金',
+        'reimbursement_category_store_management': '店铺管理',
         'reimbursement_category_rental_tax': '租房税',
         'reimbursement_category_utilities': '水电费',
         'reimbursement_category_store_rent': '店铺房租',
@@ -270,117 +264,137 @@ lang_dict = {
         'reimbursement_no_preview_message': '不支持预览，可在提交后下载查看。',
         'reimbursement_attachment_preview_modal_title': '附件预览',
         'reimbursement_modal_close_label': '关闭',
+        # 菜单与通用
+        'home': '首页',
+        'sales_manage': '营业管理',
+        'reimbursement': '财务报销',
+        'system_manage': '系统管理',
+        'user_manage': '用户管理',
+        'all_reimbursement': '全部报销申请',
+        'profile': '个人资料',
+        'logout': '退出登录',
+        'email_settings': '邮件设置',
+        'email_logs': '邮件发送日志',
+        'mark_checked': '标记已核对',
+        'reimbursement_check_status': '核对状态',
+        'reimbursement_checked': '已核对',
+        'reimbursement_unchecked': '未核对',
+        'reimbursement_all': '全部状态',
     },
     'th': {
-        'role': 'ตำแหน่ง',  # Role
-        'store_id': 'รหัสสาขา',  # Store ID
-        'select_store': 'กรุณาเลือกสาขา',  # Please select store
-        'employee_number': 'รหัสพนักงาน',  # Employee number
-        'employee_number_placeholder': 'เช่น 91001',  # e.g., 91001
+        'role': 'ตำแหน่ง',
+        'store_id': 'รหัสสาขา',
+        'select_store': 'กรุณาเลือกสาขา',
+        'employee_number': 'รหัสพนักงาน',
+        'employee_number_placeholder': 'เช่น 91001',
         'employee_number_tip': 'กรุณากรอกรหัสพนักงาน (เช่น รหัสสาขา+เลขสามหลัก เช่น 91001)',
         # Please enter employee number (e.g., store ID + three digits, like 91001)
-        'username': 'ชื่อผู้ใช้',  # Username
-        'password': 'รหัสผ่าน',  # Password
-        'confirm_password': 'ยืนยันรหัสผ่าน',  # Confirm password
-        'register_title': 'สมัครสมาชิกใหม่',  # New user registration
-        'register_btn': 'สมัครสมาชิก',  # Register
-        'already_have_account': 'มีบัญชีอยู่แล้ว?',  # Already have an account?
-        'login_now': 'เข้าสู่ระบบทันที',  # Login now
-        'login_title': 'เข้าสู่ระบบ',  # User login
-        'login_welcome': 'ยินดีต้อนรับกลับมา',  # Welcome back
-        'login_subtitle': 'กรุณาเข้าสู่ระบบบัญชีของคุณ',  # Please login to your account
-        'remember_me': 'จดจำฉัน',  # Remember me
-        'login_btn': 'เข้าสู่ระบบ',  # Login
-        'no_account': 'ยังไม่มีบัญชี?',  # No account yet?
-        'register_now': 'สมัครสมาชิกทันที',  # Register now
-        'profile_title': 'ข้อมูลส่วนตัว',  # Profile
-        'profile_subtitle': 'โปรไฟล์ของฉัน',  # My profile
-        'role_admin': 'ผู้ดูแลระบบ',  # Admin
-        'role_finance': 'การเงิน',  # Finance
-        'role_head_manager': 'ผู้จัดการสาขา',  # Store manager
-        'role_staff': 'พนักงาน',  # Staff
-        'role_unset': 'ยังไม่ได้กำหนดตำแหน่ง',  # Role not set
-        'unknown': 'ไม่ทราบ',  # Unknown
-        'join_year': 'ปีที่เริ่มงาน',  # Join year
-        'related_store': 'สาขาที่เกี่ยวข้อง',  # Related store
-        'profile_completion': 'ความสมบูรณ์ของข้อมูล',  # Profile completion
-        'completed': 'รายการที่เสร็จสิ้น',  # Items completed
-        'quick_actions': 'การดำเนินการด่วน',  # Quick actions
-        'edit_profile': 'แก้ไขข้อมูล',  # Edit profile
-        'change_password': 'เปลี่ยนรหัสผ่าน',  # Change password
+        'username': 'ชื่อผู้ใช้',
+        'password': 'รหัสผ่าน',
+        'confirm_password': 'ยืนยันรหัสผ่าน',
+        'register_title': 'สมัครสมาชิกใหม่',
+        'register_btn': 'สมัครสมาชิก',
+        'already_have_account': 'มีบัญชีอยู่แล้ว?',
+        'login_now': 'เข้าสู่ระบบทันที',
+        'login_title': 'เข้าสู่ระบบ',
+        'login_welcome': 'ยินดีต้อนรับกลับมา',
+        'login_subtitle': 'กรุณาเข้าสู่ระบบบัญชีของคุณ',
+        'remember_me': 'จดจำฉัน',
+        'login_btn': 'เข้าสู่ระบบ',
+        'no_account': 'ยังไม่มีบัญชี?',
+        'register_now': 'สมัครสมาชิกทันที',
+        'profile_title': 'ข้อมูลส่วนตัว',
+        'profile_subtitle': 'โปรไฟล์ของฉัน',
+        'role_admin': 'ผู้ดูแลระบบ',
+        'role_finance': 'การเงิน',
+        'role_head_manager': 'ผู้จัดการสาขา',
+        'role_staff': 'พนักงาน',
+        'role_unset': 'ยังไม่ได้กำหนดตำแหน่ง',
+        'unknown': 'ไม่ทราบ',
+        'join_year': 'ปีที่เริ่มงาน',
+        'related_store': 'สาขาที่เกี่ยวข้อง',
+        'profile_completion': 'ความสมบูรณ์ของข้อมูล',
+        'completed': 'รายการที่เสร็จสิ้น',
+        'quick_actions': 'การดำเนินการด่วน',
+        'edit_profile': 'แก้ไขข้อมูล',
+        'change_password': 'เปลี่ยนรหัสผ่าน',
         'change_password_tip': 'ฟังก์ชันการเปลี่ยนรหัสผ่านอยู่ระหว่างการพัฒนา',
         # Password change function is under development
-        'basic_info': 'ข้อมูลพื้นฐาน',  # Basic information
-        'real_name': 'ชื่อจริง',  # Real name
-        'not_filled': 'ยังไม่ได้กรอก',  # Not filled
-        'not_assigned': 'ยังไม่ได้กำหนด',  # Not assigned
-        'id_card_number': 'หมายเลขบัตรประชาชน',  # ID card number
-        'id_card_copy': 'สำเนาบัตรประชาชน',  # ID card copy
-        'id_card_copy_placeholder': 'กรุณาอัปโหลดสำเนาบัตรประชาชน',  # Please upload ID card copy
+        'basic_info': 'ข้อมูลพื้นฐาน',
+        'real_name': 'ชื่อจริง',
+        'not_filled': 'ยังไม่ได้กรอก',
+        'not_assigned': 'ยังไม่ได้กำหนด',
+        'id_card_number': 'หมายเลขบัตรประชาชน',
+        'id_card_copy': 'สำเนาบัตรประชาชน',
+        'id_card_copy_placeholder': 'กรุณาอัปโหลดสำเนาบัตรประชาชน',
         'id_card_copy_tip': 'รองรับเฉพาะไฟล์รูปภาพหรือ PDF ขนาดไม่เกิน 10MB',
         # Supports only image or PDF files, max 10MB
-        'register_time': 'เวลาที่สมัคร',  # Registration time
-        'work_info': 'ข้อมูลการทำงาน',  # Work information
-        'start_date': 'วันที่เริ่มงาน',  # Start date
-        'end_date': 'วันที่ลาออก',  # End date
-        'on_job': 'อยู่ในงาน',  # On job
-        'is_primary_contact': 'ผู้ติดต่อหลัก',  # Primary contact
-        'yes': '✔ ใช่',  # Yes
-        'no': '❌ ไม่ใช่',  # No
-        'contact_info': 'ข้อมูลการติดต่อ',  # Contact information
-        'phone': 'เบอร์โทรศัพท์',  # Phone
-        'email': 'อีเมล',  # Email
-        'bank_info': 'ข้อมูลธนาคาร',  # Bank information
-        'bank_name': 'ชื่อธนาคาร',  # Bank name
-        'bank_account_number': 'เลขที่บัญชีธนาคาร',  # Bank account number
+        'register_time': 'เวลาที่สมัคร',
+        'work_info': 'ข้อมูลการทำงาน',
+        'start_date': 'วันที่เริ่มงาน',
+        'end_date': 'วันที่ลาออก',
+        'on_job': 'อยู่ในงาน',
+        'is_primary_contact': 'ผู้ติดต่อหลัก',
+        'yes': '✔ ใช่',
+        'no': '❌ ไม่ใช่',
+        'contact_info': 'ข้อมูลการติดต่อ',
+        'phone': 'เบอร์โทรศัพท์',
+        'email': 'อีเมล',
+        'bank_info': 'ข้อมูลธนาคาร',
+        'bank_name': 'ชื่อธนาคาร',
+        'bank_account_number': 'เลขที่บัญชีธนาคาร',
         'employee_number_admin_only': 'ช่องนี้กำหนดโดยผู้ดูแลระบบ ไม่สามารถแก้ไขได้',
         # This field is assigned by admin and cannot be modified
-        'unassigned': 'ยังไม่ได้กำหนด',  # Unassigned
-        'edit_profile_subtitle': 'กรุณากรอกข้อมูลส่วนตัวของคุณให้ครบถ้วน',  # Please complete your personal information
-        'edit_profile_for': 'แก้ไขโปรไฟล์สำหรับ',  # Edit profile for
+        'unassigned': 'ยังไม่ได้กำหนด',
+        'edit_profile_subtitle': 'กรุณากรอกข้อมูลส่วนตัวของคุณให้ครบถ้วน',
+        # Please complete your personal information
+        'edit_profile_for': 'แก้ไขโปรไฟล์สำหรับ',
         'edit_profile_tip': 'การกรอกข้อมูลส่วนตัวให้ครบถ้วนช่วยเพิ่มความปลอดภัยของบัญชีและอำนวยความสะดวกในการทำงานเป็นทีมและการเบิกจ่ายทางการเงิน',
         # Completing personal information enhances account security and facilitates teamwork and financial reimbursements
-        'personal_info': 'ข้อมูลส่วนตัว',  # Personal information
-        'real_name_placeholder': 'กรุณากรอกชื่อจริง',  # Please enter real name
-        'real_name_required': 'ต้องกรอกชื่อจริง',  # Real name is required
-        'id_card_number_placeholder': 'กรุณากรอกหมายเลขบัตรประชาชน',  # Please enter ID card number
-        'phone_placeholder': 'กรุณากรอกเบอร์โทรศัพท์',  # Please enter phone number
-        'email_placeholder': 'กรุณากรอกอีเมล',  # Please enter email
-        'email_invalid': 'กรุณากรอกอีเมลที่ถูกต้อง',  # Please enter a valid email
-        'line_id_placeholder': 'กรุณากรอก LINE ID',  # Please enter LINE ID
-        'bank_and_job_info': 'ข้อมูลธนาคารและการทำงาน',  # Bank and job information
+        'personal_info': 'ข้อมูลส่วนตัว',
+        'real_name_placeholder': 'กรุณากรอกชื่อจริง',
+        'real_name_required': 'ต้องกรอกชื่อจริง',
+        'id_card_number_placeholder': 'กรุณากรอกหมายเลขบัตรประชาชน',
+        'phone_placeholder': 'กรุณากรอกเบอร์โทรศัพท์',
+        'email_placeholder': 'กรุณากรอกอีเมล',
+        'email_invalid': 'กรุณากรอกอีเมลที่ถูกต้อง',
+        'line_id_placeholder': 'กรุณากรอก LINE ID',
+        'bank_and_job_info': 'ข้อมูลธนาคารและการทำงาน',
         'store_only_notice': 'ส่วนนี้สำหรับพนักงานสาขาเท่านั้น ใช้สำหรับการจ่ายเงินเดือนและการเบิกจ่าย',
         # This section is for store staff only, used for payroll and reimbursement
-        'bank_account_number_placeholder': 'กรุณากรอกเลขที่บัญชีธนาคาร',  # Please enter bank account number
-        'all_reimbursement': 'คำขอเบิกจ่ายทั้งหมด',  # All reimbursement requests
-        'logout_confirm': 'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?',  # Are you sure you want to log out?
-        'user_detail_subtitle': 'รายละเอียดข้อมูลผู้ใช้',  # User detail information
-        'inactive': 'ปิดใช้งาน',  # Inactive
-        'profile_completed': 'ข้อมูลสมบูรณ์',  # Profile completed
-        'profile_incomplete': 'ข้อมูลไม่สมบูรณ์',  # Profile incomplete
-        'created_at': 'เวลาที่สร้าง',  # Created at
-        'store': 'สาขา',  # Store
-        'back_to_list': 'กลับไปยังรายการ',  # Back to list
-        'edit_user': 'แก้ไขผู้ใช้',  # Edit user
-        'reset_password': 'รีเซ็ตรหัสผ่าน',  # Reset password
+        'bank_account_number_placeholder': 'กรุณากรอกเลขที่บัญชีธนาคาร',
+        'all_reimbursement': 'คำขอเบิกจ่ายทั้งหมด',
+        'logout_confirm': 'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?',
+        # Are you sure you want to log out?
+        'user_detail_subtitle': 'รายละเอียดข้อมูลผู้ใช้',
+        'inactive': 'ปิดใช้งาน',
+        'profile_completed': 'ข้อมูลสมบูรณ์',
+        'profile_incomplete': 'ข้อมูลไม่สมบูรณ์',
+        'created_at': 'เวลาที่สร้าง',
+        'store': 'สาขา',
+        'back_to_list': 'กลับไปยังรายการ',
+        'edit_user': 'แก้ไขผู้ใช้',
+        'reset_password': 'รีเซ็ตรหัสผ่าน',
         'reset_password_confirm': 'คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตรหัสผ่านของผู้ใช้นี้?',
         # Are you sure you want to reset this user's password?
-        'delete_user': 'ลบผู้ใช้',  # Delete user
-        'delete_user_confirm': 'คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้นี้?',  # Are you sure you want to delete this user?
-        'sales_check_title': 'ตรวจสอบข้อมูลการขาย',  # Sales information verification
-        'sales_check_bi': 'การตรวจสอบยอดขาย BI',  # BI sales verification
-        'report_user': 'ผู้รายงาน',  # Reporter
-        'pos_sales_info': 'ข้อมูลการขายผ่าน POS',  # POS sales information
-        'cash_income': 'รายรับเงินสด (C)',  # Cash income (C)
-        'pos_income': 'รายรับอิเล็กทรอนิกส์ (P)',  # Electronic payment income (P)
-        'voucher_amount': 'ยอดใช้คูปอง (R)',  # Voucher amount used (R)
-        'sales_slip_image': 'ใบเสร็จ POS',  # POS sales receipt
+        'delete_user': 'ลบผู้ใช้',
+        'delete_user_confirm': 'คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้นี้?',
+        # Are you sure you want to delete this user?
+        'sales_check_title': 'ตรวจสอบข้อมูลการขาย',
+        'sales_check_bi': 'การตรวจสอบยอดขาย BI',
+        'report_user': 'ผู้รายงาน',
+        'pos_sales_info': 'ข้อมูลการขายผ่าน POS',
+        'cash_income': 'รายรับเงินสด (C)',
+        'pos_income': 'รายรับอิเล็กทรอนิกส์ (P)',
+        'voucher_amount': 'ยอดใช้คูปอง (R)',
+        'sales_slip_image': 'ใบเสร็จ POS',
         'third_party_sales_info': 'ข้อมูลการขายผ่านแพลตฟอร์มเดลิเวอรี่',
         # Third-party delivery platform sales information
-        'takeaway_amount': 'รายรับจาก����พลตฟอร์มเดลิเวอรี่ (T1)',  # Third-party delivery platform income (T1)
+        'takeaway_amount': 'รายรับจากแพลตฟอร์มเดลิเวอรี่ (T1)',  # Third-party delivery platform income (T1)
         'takeaway_platform_receipt': 'ใบเสร็จแพลตฟอร์มเดลิเวอรี่',  # Third-party delivery platform receipt
         'actual_sales_info': 'ข้อมูลยอดเงินเข้าจริง',  # Actual income information
-        'electronic_actual_arrival': 'ยอดเงินเ��้����ิเล็กทรอนิกส์จริง (EA)',  # Actual electronic payment received (EA)
+        'electronic_actual_arrival': 'ยอดเงินเข้าอิเล็กทรอนิกส์จริง (EA)',
+        # Actual electronic payment received (EA)
         'electronic_actual_arrival_receipt': 'ใบเสร็จยอดเงินเข้าอิเล็กทรอนิกส์',  # Electronic payment receipt
         'bank_receipt_image': 'ใบเสร็จเงินฝากธนาคาร',  # Bank deposit receipt
         'save_daily_report': 'บันทึกรายงานประจำวัน',  # Save daily report
@@ -415,7 +429,7 @@ lang_dict = {
         'daily_report': 'รายงานประจำวัน',  # Daily report
         'sales_manage_list_title': 'รายการจัดการข้อมูลการขาย',  # Sales information management list
         'action': 'การดำเนินการ',  # Action
-        'actual_sales': 'ยอดเงินเข้าจริง',  # Actual sales
+        'actual_sales': 'ยอดเงินเข้ามาจริง',  # Actual sales
         'total_error': 'ส่วนต่าง',  # Total error
         'pos_total': 'ยอดขายรวม POS',  # POS total sales
         'financial_check_status': 'สถานะการตรวจสอบ',  # Financial check status
@@ -426,57 +440,55 @@ lang_dict = {
         'back_to_list': 'กลับสู่รายการ',  # Back to list
         'report_date': 'วันที่รายงาน',  # Report date
         'check': 'ตรวจสอบ',  # Check
-        'reimbursement_create_title': 'สร้างคำขอเบิกจ่าย',  # Create reimbursement request
-        'reimbursement_detail_title': 'รายละเอียดคำขอเบิกจ่าย',  # Reimbursement request details
-        'reimbursement_list_title': 'รายการคำขอเบิกจ่าย',  # Reimbursement request list
-        'reimbursement_finance': 'การเงิน',  # Finance
-        'reimbursement_primary_category': 'หมวดหมู่หลัก',  # Primary category
-        'reimbursement_secondary_category': 'หมวดหมู่รอง',  # Secondary category
-        'reimbursement_store': 'สาขา',  # Store
-        'reimbursement_amount': 'จำนวนเงิน',  # Amount
-        'reimbursement_status': 'สถานะ',  # Status
-        'reimbursement_submitter': 'ผู้ยื่นคำขอ',  # Submitter
-        'reimbursement_approver': 'ผู้อนุมัติ',  # Approver
-        'reimbursement_submission_date': 'วันที่ยื่นคำขอ',  # Submission date
-        'reimbursement_reason': 'เหตุผลการเบิกจ่าย',  # Reimbursement reason
-        'reimbursement_attachments': 'เอกสารแนบที่เกี่ยวข้อง',  # Related attachments
-        'reimbursement_approval_comments': 'ความเห็นการอนุมัติ',  # Approval comments
-        'reimbursement_approval_time': 'เวลาการอนุมัติ',  # Approval time
-        'reimbursement_approval_attachment': 'เอกสารแนบการอนุมัติ',  # Approval attachments
-        'reimbursement_action': 'การดำเนินการ',  # Action
-        'reimbursement_detail_btn': 'รายละเอียด',  # Details
-        'reimbursement_approve_btn': 'อนุมัติ',  # Approve
-        'reimbursement_create_btn': 'สร้างคำขอ',  # Create request
-        'reimbursement_filter': 'กรอง',  # Filter
-        'reimbursement_no_data': 'ไม่มีข้อมูล',  # No data
+        'reimbursement_create_title': 'สร้างคำขอเบิกจ่าย',
+        'reimbursement_detail_title': 'รายละเอียดคำขอเบิกจ่าย',
+        'reimbursement_list_title': 'รายการคำขอเบิกจ่าย',
+        'reimbursement_finance': 'การเงิน',
+        'reimbursement_primary_category': 'หมวดหมู่หลัก',
+        'reimbursement_secondary_category': 'หมวดหมู่รอง',
+        'reimbursement_store': 'สาขา',
+        'reimbursement_amount': 'จำนวนเงิน',
+        'reimbursement_status': 'สถานะ',
+        'reimbursement_submitter': 'ผู้ยื่นคำขอ',
+        'reimbursement_approver': 'ผู้อนุมัติ',
+        'reimbursement_submission_date': 'วันที่ยื่นคำขอ',
+        'reimbursement_reason': 'เหตุผลการเบิกจ่าย',
+        'reimbursement_attachments': 'เอกสารแนบที่เกี่ยวข้อง',
+        'reimbursement_approval_comments': 'ความเห็นการอนุมัติ',
+        'reimbursement_approval_time': 'เวลาการอนุมัติ',
+        'reimbursement_approval_attachment': 'เอกสารแนบการอนุมัติ',
+        'reimbursement_action': 'การดำเนินการ',
+        'reimbursement_detail_btn': 'รายละเอียด',
+        'reimbursement_approve_btn': 'อนุมัติ',
+        'reimbursement_create_btn': 'สร้างคำขอ',
+        'reimbursement_filter': 'กรอง',
+        'reimbursement_no_data': 'ไม่มีข้อมูล',
         'reimbursement_search_approver': 'ค้นหาผู้อนุมัติด้วยชื่อ/รหัสพนักงาน/เบอร์โทรศัพท์',
-        # Search approver by name/employee ID/phone number
         'reimbursement_attachment_tip': 'สามารถอัปโหลดเอกสารแนบได้หลายไฟล์ รองรับการวางภาพหน้าจอโดยตรง',
-        # Can upload multiple attachments, supports direct screenshot pasting
-        'reimbursement_preview': 'ดูตัวอย่าง',  # Preview
-        'reimbursement_back_to_list': 'กลับสู่รายการ',  # Back to list
-        'reimbursement_pending': 'รออนุมัติ',  # Pending approval
-        'reimbursement_approved': 'อนุมัติแล้ว',  # Approved
-        'reimbursement_rejected': 'ถูกปฏิเสธ',  # Rejected
-        'reimbursement_attachment_submission': 'เอกสารแนบคำขอ',  # Submission attachments
-        'reimbursement_attachment_approval': 'เอกสารแนบการอนุมัติ',  # Approval attachments
-        'reimbursement_time': 'เวลา',  # Time
-        'reimbursement_custom_date': 'กำหนดวันที่เอง',  # Custom date
-        'reimbursement_recent_24h': '24 ชั่วโมงล่าสุด',  # Last 24 hours
-        'reimbursement_recent_7d': '7 วันล่าสุด',  # Last 7 days
-        'reimbursement_recent_30d': '30 วันล่าสุด',  # Last 30 days
-        'reimbursement_start_date': 'วันที่เริ่มต้น',  # Start date
-        'reimbursement_end_date': 'วันที่สิ���นสุด',  # End date
-        'reimbursement_preview_modal_title': 'ดูตัวอย่างเอกสารแนบ',  # Attachment preview
-        'reimbursement_download': 'คลิกเพื่อดาวน์โหลด/ดู',  # Click to download/view
-        'reimbursement_currency': 'สกุลเงิน',  # Currency
-        'reimbursement_mine': 'คำขอของฉัน',  # My requests
-        'reimbursement_todo': 'รอการอนุมัติของฉัน',  # Pending my approval
-        'reimbursement_done': 'ที่ฉันอนุมัติแล้ว',  # Approved by me
-        'reimbursement_cc_to_me': 'สำเนาให้ฉัน',  # CC to me
-        'reimbursement_all_time': 'ทุกช่วงเวลา',  # All time
-        'reimbursement_query_btn': 'ค้นหา',  # Query/Search
-        'store_id_column': 'รหัสสาขา',  # Store ID
+        'reimbursement_preview': 'ดูตัวอย่าง',
+        'reimbursement_back_to_list': 'กลับสู่รายการ',
+        'reimbursement_pending': 'รออนุมัติ',
+        'reimbursement_approved': 'อนุมัติแล้ว',
+        'reimbursement_rejected': 'ถูกปฏิเสธ',
+        'reimbursement_attachment_submission': 'เอกสารแนบคำขอ',
+        'reimbursement_attachment_approval': 'เอกสารแนบการอนุมัติ',
+        'reimbursement_time': 'เวลา',
+        'reimbursement_custom_date': 'กำหนดวันที่เอง',
+        'reimbursement_recent_24h': '24 ชั่วโมงที่ผ่านมา',
+        'reimbursement_recent_7d': '7 วันล่าสุด',
+        'reimbursement_recent_30d': '30 วันล่าสุด',
+        'reimbursement_start_date': 'วันที่เริ่มต้น',
+        'reimbursement_end_date': 'วันที่สิ้นสุด',
+        'reimbursement_preview_modal_title': 'ดูตัวอย่างเอกสารแนบ',
+        'reimbursement_download': 'คลิกเพื่อดาวน์โหลด/ดู',
+        'reimbursement_currency': 'สกุลเงิน',
+        'reimbursement_mine': 'คำขอของฉัน',
+        'reimbursement_todo': 'รอการอนุมัติของฉัน',
+        'reimbursement_done': 'ที่ฉันอนุมัติแล้ว',
+        'reimbursement_cc_to_me': 'สำเนาให้ฉัน',
+        'reimbursement_all_time': 'ทุกช่วงเวลา',
+        'reimbursement_query_btn': 'ค้นหา',
+        'store_id_column': 'รหัสสาขา',
         'withdraw_btn': '撤回',
         'approve_title': '报销审批',
         'application_info': '申请信息',
@@ -497,7 +509,7 @@ lang_dict = {
         'cc_recipients_optional': '抄送人（可选）',
         'search_and_add_cc': '搜索并添加抄送人...',
         'can_add_multiple_cc': '可添加多个抄送人，他们将收到申请通知邮件',
-        'system_auto_cc_default': '系统将自动抄���给默认抄送人。',
+        'system_auto_cc_default': '系统将自动抄送给默认抄送人。',
         'manage_default_cc': '管理默认抄送人',
         'default_cc_recipient': '默认抄送人',
         'manual_added_cc': '手动添加的抄送人',
@@ -568,20 +580,29 @@ lang_dict = {
         'reimbursement_category_taxes': '各种税费',
         'reimbursement_category_employee_social_security': '员工社保',
         'reimbursement_category_store_management': '店铺管理',
-        'reimbursement_category_other_shared_cost': '其它公摊',
-        'reimbursement_category_mixture_material': '蜜雪物料',
-        'reimbursement_category_material_transport': '物料运输',
-        'reimbursement_category_fixed_salary': '固定工资',
-        'reimbursement_category_temporary_salary': '临时工工资',
-        'reimbursement_category_external_lemon': '外部柠檬',
-        'reimbursement_category_store_petty_cash': '店铺备用金',
         'reimbursement_category_rental_tax': '租房税',
         'reimbursement_category_utilities': '水电费',
         'reimbursement_category_store_rent': '店铺房租',
         'reimbursement_category_warehouse_rent': '仓库房租',
         'reimbursement_category_other_cost': '其它成本',
-        'reimbursement_no_preview_message': '不支持预览，可在提交后下载查看。',
+        'reimbursement_no_preview_message': '不支持预览，可在提交后加载查看。',
         'reimbursement_attachment_preview_modal_title': '附件预览',
         'reimbursement_modal_close_label': '关闭',
+        # 菜单与通用（泰文）
+        'home': 'หน้าแรก',
+        'sales_manage': 'จัดการยอดขาย',
+        'reimbursement': 'การเบิกจ่ายการเงิน',
+        'system_manage': 'การจัดการระบบ',
+        'user_manage': 'การจัดการผู้ใช้',
+        'all_reimbursement': 'คำขอเบิกจ่ายทั้งหมด',
+        'profile': 'ข้อมูลส่วนตัว',
+        'logout': 'ออกจากระบบ',
+        'email_settings': 'ตั้งค่าอีเมล',
+        'email_logs': 'บันทึกการส่งอีเมล',
+        'mark_checked': 'ทำเครื่องหมายว่าตรวจสอบแล้ว',
+        'reimbursement_check_status': 'สถานะการตรวจสอบ',
+        'reimbursement_checked': 'ตรวจสอบแล้ว',
+        'reimbursement_unchecked': 'ยังไม่ตรวจสอบ',
+        'reimbursement_all': 'สถานะทั้งหมด',
     }
 }

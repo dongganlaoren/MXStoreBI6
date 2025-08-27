@@ -35,7 +35,8 @@
                     lang_dict.get('total_error') else '误差' }}</label>
                 <input type="text"
                        class="form-control fs-4 text-danger bg-warning bg-opacity-25 border-danger border-2 text-center fw-bold"
-                       value="{{ daily_sales.total_error }}" readonly>
+                       value="{{ '-' if daily_sales.total_error is none else '%.2f'|format(daily_sales.total_error) }}"
+                       readonly>
             </div>
         </div>
         <!-- 第二部分：POS机销售信息 -->
@@ -51,7 +52,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ daily_sales.cash_income }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.cash_income is none else '%.2f'|format(daily_sales.cash_income) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="cash_income" name="cash_income"
                                value="{{ '%.2f'|format(daily_sales.cash_income or 0) }}" readonly>
@@ -67,7 +68,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ daily_sales.pos_income }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.pos_income is none else '%.2f'|format(daily_sales.pos_income) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="pos_income" name="pos_income"
                                value="{{ '%.2f'|format(daily_sales.pos_income or 0) }}" readonly>
@@ -83,7 +84,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ daily_sales.voucher_amount }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.voucher_amount is none else '%.2f'|format(daily_sales.voucher_amount) }}</span>
                         {% else %}
                         <span class="input-group-text bg-light text-secondary">฿</span>
                         <input type="text" class="form-control editable-field" id="voucher_amount" name="voucher_amount"
@@ -119,7 +120,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ daily_sales.takeaway_amount }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.takeaway_amount is none else '%.2f'|format(daily_sales.takeaway_amount) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="takeaway_amount"
                                name="takeaway_amount" value="{{ '%.2f'|format(daily_sales.takeaway_amount or 0) }}"
@@ -158,7 +159,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ daily_sales.electronic_actual_arrival }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.electronic_actual_arrival is none else '%.2f'|format(daily_sales.electronic_actual_arrival) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="electronic_actual_arrival"
                                name="electronic_actual_arrival"
@@ -176,7 +177,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ daily_sales.bank_deposit }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.bank_deposit is none else '%.2f'|format(daily_sales.bank_deposit) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="bank_deposit" name="bank_deposit"
                                value="{{ '%.2f'|format(daily_sales.bank_deposit or 0) }}" readonly>
@@ -192,7 +193,7 @@
                     <div class="input-group">
                         {% if daily_sales.financial_check_status == 'APPROVED' or daily_sales.financial_check_status ==
                         2 %}
-                        <span class="form-control-plaintext ps-2">{{ daily_sales.bank_fee }}</span>
+                        <span class="form-control-plaintext ps-2">{{ '-' if daily_sales.bank_fee is none else '%.2f'|format(daily_sales.bank_fee) }}</span>
                         {% else %}
                         <input type="text" class="form-control editable-field" id="bank_fee" name="bank_fee"
                                value="{{ '%.2f'|format(daily_sales.bank_fee or 0) }}" readonly>
@@ -328,8 +329,10 @@
                     {% for h in history_list %}
                     <tr>
                         <td>{{ h.field_name }}</td>
-                        <td>{{ h.old_value if h.old_value is not none else '-' }}</td>
-                        <td class="fw-bold text-primary">{{ h.new_value }}</td>
+                        <td>{{ '-' if h.old_value is none else '%.2f'|format(h.old_value) }}</td>
+                        <td class="fw-bold text-primary">{{ '-' if h.new_value is none else '%.2f'|format(h.new_value)
+                            }}
+                        </td>
                         <td>{{ h.operator_id }}</td>
                         <td>{{ h.operator_role }}</td>
                         <td>{{ h.remark }}</td>

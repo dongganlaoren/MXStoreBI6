@@ -86,26 +86,27 @@ class DailySales(db.Model):
         """
         自动计算理论营业额、实际总营业额、误差等字段。
         使用 decimal.Decimal 保证财务精度。
+        计算精度：保留到小数点后4位（四舍五入）；展示统一到2位。
         """
 
         def d(val):
             return Decimal(str(val or 0))
 
-        def quant(val):
-            return val.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        def quant4(val: Decimal) -> Decimal:
+            return val.quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
 
         # 店铺理论营业额 T0 = 现金收入 + 电子支付收入 + 外卖收入 + 代金券使用金额
         self.pos_total = float(
-            quant(d(self.cash_income) + d(self.pos_income) + d(self.day_pass_income) + d(self.voucher_amount)))
-        # 理论营收总金额 T2
+            quant4(d(self.cash_income) + d(self.pos_income) + d(self.day_pass_income) + d(self.voucher_amount)))
+        # 理论营收总金额 T2 = T0 + T1 - voucher - bank_fee
         self.theoretical_total = float(
-            quant(d(self.pos_total) + d(self.takeaway_amount) - d(self.voucher_amount) - d(self.bank_fee)))
+            quant4(d(self.pos_total) + d(self.takeaway_amount) - d(self.voucher_amount) - d(self.bank_fee)))
         # 实际总营业额 S = 第三方外卖平台收入(T1) + 外卖收入 + 电子支付实际入账金额 + 银行存款金额
-        self.actual_sales = float(quant(
+        self.actual_sales = float(quant4(
             d(self.takeaway_amount) + d(self.day_pass_income) + d(self.electronic_actual_arrival) + d(
                 self.bank_deposit)))
         # 总误差 E = 电子支付实际入账金额 + 银行存款金额 + 银行存款手续费 - POS机小票电子支付总金额 - POS机小票现金总金额
-        self.total_error = float(quant(
+        self.total_error = float(quant4(
             d(self.electronic_actual_arrival) + d(self.bank_deposit) + d(self.bank_fee) - d(self.pos_income) - d(
                 self.cash_income)))
 
@@ -134,7 +135,9 @@ class DailySales(db.Model):
             "remark": self.remark,
             "pos_info_completed": self.pos_info_completed,
             "takeaway_info_completed": self.takeaway_info_completed,
-            "bank_info_completed": self.bank_info_completed,
+            # 兼容键：保留旧键名，同时提供正确键名
+            "bank_info_completed": self.actual_arrival_info_completed,
+            "actual_arrival_info_completed": self.actual_arrival_info_completed,
             "is_submitted": self.is_submitted,
             "financial_check_status": self.financial_check_status.value if self.financial_check_status else None,
             # "archived": self.archived,  # 已废弃

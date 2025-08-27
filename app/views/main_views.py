@@ -1,15 +1,18 @@
 # app/views/main_views.py
 
 from datetime import date
-from app.extensions import db
-from app.models import DailySales, RoleType, Store, user
+
 from flask import Blueprint, current_app, flash, render_template
 from flask_login import current_user, login_required
-from sqlalchemy import func, literal
+from sqlalchemy import func
+
+from app.extensions import db
+from app.models import DailySales, RoleType, Store
 
 main_bp = Blueprint("main", __name__)
 
-@main_bp.route("/")
+
+@main_bp.route("/home")
 @login_required
 def index():
     """
@@ -46,7 +49,7 @@ def index():
                     DailySales.store_id == store.store_id,
                     DailySales.takeaway_amount != None,
                     DailySales.takeaway_amount > 0,
-                    DailySales.report_date >= date(today.year-1, today.month, today.day)
+                    DailySales.report_date >= date(today.year - 1, today.month, today.day)
                 ).scalar()
                 has_t1 = t1_count > 0
             # 本月累计
@@ -78,7 +81,7 @@ def index():
                 DailySales.report_date
             ).filter(
                 DailySales.store_id == store.store_id,
-                DailySales.report_date >= today.replace(day=max(1, today.day-6)),
+                DailySales.report_date >= today.replace(day=max(1, today.day - 6)),
                 DailySales.report_date <= today,
                 DailySales.financial_check_status == FinancialCheckStatus.APPROVED
             ).group_by(DailySales.report_date)

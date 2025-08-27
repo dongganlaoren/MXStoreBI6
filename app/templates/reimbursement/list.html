@@ -23,6 +23,7 @@
             <input type="hidden" name="category" value="mine">
             {% elif role == 'FINANCE' %}
             <select class="form-select" name="category">
+                <option value="all" {% if category=='all' %}selected{% endif %}>{{ lang['reimbursement_all'] }}</option>
                 <option value="todo" {% if category=='todo' %}selected{% endif %}>{{ lang['reimbursement_todo'] }}
                 </option>
                 <option value="done" {% if category=='done' %}selected{% endif %}>{{ lang['reimbursement_done'] }}
@@ -30,10 +31,14 @@
                 <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}
                 </option>
                 <option value="cc" {% if category=='cc' %}selected{% endif %}>{{ lang['reimbursement_cc_to_me'] }}
+                </option>
+                <option value="unchecked" {% if category=='unchecked' %}selected{% endif %}>{{
+                    lang['reimbursement_unchecked'] }}
                 </option>
             </select>
             {% else %} {# ADMIN #}
             <select class="form-select" name="category">
+                <option value="all" {% if category=='all' %}selected{% endif %}>{{ lang['reimbursement_all'] }}</option>
                 <option value="todo" {% if category=='todo' %}selected{% endif %}>{{ lang['reimbursement_todo'] }}
                 </option>
                 <option value="done" {% if category=='done' %}selected{% endif %}>{{ lang['reimbursement_done'] }}
@@ -41,6 +46,9 @@
                 <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}
                 </option>
                 <option value="cc" {% if category=='cc' %}selected{% endif %}>{{ lang['reimbursement_cc_to_me'] }}
+                </option>
+                <option value="unchecked" {% if category=='unchecked' %}selected{% endif %}>{{
+                    lang['reimbursement_unchecked'] }}
                 </option>
             </select>
             {% endif %}
@@ -89,6 +97,7 @@
                 <th style="min-width:110px;">{{ lang['reimbursement_primary_category'] }}</th>
                 <th style="min-width:110px;">{{ lang['reimbursement_secondary_category'] }}</th>
                 <th style="min-width:110px;">{{ lang['reimbursement_status'] }}</th>
+                <th style="min-width:110px;">{{ lang['reimbursement_check_status'] }}</th>
                 <th style="min-width:80px;">{{ lang['reimbursement_action'] }}</th>
             </tr>
             </thead>
@@ -110,12 +119,20 @@
                     {% else %}{{ req.status.value }}{% endif %}
                 </td>
                 <td>
+                    {% if req.check_status and req.check_status.value == 'CHECKED' %}
+                    {{ lang['reimbursement_checked'] }}
+                    {% else %}
+                    {{ lang['reimbursement_unchecked'] }}
+                    {% endif %}
+                </td>
+                <td>
                     <a href="{{ url_for('reimbursement.detail', request_id=req.request_id) }}"
                        class="btn btn-sm btn-outline-primary">{{ lang['reimbursement_detail_btn'] }}</a>
+                    {% if not req.check_status or req.check_status.value != 'CHECKED' %}
                     {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
                     <a href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}"
                        class="btn btn-sm btn-success ms-1">{{ lang['reimbursement_approve_btn'] }}</a>
-                    <!-- 新增：转交按钮 -->
+                    <!-- 转交按钮 -->
                     <button type="button" class="btn btn-sm btn-warning ms-1" data-bs-toggle="modal"
                             data-bs-target="#transferModal" data-request-id="{{ req.request_id }}">{{
                         lang['reimbursement_transfer'] }}
@@ -123,8 +140,7 @@
                     {% endif %}
                     {% if req.status.value == 'PENDING' and current_user.user_id == req.submitter_id %}
                     <form method="post" action="{{ url_for('reimbursement.withdraw', request_id=req.request_id) }}"
-                          style="display:inline;"
-                          onsubmit="return confirm('{{ lang['confirm_withdraw_msg'] }}');">
+                          style="display:inline;" onsubmit="return confirm('{{ lang['confirm_withdraw_msg'] }}');">
                         {{ form.csrf_token }}
                         <button type="submit" class="btn btn-sm btn-warning ms-1">{{ lang['withdraw_btn'] }}</button>
                     </form>
@@ -133,18 +149,27 @@
                     <a href="{{ url_for('reimbursement.edit', request_id=req.request_id) }}"
                        class="btn btn-sm btn-info ms-1">{{ lang['reimbursement_edit'] }}</a>
                     <form method="post" action="{{ url_for('reimbursement.delete', request_id=req.request_id) }}"
-                          style="display:inline;"
-                          onsubmit="return confirm('{{ lang['confirm_delete_draft_msg'] }}');">
+                          style="display:inline;" onsubmit="return confirm('{{ lang['confirm_delete_draft_msg'] }}');">
                         {{ form.csrf_token }}
                         <button type="submit" class="btn btn-sm btn-danger ms-1">{{ lang['reimbursement_delete'] }}
                         </button>
                     </form>
                     {% endif %}
+                    {% set role = current_user.role.value if current_user.role else '' %}
+                    {% if role in ['FINANCE','ADMIN'] and req.status.value == 'APPROVED' %}
+                    <form method="post" action="{{ url_for('reimbursement.mark_checked', request_id=req.request_id) }}"
+                          style="display:inline;">
+                        {{ form.csrf_token }}
+                        <button type="submit" class="btn btn-sm btn-outline-success ms-1">{{ lang['mark_checked'] }}
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% endif %}
                 </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="9" class="text-center">{{ lang['reimbursement_no_data'] }}</td>
+                <td colspan="10" class="text-center">{{ lang['reimbursement_no_data'] }}</td>
             </tr>
             {% endfor %}
             </tbody>

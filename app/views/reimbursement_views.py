@@ -2,12 +2,14 @@ import logging
 import os
 import traceback
 from datetime import datetime
+from json import loads, JSONDecodeError
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask import current_app
 from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
-from sqlalchemy import or_
+from sqlalchemy import or_, exists
+from sqlalchemy.orm import aliased
 from werkzeug.utils import secure_filename
 
 from app.extensions import db
@@ -57,25 +59,55 @@ def list_requests():
             query = query.join(ReimbursementCCRecipient).filter(
                 ReimbursementCCRecipient.user_id == current_user.user_id
             )
+        elif category == 'unchecked':
+            # 新增：未核对（仅针对已审批通过但未核对的单据）
+            try:
+                from app.models.enums import ReimbursementCheckStatus
+                query = query.filter(
+                    ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+                    ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED
+                )
+            except Exception:
+                # 兜底：如导入失败，不进行筛选
+                pass
+        elif category == 'all':
+            # 新增：全部状态（与我相关：我为审批人 或 我为提交人 或 抄送给我）
+            try:
+                # 使用 EXISTS 判断抄送
+                cc_exists = exists().where(
+                    (ReimbursementCCRecipient.request_id == ReimbursementRequest.request_id) &
+                    (ReimbursementCCRecipient.user_id == current_user.user_id)
+                )
+                query = query.filter(or_(
+                    ReimbursementRequest.approver_id == current_user.user_id,
+                    ReimbursementRequest.submitter_id == current_user.user_id,
+                    cc_exists
+                ))
+            except Exception:
+                # 兜底：如出现异常，则退化为审批人为自己
+                query = query.filter(ReimbursementRequest.approver_id == current_user.user_id)
         else:
             # 默认：审批人为自己
             query = query.filter(ReimbursementRequest.approver_id == current_user.user_id)
     # 时间筛选
     from datetime import datetime, timedelta
+    # 财务/管理员在 todo、done 分类下使用 updated_at，以便包含转交等最新变更
+    use_updated = (role in ['FINANCE', 'ADMIN']) and (category in ['todo', 'done'])
+    date_field = ReimbursementRequest.updated_at if use_updated else ReimbursementRequest.created_at
     if time_range == '24h':
         begin = datetime.now() - timedelta(days=1)
-        query = query.filter(ReimbursementRequest.created_at >= begin)
+        query = query.filter(date_field >= begin)
     elif time_range == '7d':
         begin = datetime.now() - timedelta(days=7)
-        query = query.filter(ReimbursementRequest.created_at >= begin)
+        query = query.filter(date_field >= begin)
     elif time_range == '30d':
         begin = datetime.now() - timedelta(days=30)
-        query = query.filter(ReimbursementRequest.created_at >= begin)
+        query = query.filter(date_field >= begin)
     elif time_range == 'custom' and start_date and end_date:
         try:
             begin = datetime.strptime(start_date, '%Y-%m-%d')
             end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
-            query = query.filter(ReimbursementRequest.created_at >= begin, ReimbursementRequest.created_at < end)
+            query = query.filter(date_field >= begin, date_field < end)
         except Exception:
             pass
     requests = query.order_by(ReimbursementRequest.updated_at.desc()).all()
@@ -114,6 +146,42 @@ def create():
             else:
                 store_id = form.store_id.data or None
             approver_id = int(form.approver_id.data) if form.approver_id.data else None
+
+            # 重复提交拦截：同一提交人、同一门店/分类/金额/币种/事由，且提交日期相同
+            try:
+                from datetime import timedelta
+                submit_day = form.submission_date.data
+                if submit_day:
+                    day_begin = datetime.combine(submit_day, datetime.min.time())
+                    day_end = day_begin + timedelta(days=1)
+                else:
+                    # 兜底：以当天作为范围
+                    now_day = datetime.now().date()
+                    day_begin = datetime.combine(now_day, datetime.min.time())
+                    day_end = day_begin + timedelta(days=1)
+                existing = (ReimbursementRequest.query
+                            .filter(
+                    ReimbursementRequest.submitter_id == current_user.user_id,
+                    ReimbursementRequest.store_id.is_(
+                        None) if store_id is None else ReimbursementRequest.store_id == store_id,
+                    ReimbursementRequest.primary_category == form.primary_category.data,
+                    ReimbursementRequest.secondary_category == form.secondary_category.data,
+                    ReimbursementRequest.amount == form.amount.data,
+                    ReimbursementRequest.currency == form.currency.data,
+                    ReimbursementRequest.description == form.reason.data,
+                    ReimbursementRequest.created_at >= day_begin,
+                    ReimbursementRequest.created_at < day_end
+                )
+                            .first())
+                if existing:
+                    flash('当天已存在相同报销申请，请勿重复提交', 'warning')
+                    current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
+                    lang = lang_dict.get(current_lang, lang_dict['zh'])
+                    return render_template('reimbursement/create.html', form=form, lang=lang, current_lang=current_lang)
+            except Exception:
+                # 兜底：任何异常不影响正常提交流程
+                pass
+
             req = ReimbursementRequest(
                 primary_category=form.primary_category.data,
                 secondary_category=form.secondary_category.data,
@@ -128,16 +196,15 @@ def create():
             db.session.add(req)
             db.session.flush()  # 先获取request_id
 
-            # ��理抄送人
+            # 处理抄送人
             cc_recipients_data = form.cc_recipients.data
             cc_emails = []  # 用于收集抄送人邮箱
-            processed_user_ids = set()  # 避免�����添加
+            processed_user_ids = set()  # 避免重复添加
 
             # 首先添加用户手动选择的抄送人
             if cc_recipients_data:
                 try:
-                    import json
-                    cc_user_ids = json.loads(cc_recipients_data)
+                    cc_user_ids = loads(cc_recipients_data)
                     for user_id in cc_user_ids:
                         if user_id and user_id != approver_id and user_id != current_user.user_id:
                             user_id = int(user_id)
@@ -152,14 +219,14 @@ def create():
                                 cc_user = User.query.get(user_id)
                                 if cc_user and cc_user.email:
                                     cc_emails.append(cc_user.email)
-                except (json.JSONDecodeError, ValueError) as e:
+                except (JSONDecodeError, ValueError) as e:
                     logging.warning(f"解析抄送人数据失败: {e}")
 
             # 自动添加默认抄送人
             default_cc_recipients = ReimbursementDefaultCCRecipient.query.filter_by(is_active=True).all()
             for default_cc in default_cc_recipients:
                 user_id = default_cc.user_id
-                # 避免重复添加（���除审批人、申请人和已经手动添加的用户）
+                # 避免重复添加（排除审批人、申请人和已经手动添加的用户）
                 if (user_id != approver_id and
                         user_id != current_user.user_id and
                         user_id not in processed_user_ids):
@@ -185,7 +252,7 @@ def create():
                 if file and file.filename:
                     filename = secure_filename(file.filename)
                     # 防止重名，拼接request_id和时间戳
-                    save_name = f"{req.request_id}_{int(datetime.utcnow().timestamp())}_{filename}"
+                    save_name = f"{req.request_id}_{int(datetime.now().timestamp())}_{filename}"
                     file_path = os.path.join(upload_folder, save_name)
                     file.save(file_path)
                     rel_path = os.path.relpath(file_path, start=current_app.root_path)
@@ -202,14 +269,14 @@ def create():
             db.session.commit()
             logging.info(f"报销申请保存成功: {req}")
 
-            # ���件通知审核人
+            # 邮件通知审核人
             approver = User.query.get(approver_id) if approver_id else None
             if approver and approver.email:
                 subject = "【系统通知】有新的财务报销申请待您审批"
                 body = f"您好，您有一条新的报销申请待审批。申请人：{current_user.real_name or current_user.username}，金额：{form.amount.data} {form.currency.data}。请及时登录系统处理。"
                 send_notify_mail(subject, [approver.email], body)
             else:
-                logging.warning(f"审核人未填写邮箱��无法发送报销通知邮件。审核人ID: {approver_id}")
+                logging.warning(f"审核人未填写邮箱，无法发送报销通知邮件。审核人ID: {approver_id}")
 
             # 邮件通知抄送人
             if cc_emails:
@@ -246,9 +313,13 @@ def detail(request_id):
 @login_required
 def approve(request_id):
     req = ReimbursementRequest.query.get_or_404(request_id)
+    # 已核对不可再修改
+    if getattr(req, 'check_status', None) and str(req.check_status.value) == 'CHECKED':
+        flash('报销单据已核对，不可再修改。', 'warning')
+        return redirect(url_for('reimbursement.detail', request_id=request_id))
     form = ReimbursementApproveForm()
     if form.validate_on_submit():
-        # 直接审批通���，无需status字段
+        # 直接审批通过，无需status字段
         req.status = ReimbursementStatus.APPROVED
         req.approval_comments = form.approval_comments.data
         req.approved_at = datetime.now()
@@ -260,7 +331,7 @@ def approve(request_id):
         for file in files:
             if file and file.filename:
                 filename = secure_filename(file.filename)
-                save_name = f"{req.request_id}_{int(datetime.utcnow().timestamp())}_{filename}"
+                save_name = f"{req.request_id}_{int(datetime.now().timestamp())}_{filename}"
                 file_path = os.path.join(upload_folder, save_name)
                 file.save(file_path)
                 rel_path = os.path.relpath(file_path, start=current_app.root_path)
@@ -298,9 +369,10 @@ def approver_search():
     q = request.args.get('q', '').strip()
     if not q:
         return jsonify([])
+    from app.models.enums import RoleType
     users = User.query.filter(
         User.user_status == 1,
-        User.role.in_(['ADMIN', 'FINANCE']),
+        User.role.in_([RoleType.ADMIN, RoleType.FINANCE]),
         or_(
             User.user_id.like(f"%{q}%"),
             User.username.like(f"%{q}%"),
@@ -376,19 +448,23 @@ def list_all():
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
     query = ReimbursementRequest.query
+
+    # 使用别名，避免双 JOIN users 产生歧义
+    Submitter = aliased(User)
+    Approver = aliased(User)
     if submitter:
-        query = query.join(User, ReimbursementRequest.submitter_id == User.user_id)
+        query = query.join(Submitter, ReimbursementRequest.submitter_id == Submitter.user_id)
         query = query.filter(
-            (User.username.like(f"%{submitter}%")) |
-            (User.real_name.like(f"%{submitter}%")) |
-            (User.employee_number.like(f"%{submitter}%"))
+            (Submitter.username.like(f"%{submitter}%")) |
+            (Submitter.real_name.like(f"%{submitter}%")) |
+            (Submitter.employee_number.like(f"%{submitter}%"))
         )
     if approver:
-        query = query.join(User, ReimbursementRequest.approver_id == User.user_id)
+        query = query.join(Approver, ReimbursementRequest.approver_id == Approver.user_id)
         query = query.filter(
-            (User.username.like(f"%{approver}%")) |
-            (User.real_name.like(f"%{approver}%")) |
-            (User.employee_number.like(f"%{approver}%"))
+            (Approver.username.like(f"%{approver}%")) |
+            (Approver.real_name.like(f"%{approver}%")) |
+            (Approver.employee_number.like(f"%{approver}%"))
         )
     from datetime import datetime, timedelta
     if start_date:
@@ -411,6 +487,10 @@ def list_all():
 @login_required
 def withdraw(request_id):
     req = ReimbursementRequest.query.get_or_404(request_id)
+    # 已核对不可再修改
+    if getattr(req, 'check_status', None) and str(req.check_status.value) == 'CHECKED':
+        flash('报销单据已核对，不可再修改。', 'warning')
+        return redirect(url_for('reimbursement.list_requests'))
     if req.submitter_id != current_user.user_id:
         flash('无权撤回该申请', 'danger')
         return redirect(url_for('reimbursement.list_requests'))
@@ -427,6 +507,10 @@ def withdraw(request_id):
 @login_required
 def edit(request_id):
     req = ReimbursementRequest.query.get_or_404(request_id)
+    # 已核对不可再修改
+    if getattr(req, 'check_status', None) and str(req.check_status.value) == 'CHECKED':
+        flash('报销单据已核对，不可再修改。', 'warning')
+        return redirect(url_for('reimbursement.list_requests'))
     if req.submitter_id != current_user.user_id or req.status != ReimbursementStatus.DRAFT:
         flash('仅本人草稿可编辑', 'danger')
         return redirect(url_for('reimbursement.list_requests'))
@@ -444,7 +528,7 @@ def edit(request_id):
             req.currency = form.currency.data
             req.approver_id = int(form.approver_id.data) if form.approver_id.data else None
             req.status = ReimbursementStatus.PENDING  # 重新提交
-            req.updated_at = datetime.utcnow()
+            req.updated_at = datetime.now()
             # 附件处理略（如需支持编辑附件可补充）
             db.session.commit()
             flash('草稿已提交', 'success')
@@ -461,6 +545,10 @@ def edit(request_id):
 @login_required
 def delete(request_id):
     req = ReimbursementRequest.query.get_or_404(request_id)
+    # 已核对不可再改
+    if getattr(req, 'check_status', None) and str(req.check_status.value) == 'CHECKED':
+        flash('报销单据已核对，不可再修改。', 'warning')
+        return redirect(url_for('reimbursement.list_requests'))
     if req.submitter_id != current_user.user_id or req.status != ReimbursementStatus.DRAFT:
         flash('仅本人草稿可删除', 'danger')
         return redirect(url_for('reimbursement.list_requests'))
@@ -484,28 +572,52 @@ def delete(request_id):
 @login_required
 def transfer_approver(request_id):
     req = ReimbursementRequest.query.get_or_404(request_id)
+    print(
+        f"[transfer] enter: req_id={request_id}, status={getattr(req.status, 'value', req.status)}, approver_id={req.approver_id}, current_user={getattr(current_user, 'user_id', None)}")
+    # 已核对不可再修改
+    if getattr(req, 'check_status', None) and str(req.check_status.value) == 'CHECKED':
+        print("[transfer] blocked: CHECKED")
+        flash('报销单据已核对，不可再修改。', 'warning')
+        return redirect(url_for('reimbursement.list_requests'))
     # 仅待审批且当前用户为审批人才能转交
     if req.status != ReimbursementStatus.PENDING or req.approver_id != current_user.user_id:
+        print(
+            f"[transfer] blocked: status/approver mismatch, status={getattr(req.status, 'value', req.status)}, approver={req.approver_id}, me={current_user.user_id}")
         flash('仅待审批且您为当前审批人时可转交', 'danger')
         return redirect(url_for('reimbursement.list_requests'))
     new_approver_id = request.form.get('new_approver_id')
+    print(f"[transfer] form new_approver_id={new_approver_id}")
     if not new_approver_id:
+        print("[transfer] blocked: missing new_approver_id")
         flash('请选择新的审批人', 'warning')
         return redirect(url_for('reimbursement.list_requests'))
     # 校验新审批人权限
-    new_approver = User.query.get(int(new_approver_id))
-    if not new_approver or new_approver.role.value not in ['FINANCE', 'ADMIN']:
+    try:
+        new_approver = User.query.get(int(new_approver_id))
+    except Exception as e:
+        print(f"[transfer] invalid new_approver_id cast: {e}")
+        new_approver = None
+    if not new_approver or (new_approver.role and new_approver.role.value not in ['FINANCE', 'ADMIN']) is False:
+        pass
+    if not new_approver or new_approver.role is None or new_approver.role.value not in ['FINANCE', 'ADMIN']:
+        print(
+            f"[transfer] blocked: approver role invalid, user={getattr(new_approver, 'user_id', None)}, role={getattr(new_approver.role, 'value', None)}")
         flash('新审批人无审批权限', 'danger')
         return redirect(url_for('reimbursement.list_requests'))
     # 更新审批人
     req.approver_id = new_approver.user_id
+    try:
+        req.updated_at = datetime.now()
+    except Exception:
+        pass
     db.session.commit()
+    print(f"[transfer] success: new approver_id={req.approver_id}")
     # 邮件通知新审批人
     if new_approver.email:
         subject = "【系统通知】有报销申请已转交给您审批"
         body = f"您好，报销申请(ID:{req.request_id})已由 {current_user.real_name or current_user.username} 转交给您。请及时登录系统处理。"
         send_notify_mail(subject, [new_approver.email], body)
-    flash('已成功转交给新审批���', 'success')
+    flash('已成功转交给新审批人', 'success')
     return redirect(url_for('reimbursement.list_requests'))
 
 
@@ -587,12 +699,15 @@ def default_cc_search():
     if not q:
         return jsonify([])
 
-    # 排除已经是默认抄送人的用户
-    existing_user_ids = db.session.query(ReimbursementDefaultCCRecipient.user_id).filter_by(is_active=True).subquery()
+    # 使用 exists 避免 IN 子查询触发的 SAWarning
+    subq = exists().where(
+        (ReimbursementDefaultCCRecipient.user_id == User.user_id) &
+        (ReimbursementDefaultCCRecipient.is_active.is_(True))
+    )
 
     users = User.query.filter(
         User.user_status == 1,  # 只搜索在职用户
-        ~User.user_id.in_(existing_user_ids),  # 排除已经是默认抄送人的用户
+        ~subq,  # 排除已经是默认抄送人的用户
         or_(
             User.user_id.like(f"%{q}%"),
             User.username.like(f"%{q}%"),
@@ -619,3 +734,30 @@ def default_cc_search():
         for u in users
     ]
     return jsonify(result)
+
+
+@bp.route('/<int:request_id>/mark_checked', methods=['POST'])
+@login_required
+def mark_checked(request_id):
+    req = ReimbursementRequest.query.get_or_404(request_id)
+    role = getattr(current_user.role, 'value', None)
+    if role not in ['FINANCE', 'ADMIN']:
+        flash('仅财务/管理员可执行核对操作', 'danger')
+        return redirect(url_for('reimbursement.list_requests'))
+    # 必须已审批通过，且未核对
+    if req.status != ReimbursementStatus.APPROVED:
+        flash('仅已审批通过的报销可标记为已核对', 'warning')
+        return redirect(url_for('reimbursement.list_requests'))
+    if getattr(req, 'check_status', None) and str(req.check_status.value) == 'CHECKED':
+        flash('该报销单据已核对，无需重复操作', 'info')
+        return redirect(url_for('reimbursement.list_requests'))
+    try:
+        from app.models.enums import ReimbursementCheckStatus
+        req.check_status = ReimbursementCheckStatus.CHECKED
+        req.updated_at = datetime.now()
+        db.session.commit()
+        flash('已标记为已核对', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'核对失败: {e}', 'danger')
+    return redirect(url_for('reimbursement.list_requests'))

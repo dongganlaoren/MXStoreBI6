@@ -2,11 +2,11 @@
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 
-from flask import Flask, render_template, g, request, session
+from flask import Flask, render_template, g, request, session, redirect, url_for
 from flask_wtf.csrf import generate_csrf
 from markupsafe import Markup, escape
 
@@ -27,7 +27,7 @@ def nl2br_filter(value: Optional[str]) -> Markup:
 def date_filter(value, fmt="%Y"):
     """自定义Jinja2日期格式化过滤器，支持 'now' 字符串、datetime对象、ISO日期字符串"""
     if value == "now":
-        dt = datetime.utcnow()
+        dt = datetime.now(timezone.utc)
     elif hasattr(value, "strftime"):
         dt = value
     else:
@@ -75,14 +75,14 @@ def create_app(config: object) -> Flask:
     app.jinja_env.filters["nl2br"] = nl2br_filter
     app.jinja_env.filters["strftime"] = strftime_filter  # 注册 strftime 过滤器
 
-    # ��当前时间到模板
+    # 当前时间到模板
     @app.context_processor
     def inject_now():
         """
         向所有模板注入 'now' 变量，其值为当前UTC时间。
         用法：{{ now.year }}
         """
-        return {'now': datetime.utcnow()}
+        return {'now': datetime.now(timezone.utc)}
 
     def inject_lang_dict():
         lang = request.args.get('lang')
@@ -108,12 +108,37 @@ def create_app(config: object) -> Flask:
     # 注册蓝图
     register_blueprints(app)
 
-    # 初始化监控系统
-    init_monitoring(app)
+    # 合并 root 路由：将原 app/views/root_views.py 的逻辑直接注册到应用
+    from flask_login import current_user
 
-    # 注册邮件报告任务 - 注释掉直到我们有调度器实例
-    # with app.app_context():
-    #     register_email_report_tasks()
+    @app.route("/")
+    def root_redirect():
+        """
+        根路径跳转逻辑：
+        - 未登录：重定向到 user.login
+        - 已登录：
+          - 若会话标志 root_render_direct 为 True，则直接渲染 main.index（返回200）
+          - 否则重定向到 main.index（返回302）
+        """
+        if not current_user.is_authenticated:
+            return redirect(url_for("user.login"))
+        if session.get('root_render_direct') is True:
+            view_func = app.view_functions.get('main.index')
+            if view_func:
+                return view_func()
+        return redirect(url_for("main.index"))
+
+    # 仅针对未知路由的 404：无匹配规则时跳转首页；业务内 abort(404) 仍返回 404
+    @app.errorhandler(404)
+    def _handle_404(e):
+        try:
+            # 未匹配到任何规则（如用户输入不存在的URL）时重定向到首页
+            if request.url_rule is None:
+                return redirect(url_for('main.index'))
+        except Exception:
+            pass
+        # 业务内的 404（例如 get_or_404 / abort(404)）按原样返回
+        return render_template('errors/404.html', error=str(e)), 404
 
     return app
 
@@ -127,8 +152,7 @@ def register_blueprints(app: Flask) -> None:
     from app.views.reimbursement_views import bp as reimbursement_bp  # 修正导入名称
     from app.views.admin_user_views import admin_user_bp
     from app.views.email_report_views import email_report_bp
-    from app.views.root_views import root_bp
-    from app.views.monitor_views import monitor_bp
+    # from app.views.root_views import root_bp  # 已合并到 __init__，不再注册蓝图
 
     # 注册蓝图
     app.register_blueprint(main_bp)
@@ -137,36 +161,10 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(reimbursement_bp)
     app.register_blueprint(admin_user_bp)
     app.register_blueprint(email_report_bp)
-    app.register_blueprint(root_bp)
-    app.register_blueprint(monitor_bp)  # 注册监控蓝图
+    # app.register_blueprint(root_bp)
 
 
-def init_monitoring(app: Flask) -> None:
-    """初始化监控系统"""
-    # 设置数据库日志处理器
-    if app.config.get('ENV') == 'production':
-        from app.utils.monitor import DatabaseLogHandler, setup_request_logging
-
-        # 添加数据库日志处理器
-        db_handler = DatabaseLogHandler()
-        db_handler.setLevel(logging.WARNING)  # 只记录WARNING及以上级别的日志到数据库
-        app.logger.addHandler(db_handler)
-
-        # 设置请求日志记录
-        setup_request_logging(app)
-
-        # 启动监控定时任务 - 仅生产环境启动
-        try:
-            from app.utils.scheduler import start_monitoring_tasks
-            start_monitoring_tasks(app)
-            app.logger.info("监控定时任务已启动（仅生产环境）")
-        except Exception as e:
-            app.logger.error(f"启动监控任务失败: {e}")
-    else:
-        app.logger.info("开发/测试环境不启动监控定时任务。如需关闭生产环境监控，请在 .env 设置 MONITORING_ENABLED=False")
-
-
-# -------------------- 日�����配置 --------------------
+# -------------------- 日志配置 --------------------
 def configure_logging(app: Flask):
     """配置日志文件滚动"""
     handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3, encoding='utf-8')

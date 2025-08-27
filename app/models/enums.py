@@ -92,3 +92,11 @@ class ReimbursementStatus(enum.Enum):
     APPROVED = 'APPROVED'
     REJECTED = 'REJECTED'
     DRAFT = 'DRAFT'
+
+
+class ReimbursementCheckStatus(enum.Enum):
+    """
+    报销核对状态
+    """
+    CHECKED = 'CHECKED'  # 已核对
+    UNCHECKED = 'UNCHECKED'  # 未核对

@@ -30,8 +30,7 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     # 员工编号，仅分店长/员工注册时必填
-    employee_number = StringField("员工编号", validators=[Optional()],
-                                  filters=[lambda x: int(x) if x and x.isdigit() else 0])
+    employee_number = StringField("员工编号", validators=[Optional()])
     """
     用户注册表单 (已更新，包含店铺选择)
     """
@@ -50,6 +49,10 @@ class RegistrationForm(FlaskForm):
     # 新增：所属店铺字段。设为 Optional，因为管理组用户不需要选择店铺。
     # 具体的验证逻辑（如“店员必须选店”）将在视图函数中处理。
     store_id = SelectField("所属店铺", choices=[], validators=[Optional()], coerce=str)
+    # 新增：管理员创建用户时使用的可选字段
+    real_name = StringField("真实姓名", validators=[Optional(), Length(max=100)])
+    email = StringField("电子邮箱", validators=[Optional(), Email("请输入有效的邮箱地址"), Length(max=100)])
+    phone = StringField("联系电话", validators=[Optional(), Length(max=50)])
 
     submit = SubmitField("注册")
 
@@ -84,8 +87,21 @@ class RegistrationForm(FlaskForm):
             if not (val.startswith(store_id) and len(val) == len(store_id) + 3 and val[len(store_id):].isdigit()):
                 raise ValidationError('员工编号格式应为"店铺编号+三位序号"，如91001。')
 
-            # 唯一性校验
-            existing_user = User.query.filter_by(employee_number=int(val)).first()
+            # 唯一性校验：优先尝试整串数字，其次尝试后缀三位数字
+            existing_user = None
+            emp_num = None
+            try:
+                if val.isdigit():
+                    emp_num = int(val)
+            except Exception:
+                emp_num = None
+            if emp_num is None:
+                try:
+                    emp_num = int(val[len(store_id):]) if val.startswith(store_id) else None
+                except Exception:
+                    emp_num = None
+            if emp_num is not None:
+                existing_user = User.query.filter_by(employee_number=emp_num).first()
             if existing_user:
                 raise ValidationError('该员工编号已被使用，请换一个序号。')
 
@@ -107,9 +123,13 @@ class RegistrationForm(FlaskForm):
             if not self.store_id.data or self.store_id.data == '':
                 self.store_id.errors.append("该角色必须选择所属店铺")
                 return False
-            # 修正：employee_number 可能为 int 类型，不能直接 .strip()
+            # 修正：employee_number 可能为 int 类型，filters 将空值映射为 0
             emp_num = self.employee_number.data
-            if emp_num is None or (isinstance(emp_num, str) and emp_num.strip() == ''):
+            if (
+                    emp_num is None or
+                    (isinstance(emp_num, str) and emp_num.strip() == '') or
+                    (isinstance(emp_num, int) and emp_num == 0)
+            ):
                 self.employee_number.errors.append("该角色必须填写员工编号")
                 return False
         return True

@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from typing import Any
 
 from apscheduler.triggers.cron import CronTrigger
 from flask import Blueprint, jsonify, request, render_template, redirect, url_for, flash
@@ -80,7 +81,8 @@ def send_report_task(period, roles, app):
             fail_count = 0
             status = EmailTaskStatus.success
             for u in batch_users:
-                app.logger.info(f"[邮件任务] 正在发送: period={period}, user={u.id}, email={u.email}")
+                # 修复：User 主键为 user_id
+                app.logger.info(f"[邮件任务] 正在发送: period={period}, user={u.user_id}, email={u.email}")
                 ok = send_sales_report_mail(period, u.role, u, [u.email])
                 if ok:
                     success_count += 1
@@ -92,8 +94,11 @@ def send_report_task(period, roles, app):
                 status = EmailTaskStatus.fail
             else:
                 status = EmailTaskStatus.success
+            # period -> EmailTaskType 键映射
+            period_map = {'day': 'daily', 'week': 'weekly', 'month': 'monthly'}
+            task_key = period_map.get(period, 'daily')
             log = EmailTaskLog(
-                task_type=EmailTaskType[period if period != 'day' else 'daily'],
+                task_type=EmailTaskType[task_key],
                 start_date=datetime.now().date(),
                 end_date=datetime.now().date(),
                 recipients=','.join(recipients),
@@ -124,7 +129,7 @@ def send_all_reports():
     # 日报
     if branch_user:
         ok = send_sales_report_mail('day', branch_user.role, branch_user, [target_email])
-        results.append({'type': '分���长日报', 'success': ok})
+        results.append({'type': '分店长日报', 'success': ok})
     if admin_user:
         ok = send_sales_report_mail('day', admin_user.role, admin_user, [target_email])
         results.append({'type': '总部日报', 'success': ok})
@@ -153,7 +158,7 @@ def email_report_config():
     from app.models.enums import RoleType
     # 默认角色列表
     role_list = ['ADMIN', 'HEAD_MANAGER', 'FINANCE', 'BRANCH_MANAGER']
-    configs = {r: None for r in role_list}
+    configs: dict[str, EmailReportConfig] = {}
     for r in role_list:
         cfg = EmailReportConfig.query.filter_by(role=RoleType[r]).first()
         if not cfg:
@@ -165,10 +170,9 @@ def email_report_config():
             db.session.add(cfg)
             db.session.commit()
             cfg = EmailReportConfig.query.filter_by(role=RoleType[r]).first()
+        # 保证放入的都是非空 EmailReportConfig
         if cfg is not None:
             configs[r] = cfg
-        else:
-            continue
     if request.method == 'POST':
         action = request.form.get('action', 'save')
         for r in role_list:
@@ -209,11 +213,12 @@ def email_report_config():
             else:
                 status = EmailTaskStatus.success
             # 日志写入（只记录一次，类型为manual）
+            valid_recipients = [r for r in recipients if r]
             log = EmailTaskLog(
                 task_type=EmailTaskType.daily,  # 可选：可用'daily'或'manual'，此处用'daily'保持一致
                 start_date=datetime.now().date(),
                 end_date=datetime.now().date(),
-                recipients=','.join(recipients),
+                recipients=','.join(valid_recipients),
                 status=status,
                 success_count=success_count,
                 fail_count=fail_count
@@ -226,13 +231,11 @@ def email_report_config():
             flash('配置已保存', 'success')
             return redirect(url_for('email_report.email_report_config'))
     # 构造 config 数据结构供模板使用
-    config = {'roles': {r: configs[r].to_dict() for r in role_list if configs.get(r) is not None}}
-    # 构造发送频率及统���周期说明
+    roles_dict = {r: cfg.to_dict() for r, cfg in configs.items()}
+    config: dict[str, Any] = {'roles': roles_dict}
+    # 构造发送频率及统计周期说明
     freq_desc = []
-    for r in role_list:
-        info = configs[r]
-        if not info:
-            continue
+    for r, info in configs.items():
         role_name = r
         # 日报
         if info.daily_enabled:
@@ -241,7 +244,7 @@ def email_report_config():
         # 周报
         if info.weekly_enabled:
             week_map = ['一', '二', '三', '四', '五', '六', '日']
-            week_day = int(info.weekly_day) if info.weekly_day.isdigit() else 1
+            week_day = int(info.weekly_day) if str(info.weekly_day).isdigit() else 1
             freq_desc.append(
                 f"<span style='color:#5470C6;font-weight:600;'>{role_name}周报：</span>每周{week_map[week_day - 1]} {info.weekly_time}发送，统计上一周数据。")
         # 月报

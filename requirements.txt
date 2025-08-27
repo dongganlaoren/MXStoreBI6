@@ -22,3 +22,5 @@ apscheduler
 matplotlib
 pandas
 psutil
+pytest
+pytest-cov
