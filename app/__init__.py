@@ -111,7 +111,7 @@ def create_app(config: object) -> Flask:
         if not lang:
             lang = getattr(g, 'lang', None) or 'zh'
         from app.utils.lang_dict import lang_dict
-        # 设置g.lang��方便后续代码使用
+        # 设置g.lang���方便后续代码使用
         g.lang = lang
         return {'lang_dict': lang_dict.get(lang, lang_dict['zh']), 'current_lang': lang}
 
@@ -170,6 +170,7 @@ def register_blueprints(app: Flask) -> None:
     from app.views.reimbursement_views import bp as reimbursement_bp  # 修正导入名称
     from app.views.admin_user_views import admin_user_bp
     from app.views.email_report_views import email_report_bp
+    from app.views.attendance_views import attendance_bp
     # from app.views.root_views import root_bp  # 已合并到 __init__，不再注册蓝图
 
     # 注册蓝图
@@ -179,10 +180,11 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(reimbursement_bp)
     app.register_blueprint(admin_user_bp)
     app.register_blueprint(email_report_bp)
+    app.register_blueprint(attendance_bp)
     # app.register_blueprint(root_bp)
 
 
-# -------------------- 日志配置 --------------------
+# -------------------- ��志配置 --------------------
 def configure_logging(app: Flask):
     """配置日志文件滚动"""
     handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=3, encoding='utf-8')

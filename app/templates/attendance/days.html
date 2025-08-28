@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}出勤天数{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h3 class="mb-3">出勤天数查询</h3>
+    <form method="get" class="row g-3 align-items-end mb-3">
+        <div class="col-md-3">
+            <label class="form-label">开始日期</label>
+            <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">结束日期</label>
+            <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+        </div>
+        {% if current_user.role and current_user.role.name in ['ADMIN','FINANCE','HEAD_MANAGER'] %}
+        <div class="col-md-3">
+            <label class="form-label">用户ID（可选）</label>
+            <input type="number" name="user_id" value="{{ user_id }}" class="form-control" placeholder="默认当前用户">
+        </div>
+        {% endif %}
+        <div class="col-md-3">
+            <button class="btn btn-primary" type="submit">查询</button>
+            <a class="btn btn-outline-secondary" href="{{ url_for('attendance.records') }}">查看打卡记录</a>
+        </div>
+    </form>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">统计结果</h5>
+            <p class="mb-2">区间：<strong>{{ start_date }}</strong> 至 <strong>{{ end_date }}</strong></p>
+            <p class="mb-3">总出勤天数（>= 9 小时）：<span class="badge bg-success fs-6">{{ result.total_days }}</span></p>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>有效工时（小时）</th>
+                        <th>是否计为出勤</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for d in result.details %}
+                    <tr>
+                        <td>{{ d.date }}</td>
+                        <td>{{ '%.2f' % d.hours }}</td>
+                        <td>
+                            {% if d.is_count %}
+                            <span class="badge bg-success">是</span>
+                            {% else %}
+                            <span class="badge bg-secondary">否</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,151 @@
+考勤打卡 API 文档
+
+最后更新：2025-08-28
+适用系统：MXStoreBI Flask 后端
+基地址（示例）：http://127.0.0.1:5000
+
+一、概述
+- 本文档说明“员工打卡”与“出勤天数查询”相关 API。
+- 面向前端/H5/第三方（如 LINE 机器人）调用。
+- 当前未启用强制鉴权，建议生产启用 X-API-Key 或签名校验（见“安全建议”）。
+
+公共约定
+- Content-Type：application/json
+- 时间格式：ISO8601（示例：2025-08-28T09:00:00 或 2025-08-28T09:00:00+07:00）
+- action 枚举：CLOCK_IN（上班）、CLOCK_OUT（下班）
+- source：由后端自动识别（LINE 或 API 或 WEB）
+- 经纬度：latitude（纬度）、longitude（经度），单位：十进制度
+
+二、打卡接口
+1. 创建打卡记录
+- 方法：POST
+- 路径：/attendance/api/punch
+- 说明：记录员工上/下班打卡；当前接口不接收照片（仅 Web 端支持上传照片）。
+
+请求参数（JSON）
+- user_id：int，可选；与 line_id 二选一，若同时提供优先使用 user_id
+- line_id：string，可选；与 user_id 二选一；将通过 users.line_id 匹配用户
+- action：string，必填；CLOCK_IN | CLOCK_OUT
+- timestamp：string，可选；ISO8601；不传则采用服务器当前时间
+- latitude：number，可选；纬度
+- longitude：number，可选；经度
+- location_name：string，可选；位置描述
+- notes：string，可选；备注
+
+请求示例（使用 user_id）
+curl -sS -X POST "http://127.0.0.1:5000/attendance/api/punch" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "user_id": 1,
+        "action": "CLOCK_IN",
+        "timestamp": "2025-08-28T09:00:00",
+        "latitude": 13.7563,
+        "longitude": 100.5018,
+        "location_name": "门店前台",
+        "notes": "早班"
+      }'
+
+请求示例（使用 line_id）
+curl -sS -X POST "http://127.0.0.1:5000/attendance/api/punch" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "line_id": "Uxxxxxxxx",
+        "action": "CLOCK_OUT",
+        "timestamp": "2025-08-28T18:30:00"
+      }'
+
+成功响应（200）
+{
+  "ok": true,
+  "data": {
+    "id": 123,
+    "user_id": 1,
+    "store_id": "RS1",
+    "action": "CLOCK_IN",
+    "source": "LINE" 或 "API",
+    "timestamp": "2025-08-28T09:00:00",
+    "latitude": 13.7563,
+    "longitude": 100.5018,
+    "location_name": "门店前台",
+    "photo_path": null,
+    "notes": "早班",
+    "created_at": "2025-08-28T09:00:01"
+  }
+}
+
+失败响应
+- 400 Bad Request：参数错误（如 action 取值无效）
+  {"ok": false, "error": "action 无效"}
+- 404 Not Found：用户不存在
+  {"ok": false, "error": "用户不存在"}
+
+业务规则与说明
+- user_id 与 line_id 至少提供一个；若同时提供，优先使用 user_id
+- timestamp 不传时采用服务器时间；解析失败会忽略并使用服务器时间
+- 本 API 不接收照片；如需照片请走 Web 端打卡页 /attendance/punch
+
+三、出勤天数查询接口
+说明：用于统计某用户在时间区间内的“出勤天数”。规则为：同一天内取“最早上班(CLOCK_IN)”与“最晚下班(CLOCK_OUT)”的时间跨度，若跨度 ≥ 9 小时，计为 1 天；否则 0 天；缺少成对打卡视为 0 小时。
+
+1. 查询出勤天数（GET/POST）
+- 路径：/attendance/api/days
+- 方法：GET 或 POST（POST 使用 JSON）
+
+请求参数
+- user_id：int，推荐传；若有登录态且为员工/分店长则固定查询本人
+- start_date：YYYY-MM-DD，可选；默认当月第一天
+- end_date：YYYY-MM-DD，可选；默认当天
+
+请求示例（POST JSON）
+curl -sS -X POST "http://127.0.0.1:5000/attendance/api/days" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "user_id": 1,
+        "start_date": "2025-08-01",
+        "end_date": "2025-08-31"
+      }'
+
+成功响应（200）
+{
+  "ok": true,
+  "data": {
+    "total_days": 12,
+    "details": [
+      {"date": "2025-08-01", "hours": 9.25, "is_count": true},
+      {"date": "2025-08-02", "hours": 8.50, "is_count": false}
+    ]
+  }
+}
+
+失败响应
+- 400 Bad Request：缺少 user_id 且无登录态
+  {"ok": false, "error": "user_id 必填或请先登录"}
+
+权限说明
+- 员工/分店长：仅能查询本人数据
+- 管理员/财务/总店长：可查询任意 user_id
+
+四、状态码约定
+- 200：成功
+- 400：参数或业务校验失败
+- 404：资源不存在（如用户不存在）
+- 5xx：服务器内部错误
+
+五、调试与排错
+- 确认 Content-Type: application/json
+- 确认用户存在（user_id 或 line_id）
+- 时间使用 ISO8601；若携带时区，后端按该时区解析
+- 查看服务器日志：tail -f app.log
+- Web 验证页面：
+  - 打卡记录：/attendance/records
+  - 出勤天数：/attendance/days
+
+六、安全建议（生产）
+- 在请求头携带 X-API-Key 并在后端校验
+- 或增加签名参数（timestamp + nonce + body 哈希 + HMAC）防重放
+- 结合网关限流与 IP 白名单
+
+七、变更历史
+- 2025-08-28：首次发布
+- 出勤判定：每天 ≥ 9 小时计 1 天
+

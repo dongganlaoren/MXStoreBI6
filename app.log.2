@@ -1,0 +1,76 @@
+2025-08-27 16:24:39,181 - app - WARNING - 销售报表邮件未发送：day RoleType.ADMIN 数据不完整
+2025-08-27 16:24:56,612 - app - WARNING - 销售报表邮件未发送：day RoleType.ADMIN 数据不完整
+2025-08-27 16:45:21,814 - app - WARNING - 销售报表邮件未发送：day RoleType.ADMIN 数据不完整
+2025-08-27 16:45:33,057 - app - INFO - 邮件已提交异步发送队列 subject=【销售日报】2025-08-26 汇总信息（筛选） recipients=1
+2025-08-27 16:45:35,494 - app - ERROR - 异步邮件发送失败: (535, b'Error: authentication failed')
+2025-08-27 17:25:23,820 - app - INFO - 邮件已提交异步发送队列 subject=【销售周报】2025-08-18 ~ 2025-08-24 汇总信息（筛选） recipients=2
+2025-08-27 17:25:29,274 - app - ERROR - 异步邮件发送失败: (535, b'Error: authentication failed')
+2025-08-27 17:43:19,274 - app - INFO - 邮件已提交异步发送队列 subject=【销售周报】2025-08-18 ~ 2025-08-24 汇总信息（筛选） recipients=1
+2025-08-27 17:43:28,424 - app - ERROR - 异步邮件发送失败: (535, b'Error: authentication failed')
+2025-08-27 17:43:56,882 - app - ERROR - SMTP自检失败: (535, b'Error: authentication failed')
+2025-08-27 17:49:15,938 - app - INFO - 邮件已提交异步发送队列 subject=【销售周报】2025-08-18 ~ 2025-08-24 汇总信息（筛选） recipients=1
+2025-08-27 17:49:18,528 - app - ERROR - 异步邮件发送失败: {'': (550, b'Invalid User:')}
+2025-08-27 17:52:19,261 - app - INFO - 邮件已提交异步发送队列 subject=【销售日报】2025-08-24 ~ 2025-08-25 汇总信息（筛选） recipients=1
+2025-08-27 18:14:34,220 - app - INFO - [附件模型] 查询凭证: id=None, 类型=None
+2025-08-27 18:14:34,227 - app - INFO - 邮件同步发送成功 subject=S recipients=1
+2025-08-27 18:14:34,229 - app - INFO - 销售报表邮件发送跳过：无有效收件人 period=day role=RoleType.ADMIN
+2025-08-27 18:14:34,230 - app - WARNING - 销售报表邮件未发送：day RoleType.ADMIN 数据不完整
+2025-08-27 18:14:34,971 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:34,972 - app - INFO - 邮件已提交异步发送队列 subject=【销售日报】2025-08-27 汇总信息 recipients=1
+2025-08-27 18:14:34,977 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:34,978 - app - INFO - 邮件已提交异步发送队列 subject=【销售日报】2025-08-27 汇总信息 recipients=1
+2025-08-27 18:14:34,982 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:34,982 - app - INFO - 邮件已提交异步发送队列 subject=【销售周报】2025-08-27 汇总信息 recipients=1
+2025-08-27 18:14:34,986 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:34,986 - app - INFO - 邮件已提交异步发送队列 subject=【销售周报】2025-08-27 汇总信息 recipients=1
+2025-08-27 18:14:34,990 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:34,990 - app - INFO - 邮件已提交异步发送队列 subject=【销售月报】2025-08-27 汇总信息 recipients=1
+2025-08-27 18:14:34,994 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:34,994 - app - INFO - 邮件已提交异步发送队列 subject=【销售月报】2025-08-27 汇总信息 recipients=1
+2025-08-27 18:14:34,998 - app - INFO - 邮件发送跳过：无有效收件人 subject=subj
+2025-08-27 18:14:35,235 - app - INFO - [邮件任��] 开始执行 send_report_task, period=day, roles=RoleType.ADMIN
+2025-08-27 18:14:35,239 - app - INFO - [邮件任务] 目标用户数量: 2
+2025-08-27 18:14:35,239 - app - INFO - [邮件任务] 正在发送: period=day, user=1, email=admin0@ex.com
+2025-08-27 18:14:35,239 - app - INFO - [邮件任务] 正在发送: period=day, user=2, email=admin1@ex.com
+2025-08-27 18:14:35,243 - app - INFO - [邮件任务] 日志已写入: log_id=1, status=EmailTaskStatus.success, success=2, fail=0
+2025-08-27 18:14:35,583 - app - INFO - [邮件任��] 开始执行 send_report_task, period=week, roles=RoleType.FINANCE
+2025-08-27 18:14:35,584 - app - INFO - [邮件任务] 目标用户数量: 3
+2025-08-27 18:14:35,584 - app - INFO - [邮件任务] 正在发送: period=week, user=1, email=finance0@ex.com
+2025-08-27 18:14:35,584 - app - INFO - [邮件任务] 正在发送: period=week, user=2, email=finance1@ex.com
+2025-08-27 18:14:35,584 - app - INFO - [邮件任务] 正在发送: period=week, user=3, email=finance2@ex.com
+2025-08-27 18:14:35,587 - app - INFO - [邮件任务] 日志已写入: log_id=1, status=EmailTaskStatus.partial_fail, success=2, fail=1
+2025-08-27 18:14:35,812 - app - INFO - [邮件任��] 开始执行 send_report_task, period=month, roles=RoleType.HEAD_MANAGER
+2025-08-27 18:14:35,813 - app - INFO - [邮件任务] 目标用户数量: 2
+2025-08-27 18:14:35,814 - app - INFO - [邮件任务] 正在发送: period=month, user=1, email=head_manager0@ex.com
+2025-08-27 18:14:35,814 - app - INFO - [邮件任务] 正在发送: period=month, user=2, email=head_manager1@ex.com
+2025-08-27 18:14:35,815 - app - INFO - [邮件任务] 日志已写入: log_id=1, status=EmailTaskStatus.fail, success=0, fail=2
+2025-08-27 18:14:37,048 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:37,048 - app - INFO - 邮件已提交异步发送队列 subject=【系统通知】有新的财务报销申请待您审批 recipients=1
+2025-08-27 18:14:41,104 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:41,104 - app - INFO - 邮件已提交异步发送队列 subject=【系统通知】有新的财务报销申请待您审批 recipients=1
+2025-08-27 18:14:42,034 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:42,034 - app - INFO - 邮件已提交异步发送队列 subject=【系统通知】您的财务报销申请已审批通过 recipients=1
+2025-08-27 18:14:42,181 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:42,181 - app - INFO - 邮件已提交异步发送队列 subject=【系统通知】有报销申请已转交给您审批 recipients=1
+2025-08-27 18:14:42,996 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:42,997 - app - INFO - 邮件已提交异步发送队列 subject=【系统通知】有新的财务报销申请待您审批 recipients=1
+2025-08-27 18:14:46,601 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:46,601 - app - INFO - 邮件已提交异步发送队列 subject=【系统通知】有新的财务报销申请待您审批 recipients=1
+2025-08-27 18:14:47,599 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:47,599 - app - INFO - 邮件已提交异步发送队列 subject=【系统通知】有报销申请已转交给您审批 recipients=1
+2025-08-27 18:14:48,239 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:48,239 - app - INFO - 邮件已提交异步发送队列 subject=【系统通知】有报销申请已转交给您审批 recipients=1
+2025-08-27 18:14:48,836 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:14:48,837 - app - INFO - 邮件已提交异步发送队列 subject=【系统通知】您的财务报销申请已审批通过 recipients=1
+2025-08-27 18:15:00,208 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 18:15:00,208 - app - INFO - 邮件已提交异步发送队列 subject=【系统通知】有新的财务报销申请待您审批 recipients=1
+2025-08-27 18:15:06,160 - app - ERROR - 加载首页时发生错误: type object '_DummyStore' has no attribute 'store_id'
+2025-08-27 18:18:56,012 - app - INFO - 邮件已提交异步发送队列 subject=【销售日报】2025-08-01 ~ 2025-08-26 汇总信息（筛选） recipients=2
+2025-08-27 18:20:46,854 - app - WARNING - 销售报表邮件未发送：day RoleType.ADMIN 数据不完整
+2025-08-27 18:20:46,955 - app - WARNING - 销售报表邮件未发送：day RoleType.HEAD_MANAGER 数据不完整
+2025-08-27 18:22:11,456 - app - INFO - 邮件已提交异步发送队列 subject=【销售日报】2025-08-26 汇总信息（筛选） recipients=1
+2025-08-27 18:22:11,490 - app - INFO - 邮件已提交异步发送队列 subject=【销售日报】2025-08-26 汇总信息（筛选） recipients=1
+2025-08-27 23:15:08,839 - app - INFO - 邮件已提交异步发送队列 subject=【销售日报】2025-08-27 汇总信息 recipients=1
+2025-08-27 23:16:36,320 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured
+2025-08-27 23:16:36,320 - app - INFO - 邮件已提交异步发送队列 subject=【销售日报】2025-08-27 汇总信息 recipients=1
+2025-08-27 23:16:36,327 - app - ERROR - 异步邮件发送失败: The message does not specify a sender and a default sender has not been configured

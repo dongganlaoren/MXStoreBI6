@@ -35,6 +35,9 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
 
+    # 文件上传目录（供考勤打卡等上传使用）
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'app/static/uploads')
+
     # 监控系统配置
     MONITORING_ENABLED = os.environ.get('MONITORING_ENABLED', 'True') == 'True'
     MONITORING_DATA_RETENTION_DAYS = int(os.environ.get('MONITORING_DATA_RETENTION_DAYS', 30))

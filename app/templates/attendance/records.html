@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}考勤记录{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h3 class="mb-3">考勤记录</h3>
+    <div class="mb-3">
+        <a href="{{ url_for('attendance.punch') }}" class="btn btn-primary">去打卡</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>用户</th>
+                <th>店铺</th>
+                <th>动作</th>
+                <th>来源</th>
+                <th>时间</th>
+                <th>位置</th>
+                <th>照片</th>
+                <th>备注</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for r in pager.items %}
+            <tr>
+                <td>{{ r.id }}</td>
+                <td>{{ r.user_id }}</td>
+                <td>{{ r.store_id or '-' }}</td>
+                <td>{{ r.action.value if r.action else '-' }}</td>
+                <td>{{ r.source.value if r.source else '-' }}</td>
+                <td>{{ r.timestamp|strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>
+                    {% if r.location_name %}{{ r.location_name }}<br>{% endif %}
+                    {% if r.latitude and r.longitude %}({{ '%.6f' % r.latitude }}, {{ '%.6f' % r.longitude }}){% endif
+                    %}
+                </td>
+                <td>
+                    {% if r.photo_path %}
+                    <img src="/static/{{ r.photo_path }}" alt="photo"
+                         style="height:48px;object-fit:cover;border-radius:6px;">
+                    {% else %}-{% endif %}
+                </td>
+                <td>{{ r.notes or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" class="text-center text-muted">暂无记录</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if pager.pages > 1 %}
+    <nav>
+        <ul class="pagination">
+            <li class="page-item {% if not pager.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ pager.prev_num }}">上一页</a>
+            </li>
+            <li class="page-item disabled"><span class="page-link">{{ pager.page }}/{{ pager.pages }}</span></li>
+            <li class="page-item {% if not pager.has_next %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ pager.next_num }}">下一页</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
