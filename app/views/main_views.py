@@ -53,7 +53,8 @@ def index():
                 ).scalar()
                 has_t1 = t1_count > 0
             # 本月累计
-            t0 = db.session.query(func.sum(DailySales.pos_total)).filter(
+            t0 = db.session.query(
+                func.sum(func.coalesce(DailySales.pos_total, 0) + func.coalesce(DailySales.takeaway_amount, 0))).filter(
                 DailySales.store_id == store.store_id,
                 DailySales.report_date >= first_day_of_month,
                 DailySales.financial_check_status == FinancialCheckStatus.APPROVED
@@ -89,7 +90,7 @@ def index():
             reports = []
             for d in reversed(last_7_days):
                 day_data = db.session.query(
-                    func.sum(DailySales.pos_total),
+                    func.sum(func.coalesce(DailySales.pos_total, 0) + func.coalesce(DailySales.takeaway_amount, 0)),
                     func.sum(DailySales.takeaway_amount) if has_t1 else None,
                     func.sum(DailySales.actual_sales),
                     func.sum(DailySales.total_error)

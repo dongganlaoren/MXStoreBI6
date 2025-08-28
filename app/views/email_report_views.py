@@ -39,7 +39,7 @@ def register_email_report_tasks(scheduler, app):
         id='admin_finance_daily_report',
         replace_existing=True
     )
-    # 周���任务
+    # 周���������任务
     scheduler.add_job(
         func=lambda: send_report_task('week', RoleType.BRANCH_MANAGER, app),
         trigger=CronTrigger(day_of_week='mon', hour=10, minute=0),
@@ -72,7 +72,7 @@ def send_report_task(period, roles, app):
     定时发送销售报表任务（支持分角色、分批、错误重试、日志记录）
     """
     with app.app_context():
-        app.logger.info(f"[邮件任务] 开始执行 send_report_task, period={period}, roles={roles}")
+        app.logger.info(f"[邮��任务] 开始执行 send_report_task, period={period}, roles={roles}")
         if not isinstance(roles, list):
             roles = [roles]
         users = User.query.filter(User.role.in_(roles)).all()
@@ -275,7 +275,7 @@ def sales_reports_center(period: str):
     """
     报表中心：展示销售日报/周报/月报汇总（按店铺聚合），并提供发送按钮。
     - period in {daily, weekly, monthly}
-    权限：仅管理员与财务可访问；店长/总店长/店员不可访问。
+    权限：仅管理员与财务可访问；店长/总店长/店���不可访问。
     """
     # 权限限制：仅管理员与财务可访问
     if current_user.role not in (RoleType.ADMIN, RoleType.FINANCE):
@@ -326,7 +326,7 @@ def sales_reports_center(period: str):
         default_start = date(last_month.year, last_month.month, 1)
         default_end = date(last_month.year, last_month.month, last_month.day)
 
-    # 若提供了日期/店铺筛选，采用宽松聚合路径
+    # 若提供了日期/店铺筛选，采用���松聚合路径
     start_date_sel = parse_date_safe(start_date_arg) or default_start
     end_date_sel = parse_date_safe(end_date_arg) or default_end
     filtered = bool(store_id_arg or start_date_arg or end_date_arg)
@@ -356,7 +356,7 @@ def sales_reports_center(period: str):
             start_date_sel, end_date_sel = default_start, default_end
     # 宽松聚合：当筛选存在或上一步数据不完整
     if filtered or total_data is None:
-        # 门店范围（管理员/财务：全部门店；可选店铺筛选）
+        # 门店范围（管理员/财务：全部门店；可��店铺筛选）
         store_query = Store.query
         if store_id_arg:
             store_query = store_query.filter(Store.store_id == store_id_arg)
@@ -365,7 +365,8 @@ def sales_reports_center(period: str):
         # 聚合查询（可选按店铺筛选，不强制所有门店都有数据）
         rows_q = db.session.query(
             DailySales.store_id,
-            func.sum(DailySales.theoretical_total).label('theory_sales'),
+            func.sum(func.coalesce(DailySales.pos_total, 0) + func.coalesce(DailySales.takeaway_amount, 0)).label(
+                'theory_sales'),
             func.sum(DailySales.takeaway_amount).label('takeaway'),
             func.sum(DailySales.actual_sales).label('actual_sales'),
             func.sum(DailySales.total_error).label('error')
@@ -521,7 +522,7 @@ def send_report_custom():
         recipients_raw = request.form.get('recipients', '')
         recipients = [x.strip() for x in recipients_raw.replace(';', ',').split(',') if x.strip()]
         if not recipients:
-            flash('请填写至少一个收件人邮箱', 'warning')
+            flash('���填写至少一个收件人邮箱', 'warning')
             back = {'day': 'daily', 'week': 'weekly', 'month': 'monthly'}[p]
             return redirect(url_for('email_report.sales_reports_center', period=back))
         ok = send_sales_report_mail(p, current_user.role, current_user, recipients)
@@ -537,7 +538,7 @@ def send_report_custom():
 def preview_report_html():
     # 权限限制
     if current_user.role not in (RoleType.ADMIN, RoleType.FINANCE):
-        return Response('无权限', status=403)
+        return Response('无权���', status=403)
 
     p = request.args.get('period', 'day')
     if p not in ('day', 'week', 'month'):
@@ -582,7 +583,8 @@ def preview_report_html():
     sales_rows = db.session.query(
         DailySales.store_id,
         DailySales.report_date,
-        db.func.sum(DailySales.theoretical_total).label('theory_sales'),
+        db.func.sum(db.func.coalesce(DailySales.pos_total, 0) + db.func.coalesce(DailySales.takeaway_amount, 0)).label(
+            'theory_sales'),
         db.func.sum(DailySales.takeaway_amount).label('takeaway'),
         db.func.sum(DailySales.actual_sales).label('actual_sales'),
         db.func.sum(DailySales.total_error).label('error')
@@ -618,7 +620,7 @@ def preview_report_html():
     prev_end = start_date_sel - timedelta(days=1)
     prev_start = prev_end - timedelta(days=span_days - 1)
     last_total_theory = db.session.query(
-        db.func.sum(DailySales.theoretical_total)
+        db.func.sum(db.func.coalesce(DailySales.pos_total, 0) + db.func.coalesce(DailySales.takeaway_amount, 0))
     ).filter(
         DailySales.report_date >= prev_start,
         DailySales.report_date <= prev_end,
@@ -694,7 +696,8 @@ def send_report_by_filters():
     sales_rows = db.session.query(
         DailySales.store_id,
         DailySales.report_date,
-        db.func.sum(DailySales.theoretical_total).label('theory_sales'),
+        db.func.sum(db.func.coalesce(DailySales.pos_total, 0) + db.func.coalesce(DailySales.takeaway_amount, 0)).label(
+            'theory_sales'),
         db.func.sum(DailySales.takeaway_amount).label('takeaway'),
         db.func.sum(DailySales.actual_sales).label('actual_sales'),
         db.func.sum(DailySales.total_error).label('error')
@@ -730,7 +733,7 @@ def send_report_by_filters():
     prev_end = start_date_sel - timedelta(days=1)
     prev_start = prev_end - timedelta(days=span_days - 1)
     last_total_theory = db.session.query(
-        db.func.sum(DailySales.theoretical_total)
+        db.func.sum(db.func.coalesce(DailySales.pos_total, 0) + db.func.coalesce(DailySales.takeaway_amount, 0))
     ).filter(
         DailySales.report_date >= prev_start,
         DailySales.report_date <= prev_end,

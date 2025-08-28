@@ -14,7 +14,7 @@ from app.models import DailySales, Store, FinancialCheckStatus, RoleType, BankDe
 sales_manage_bp = Blueprint('sales_manage', __name__)
 
 
-# 营业信息管理列表
+# 营业信息��理列表
 @sales_manage_bp.route('/manage/list', methods=['GET'])
 @login_required
 def manage_list():
@@ -192,13 +192,28 @@ def manage_check_edit(report_id):
     if form.validate_on_submit():
         changed = False
         change_logs = []
+        from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+
+        def parse_to_float4(val: str):
+            if val is None:
+                return None
+            s = val.strip()
+            if s == '':
+                return None
+            # 去掉千分位逗号
+            s = s.replace(',', '')
+            try:
+                dec = Decimal(s)
+            except InvalidOperation:
+                return None
+            # 四舍五入到4位小数，内部计算更精确
+            dec = dec.quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
+            return float(dec)
+
         for field in editable_fields:
             old_value = getattr(daily_sales, field, None)
-            new_value = request.form.get(field, None)
-            try:
-                new_value = float(new_value) if new_value is not None and new_value != '' else None
-            except Exception:
-                new_value = None
+            raw = request.form.get(field, None)
+            new_value = parse_to_float4(raw)
             if old_value != new_value and new_value is not None:
                 reason = request.form.get(f'remark_{field}', '')
                 if not reason:
