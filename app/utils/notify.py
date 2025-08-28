@@ -154,7 +154,8 @@ def query_sales_reports(period: str, role: RoleType, user: User):
     sales_rows = db.session.query(
         DailySales.store_id,
         DailySales.report_date,
-        db.func.sum(DailySales.theoretical_total).label('theory_sales'),
+        db.func.sum(db.func.coalesce(DailySales.pos_total, 0) + db.func.coalesce(DailySales.takeaway_amount, 0)).label(
+            'theory_sales'),
         db.func.sum(DailySales.takeaway_amount).label('takeaway'),
         db.func.sum(DailySales.actual_sales).label('actual_sales'),
         db.func.sum(DailySales.total_error).label('error')
@@ -240,7 +241,7 @@ def render_sales_report_html(period: str, report_data: list, total_data: dict, p
             table_html = "<div class='text-muted'>暂无销售明细数据</div>"
     elif period in ['week', 'month']:
         title = f"销售{'周报' if period == 'week' else '月报'}"
-        main_info = f"<div style='font-size:1.1rem;font-weight:bold;color:#5470C6;margin-bottom:10px;'>本{'周' if period == 'week' else '月'}总营业额：฿{total_data['total_theory']:,.2f}</div>"
+        main_info = f"<div style='font-size:1.1rem;font-weight:bold;color:#5470C6;margin-bottom:10px;'>本{'周' if period == 'week' else '月'}总营业额：���{total_data['total_theory']:,.2f}</div>"
         main_info += f"<div style='font-size:1.1rem;font-weight:bold;color:#d43f3a;margin-bottom:10px;'>本{'周' if period == 'week' else '月'}���实际到账：฿{total_data['total_actual']:,.2f}</div>"
         main_info += f"<div style='font-size:1.1rem;font-weight:bold;color:#198754;margin-bottom:10px;'>营业额环比增长：฿{total_data['theory_diff']:,.2f}</div>"
         table_title = "销售明细表"
