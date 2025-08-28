@@ -8,7 +8,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="period" value="{{ period }}">
                 <button type="submit" class="btn btn-success">
-                    <i class="bi bi-send-fill me-1"></i>手动发送到我的邮箱
+                    <i class="bi bi-send-fill me-1"></i>发送邮件
                 </button>
             </form>
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="collapse"
@@ -44,8 +44,10 @@
             <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-search me-1"></i>查询</button>
             <a class="btn btn-secondary"
                href="{{ url_for('email_report.sales_reports_center', period=('daily' if period=='day' else ('weekly' if period=='week' else 'monthly'))) }}">重置</a>
+            {% if current_user.role and current_user.role.name in ['ADMIN','FINANCE'] %}
             <button type="button" id="btnPreview" class="btn btn-outline-info"><i class="bi bi-eye-fill me-1"></i>预览
             </button>
+            {% endif %}
         </div>
     </form>
 
@@ -268,7 +270,7 @@
         }
       });
 
-      // 预览
+      // 预览（仅当按钮存在时启用）
       const btnPreview = document.getElementById('btnPreview');
       btnPreview?.addEventListener('click', async function(){
         try{

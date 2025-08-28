@@ -39,7 +39,7 @@ def register_email_report_tasks(scheduler, app):
         id='admin_finance_daily_report',
         replace_existing=True
     )
-    # 周�����任务
+    # 周���任务
     scheduler.add_job(
         func=lambda: send_report_task('week', RoleType.BRANCH_MANAGER, app),
         trigger=CronTrigger(day_of_week='mon', hour=10, minute=0),
@@ -72,7 +72,7 @@ def send_report_task(period, roles, app):
     定时发送销售报表任务（支持分角色、分批、错误重试、日志记录）
     """
     with app.app_context():
-        app.logger.info(f"[邮件任��] 开始执行 send_report_task, period={period}, roles={roles}")
+        app.logger.info(f"[邮件任务] 开始执行 send_report_task, period={period}, roles={roles}")
         if not isinstance(roles, list):
             roles = [roles]
         users = User.query.filter(User.role.in_(roles)).all()
@@ -244,7 +244,7 @@ def email_report_config():
         # 日报
         if info.daily_enabled:
             freq_desc.append(
-                f"<span style='color:#5470C6;font-weight:600;'>{role_name}日报：</span>每天{info.daily_time}发送���统计前一天数据。")
+                f"<span style='color:#5470C6;font-weight:600;'>{role_name}日报：</span>每天{info.daily_time}发送，统计前一天数据。")
         # 周报
         if info.weekly_enabled:
             week_map = ['一', '二', '三', '四', '五', '六', '日']
@@ -273,11 +273,11 @@ def email_report_log_list():
 @login_required
 def sales_reports_center(period: str):
     """
-    报表中心：展示销售日报/周报/月报汇总（按店铺聚合），并提供手动发送按钮。
+    报表中心：展示销售日报/周报/月报汇总（按店铺聚合），并提供发送按钮。
     - period in {daily, weekly, monthly}
-    新增：查询筛选（店铺、日期范围），并在数据不完整时采用宽松聚合���示。
+    权限：仅管理员与财务可访问；店长/总店长/店员不可访问。
     """
-    # 权限限制：仅���理员与财务可访问
+    # 权限限制：仅管理员与财务可访问
     if current_user.role not in (RoleType.ADMIN, RoleType.FINANCE):
         flash('无权限访问报表中心', 'warning')
         return redirect(url_for('main.index'))
@@ -356,7 +356,7 @@ def sales_reports_center(period: str):
             start_date_sel, end_date_sel = default_start, default_end
     # 宽松聚合：当筛选存在或上一步数据不完整
     if filtered or total_data is None:
-        # 门店范围（管理员/财务：全部门店，可选筛选某店）
+        # 门店范围（管理员/财务：全部门店；可选店铺筛选）
         store_query = Store.query
         if store_id_arg:
             store_query = store_query.filter(Store.store_id == store_id_arg)
@@ -401,7 +401,7 @@ def sales_reports_center(period: str):
 
         period_str, last_period_str = format_period_str(start_date_sel, end_date_sel, p)
 
-    # 将 report_data 聚合为“按店铺”的汇总（无论 report_data 是否按日期）
+    # 将 report_data 聚合为“按店铺”的汇总
     per_store = {}
     for r in (report_data or []):
         sid = r.get('store_id') or r.get('store', '')
@@ -416,11 +416,11 @@ def sales_reports_center(period: str):
     rows = [{
         'store_id': sid,
         'store_name': store_map.get(sid, sid),
-        'theory_sales': agg['theory_sales'],
-        'actual_sales': agg['actual_sales'],
-        'takeaway': agg['takeaway'],
-        'error': agg['error']
-    } for sid, agg in per_store.items()]
+        'theory_sales': per_store[sid]['theory_sales'],
+        'actual_sales': per_store[sid]['actual_sales'],
+        'takeaway': per_store[sid]['takeaway'],
+        'error': per_store[sid]['error']
+    } for sid in per_store.keys()]
 
     rows.sort(key=lambda x: x['theory_sales'], reverse=True)
 
@@ -450,7 +450,8 @@ def sales_reports_center(period: str):
 @login_required
 def send_report_now():
     """
-    从报表���心手动发送当前周期报表到当前用户邮箱。
+    从报表中心手动发送当前周期报表到当前用户邮箱。
+    权限：仅管理员与财务可触发；其它角色不可触发。
     """
     # 权限限制：仅管理员与财务可触发
     if current_user.role not in (RoleType.ADMIN, RoleType.FINANCE):
@@ -514,7 +515,7 @@ def send_report_custom():
         elif fail_count and not success_count:
             flash('发送失败，请稍后重试', 'danger')
         else:
-            flash(f'发���成功，共{success_count}封', 'success')
+            flash(f'发送成功，共{success_count}封', 'success')
     else:
         # 指定收件人
         recipients_raw = request.form.get('recipients', '')
@@ -612,7 +613,7 @@ def preview_report_html():
         total_theory += float(row.theory_sales or 0)
         total_takeaway += float(row.takeaway or 0)
 
-    # 计算环比区间并统计理论营业额用于差值
+    # 计算环比区间并计算理论营业额用于差值
     span_days = (end_date_sel - start_date_sel).days + 1
     prev_end = start_date_sel - timedelta(days=1)
     prev_start = prev_end - timedelta(days=span_days - 1)
