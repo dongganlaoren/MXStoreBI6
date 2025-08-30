@@ -2,6 +2,8 @@
 
 # 从 enums.py 中导出所有的枚举类，方便其他地方统一调用
 from .attachment import DailySalesAttachments
+# 新增：考勤模型导出
+from .attendance import AttendanceRecord
 from .bank_deposit_history import BankDepositHistory
 from .daily_sales import DailySales
 from .email_task_log import EmailTaskLog, EmailTaskType, EmailTaskStatus

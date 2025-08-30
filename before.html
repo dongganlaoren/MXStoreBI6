@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% endblock %} - BI 系统</title>
+    <title>报销申请列表 - BI 系统</title>
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/static/favicon.ico">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -29,7 +29,7 @@
      style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); backdrop-filter: blur(10px);">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center fw-bold fs-4"
-           href="{{ url_for('main.index') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}"
+           href="/home?lang=zh"
            style="color:#fff;letter-spacing:1px;">
             <img src="/static/img/logo.png" alt="LOGO"
                  style="height:45px;width:45px;border-radius:15px;box-shadow:0 4px 15px rgba(255,255,255,0.3);object-fit:cover;margin-right:15px;background:#fff;padding:2px;">
@@ -44,159 +44,87 @@
         </button>
         <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
             <ul class="navbar-nav align-items-center" style="gap:0.3rem;">
-                {% if current_user.is_authenticated %}
+
                 <!-- 主要功能菜单 -->
                 <li class="nav-item">
                     <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2"
-                       href="{{ url_for('main.index') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                       href="/home?lang=zh">
                         <i class="bi bi-house-door-fill"></i>
-                        <span class="menu-text">{{ lang_dict['home'] if lang_dict.get('home') else '首页' }}</span>
+                        <span class="menu-text">首</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2"
-                       href="{{ url_for('sales_manage.manage_list') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                       href="/manage/list?lang=zh">
                         <i class="bi bi-clipboard-data"></i>
-                        <span class="menu-text">{{ lang_dict['sales_manage'] if lang_dict.get('sales_manage') else '营业管理' }}</span>
-                    </a>
-                </li>
-                <!-- 新增：考勤打卡入口 -->
-                <li class="nav-item">
-                    <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2"
-                       href="{{ url_for('attendance.punch') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                        <i class="bi bi-alarm"></i>
-                        <span class="menu-text">考勤打卡</span>
+                        <span class="menu-text">营业管理</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2"
-                       href="{{ url_for('reimbursement.list_requests') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                       href="/reimbursement/?lang=zh">
                         <i class="bi bi-credit-card"></i>
-                        <span class="menu-text">{{ lang_dict['reimbursement'] if lang_dict.get('reimbursement') else '�������务报销' }}</span>
+                        <span class="menu-text">财务报销</span>
                     </a>
                 </li>
-
-                <!-- 报表中心菜单（仅管理员与财务可见） -->
-                {% if current_user.role and current_user.role.name in ['ADMIN','FINANCE'] %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link menu-link dropdown-toggle d-flex align-items-center gap-2 px-3 py-2" href="#"
-                       id="reportCenterDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-bar-chart-line-fill"></i>
-                        <span class="menu-text">报表中心</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
-                        style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 15px; margin-top: 8px;">
-                        <li><a class="dropdown-item py-2"
-                               href="{{ url_for('email_report.sales_reports_center', period='daily') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                            <i class="bi bi-calendar-day me-2 text-primary"></i>销售日报
-                        </a></li>
-                        <li><a class="dropdown-item py-2"
-                               href="{{ url_for('email_report.sales_reports_center', period='weekly') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                            <i class="bi bi-calendar-week me-2 text-success"></i>销售周报
-                        </a></li>
-                        <li><a class="dropdown-item py-2"
-                               href="{{ url_for('email_report.sales_reports_center', period='monthly') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                            <i class="bi bi-calendar-month me-2 text-info"></i>销售月报
-                        </a></li>
-                    </ul>
-                </li>
-                {% endif %}
 
                 <!-- 管理功能菜单 -->
-                {% if current_user.role.name in ['ADMIN', 'HEAD_MANAGER', 'FINANCE'] %}
+
                 <li class="nav-item dropdown">
                     <a class="nav-link menu-link dropdown-toggle d-flex align-items-center gap-2 px-3 py-2" href="#"
                        id="manageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-gear-wide-connected"></i>
-                        <span class="menu-text">{{ lang_dict['system_manage'] if lang_dict.get('system_manage') else '系统管理' }}</span>
+                        <span class="menu-text">系统管理</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
                         style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 15px; margin-top: 8px;">
                         <li><a class="dropdown-item py-2"
-                               href="{{ url_for('admin_user.user_list') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                            <i class="bi bi-people-fill me-2 text-primary"></i>{{ lang_dict['user_manage'] if
-                            lang_dict.get('user_manage') else '用户管理' }}
+                               href="/admin/users/?lang=zh">
+                            <i class="bi bi-people-fill me-2 text-primary"></i>用户管理
                         </a></li>
-                        {% if current_user.is_authenticated and current_user.username == 'admin' and
-                        current_user.role.name == 'ADMIN' %}
-                        <li><a class="dropdown-item py-2"
-                               href="{{ url_for('reimbursement.list_all') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                            <i class="bi bi-list-ul me-2 text-success"></i>{{ lang_dict['all_reimbursement'] if
-                            lang_dict.get('all_reimbursement') else '全部报销申请' }}
-                        </a></li>
-                        <li><a class="dropdown-item py-2" href="/email_report/config">
-                            <i class="bi bi-envelope-fill me-2 text-info"></i>{{ lang_dict['email_settings'] if
-                            lang_dict.get('email_settings') else '邮件设置' }}
-                        </a></li>
-                        <li><a class="dropdown-item py-2" href="/email_report/log_list">
-                            <i class="bi bi-journal-text me-2 text-secondary"></i>{{ lang_dict['email_logs'] if
-                            lang_dict.get('email_logs') else '邮件发送日志' }}
-                        </a></li>
-                        <li>
-                            <hr class="dropdown-divider">
-                        </li>
-                        <!-- 系统监控入口已移除 -->
-                        {% endif %}
+
                     </ul>
                 </li>
-                {% endif %}
+
 
                 <!-- 用户菜单 -->
                 <li class="nav-item dropdown">
                     <a class="nav-link menu-link dropdown-toggle d-flex align-items-center gap-2 px-3 py-2" href="#"
                        id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-person-circle"></i>
-                        <span class="menu-text">{{ current_user.username }}</span>
+                        <span class="menu-text">fin</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
                         style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 15px; margin-top: 8px;">
                         <li><a class="dropdown-item py-2"
-                               href="{{ url_for('user.profile') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                            <i class="bi bi-person-gear me-2 text-info"></i>{{ lang_dict['profile'] if
-                            lang_dict.get('profile') else '个人资料' }}
+                               href="/profile?lang=zh">
+                            <i class="bi bi-person-gear me-2 text-info"></i>个人资料
                         </a></li>
                         <li>
                             <hr class="dropdown-divider">
                         </li>
                         <li><a class="dropdown-item py-2 text-danger"
-                               href="{{ url_for('user.logout') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}"
-                               onclick="return confirm('{{ lang_dict['logout_confirm'] if lang_dict.get('logout_confirm') else '确定要退出登录吗？' }}');">
-                            <i class="bi bi-box-arrow-right me-2"></i>{{ lang_dict['logout'] if lang_dict.get('logout')
-                            else '退出登录' }}
+                               href="/logout?lang=zh"
+                               onclick="return confirm('确定要退出登录吗？');">
+                            <i class="bi bi-box-arrow-right me-2"></i>退出登录
                         </a></li>
                     </ul>
                 </li>
-                {% else %}
-                <!-- 未登录状态菜单 -->
-                <li class="nav-item">
-                    <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2"
-                       href="{{ url_for('user.login') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                        <i class="bi bi-box-arrow-in-right"></i>
-                        <span class="menu-text">{{ lang_dict['login_now'] if lang_dict.get('login_now') else '登录' }}</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2"
-                       href="{{ url_for('user.register') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                        <i class="bi bi-person-plus"></i>
-                        <span class="menu-text">{{ lang_dict['register_btn'] if lang_dict.get('register_btn') else '注册' }}</span>
-                    </a>
-                </li>
-                {% endif %}
+
             </ul>
 
             <!-- 语言切换入口（右上角，兼容PC和APP端） -->
             <ul class="navbar-nav ms-auto flex-row align-items-center" style="gap:0.3rem;">
                 <li class="nav-item">
-                    <a class="nav-link py-2 px-2 {% if current_lang == 'zh' %}active-lang{% endif %}"
-                       href="{{ request.path }}?lang=zh{% if request.query_string and 'lang=zh' not in request.query_string.decode() %}&{{ request.query_string.decode()|replace('lang=th','')|replace('lang=zh','')|trim('&') }}{% endif %}">
+                    <a class="nav-link py-2 px-2 active-lang"
+                       href="/reimbursement/?lang=zh&category=done">
                         <span class="d-inline d-lg-none">🇨🇳</span><span class="d-none d-lg-inline">中文</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link py-2 px-2 {% if current_lang == 'th' %}active-lang{% endif %}"
-                       href="{{ request.path }}?lang=th{% if request.query_string and 'lang=th' not in request.query_string.decode() %}&{{ request.query_string.decode()|replace('lang=zh','')|replace('lang=th','')|trim('&') }}{% endif %}">
-                        <span class="d-inline d-lg-none">🇹��</span><span class="d-none d-lg-inline">ไทย</span>
+                    <a class="nav-link py-2 px-2 "
+                       href="/reimbursement/?lang=th&category=done">
+                        <span class="d-inline d-lg-none">🇹🇭</span><span class="d-none d-lg-inline">ไทย</span>
                     </a>
                 </li>
             </ul>
@@ -518,32 +446,153 @@
 <main class="main-content">
     <!-- Flash 消息显示 -->
     <div class="container mt-3">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
-             role="alert">
-            <strong>
-                {% if category == 'success' %}
-                <i class="bi bi-check-circle-fill me-2"></i>
-                {% elif category == 'error' %}
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                {% elif category == 'warning' %}
-                <i class="bi bi-exclamation-circle-fill me-2"></i>
-                {% else %}
-                <i class="bi bi-info-circle-fill me-2"></i>
-                {% endif %}
-            </strong>
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+
+
     </div>
 
     <!-- 页面内容块 -->
-    {% block content %}{% endblock %}
+
+    <div class="container mt-4">
+        <div class="d-flex align-items-center mb-3">
+            <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">报销申请列表</h2>
+            <span class="badge bg-primary bg-opacity-75 fs-6">财务报销</span>
+        </div>
+        <div class="d-flex justify-content-end mb-3">
+            <a class="btn btn-success" href="/reimbursement/create?lang=zh"><i
+                    class="bi bi-plus-circle"></i> 发起申请</a>
+        </div>
+        <form class="row g-3 mb-3 p-3 border rounded bg-light shadow-sm" method="get">
+            <input type="hidden" name="lang" value="zh">
+            <div class="col-auto">
+
+
+                <select class="form-select" name="category">
+                    <option value="todo">待我审批
+                    </option>
+                    <option value="done" selected>我已审批
+                    </option>
+                    <option value="mine">我提交的
+                    </option>
+                    <option value="cc">抄送给我
+                    </option>
+                </select>
+
+            </div>
+            <div class="col-auto">
+                <!-- 时间筛选下拉框，默认"全部时间" -->
+                <select class="form-select" name="time_range"
+                        onchange="if(this.value=='custom'){document.getElementById('custom-date').style.display='flex';}else{document.getElementById('custom-date').style.display='none';}">
+                    <option value="all" selected>全部时间
+                    </option>
+                    <option value="24h">最近24小时
+                    </option>
+                    <option value="7d">最近7天
+                    </option>
+                    <option value="30d">最近30天
+                    </option>
+                    <option value="custom">自定义
+                    </option>
+                </select>
+            </div>
+            <div class="col-auto" id="custom-date"
+                 style="display:none;align-items:center;">
+                <input type="date" class="form-control" name="start_date" value="">
+                <span class="mx-1">~</span>
+                <input type="date" class="form-control" name="end_date" value="">
+            </div>
+            <!-- 删除状态筛选下拉框 -->
+            <div class="col-auto align-self-end">
+                <button type="submit" class="btn btn-primary">查询</button>
+            </div>
+        </form>
+        <div class="table-responsive rounded shadow-sm">
+            <table class="table table-bordered table-hover align-middle mb-0" style="background:#fff;min-width:1100px;">
+                <thead class="table-primary text-center align-middle">
+                <tr style="font-size:1.02rem;">
+                    <th style="min-width:120px;cursor:pointer;" id="sort-date">申请请日期
+                        <span id="sort-arrow">⇅</span></th>
+                    <th style="min-width:90px;">店铺ID</th>
+                    <th style="min-width:110px;">申请人</th>
+                    <th style="min-width:110px;">审批人</th>
+                    <th style="min-width:90px;">金额</th>
+                    <th style="min-width:110px;">一级分类</th>
+                    <th style="min-width:110px;">二级分类</th>
+                    <th style="min-width:110px;">状态</th>
+                    <th style="min-width:110px;">核对状态</th>
+                    <th style="min-width:80px;">操作</th>
+                </tr>
+                </thead>
+                <tbody class="text-center">
+
+                <tr>
+                    <td>2025-08-26</td>
+                    <td>S1</td>
+                    <td>bm</td>
+                    <td>None</td>
+                    <td>1.00</td>
+                    <td>店铺成本</td>
+                    <td>水电费</td>
+                    <td>
+                        审批通过
+
+                    </td>
+                    <td>
+
+                        未核对
+
+                    </td>
+                    <td>
+                        <a href="/reimbursement/1"
+                           class="btn btn-sm btn-outline-primary">详情</a>
+
+
+                        <form method="post" action="/reimbursement/1/mark_checked"
+                              style="display:inline;">
+
+                            <button type="submit" class="btn btn-sm btn-outline-success ms-1">标记已核对
+                            </button>
+                        </form>
+
+
+                    </td>
+                </tr>
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 转交审批人弹窗Modal -->
+    <div class="modal fade" id="transferModal" tabindex="-1" aria-labelledby="transferModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="transferForm" method="post">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="transferModalLabel">转交审批人</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="关闭"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="new_approver_id" id="transfer_approver_id">
+                        <div class="mb-3">
+                            <label for="transfer_approver_search" class="form-label">搜索审批人（仅限财务/管理员）</label>
+                            <input type="text" id="transfer_approver_search" class="form-control"
+                                   placeholder="输入姓名/账号/手机号..." autocomplete="off">
+                            <div id="transfer_approver_suggest" class="list-group position-absolute w-100"
+                                 style="z-index:1000;"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消
+                        </button>
+                        <button type="submit" class="btn btn-warning">确认转交</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 </main>
 
 <!-- JavaScript 引用 -->
@@ -562,10 +611,10 @@
 <script src="https://cdn.jsdelivr.net/npm/pristinejs@0.1.9/dist/pristine.min.js"></script>
 
 <!-- 项目自定义JS文件 -->
-<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-<script src="{{ url_for('static', filename='js/extensionState.js') }}"></script>
-<script src="{{ url_for('static', filename='js/heuristicsRedefinitions.js') }}"></script>
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="/static/js/utils.js"></script>
+<script src="/static/js/extensionState.js"></script>
+<script src="/static/js/heuristicsRedefinitions.js"></script>
+<script src="/static/js/script.js"></script>
 
 <!-- 通用JavaScript -->
 <script>
@@ -612,7 +661,69 @@
 </script>
 
 <!-- 页面特定的JavaScript块 -->
-{% block scripts %}{% endblock %}
+
+
+<script>
+    // 转交审批人弹窗逻辑
+    let transferRequestId = null;
+    document.addEventListener('DOMContentLoaded', function() {
+      const transferModal = document.getElementById('transferModal');
+      const transferForm = document.getElementById('transferForm');
+      const transferApproverInput = document.getElementById('transfer_approver_search');
+      const transferApproverId = document.getElementById('transfer_approver_id');
+      const transferSuggestBox = document.getElementById('transfer_approver_suggest');
+
+      // 打开弹窗时，记录request_id
+      transferModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        transferRequestId = button.getAttribute('data-request-id');
+        transferForm.action = `/reimbursement/${transferRequestId}/transfer`;
+        transferApproverInput.value = '';
+        transferApproverId.value = '';
+        transferSuggestBox.innerHTML = '';
+      });
+
+      // 审批人自动补全
+      let searchTimer = null;
+      if (transferApproverInput && transferApproverId && transferSuggestBox) {
+        transferApproverInput.addEventListener('input', function() {
+          clearTimeout(searchTimer);
+          const query = this.value.trim();
+          if (!query) {
+            transferSuggestBox.innerHTML = '';
+            return;
+          }
+          searchTimer = setTimeout(function() {
+            fetch('/reimbursement/approver_search?q=' + encodeURIComponent(query))
+              .then(function(response) { return response.json(); })
+              .then(function(data) {
+                transferSuggestBox.innerHTML = '';
+                data.forEach(function(user) {
+                  const item = document.createElement('a');
+                  item.className = 'list-group-item list-group-item-action';
+                  item.textContent = user.label;
+                  item.href = '#';
+                  item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    transferApproverInput.value = user.label;
+                    transferApproverId.value = user.user_id;
+                    transferSuggestBox.innerHTML = '';
+                  });
+                  transferSuggestBox.appendChild(item);
+                });
+              })
+              .catch(function(error) {
+                console.error('搜索审批人失败:', error);
+              });
+          }, 300);
+        });
+        transferApproverInput.addEventListener('blur', function() {
+          setTimeout(function() { transferSuggestBox.innerHTML = ''; }, 200);
+        });
+      }
+    });
+</script>
+
 
 </body>
 </html>

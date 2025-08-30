@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>考勤打卡</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+        }
+        .container {
+            max-width: 430px;
+            margin: 18px auto;
+            padding: 18px 10px 28px 10px;
+            background: #fff;
+            border-radius: 22px;
+            box-shadow: 0 6px 24px rgba(33,150,243,0.10);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #2196f3;
+            font-weight: 700;
+            letter-spacing: 2px;
+            font-size: 22px;
+        }
+        .datetime {
+            text-align: center;
+            font-size: 17px;
+            color: #2196f3;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        .location {
+            margin-bottom: 18px;
+            text-align: center;
+            font-size: 16px;
+            color: #388e3c;
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 10px 0;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(33,150,243,0.08);
+        }
+        .photo {
+            margin-bottom: 18px;
+            text-align: center;
+        }
+        #photoBtn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(90deg, #ff9800 60%, #ffc107 100%);
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 32px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(255,152,0,0.12);
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        #photoBtn:active {
+            transform: scale(0.97);
+            opacity: 0.92;
+        }
+        .photo-preview {
+            width: 110px;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-top: 8px;
+            box-shadow: 0 2px 8px rgba(33,150,243,0.12);
+        }
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+        button {
+            flex: 1;
+            padding: 16px 0;
+            font-size: 19px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(90deg, #4caf50 60%, #81c784 100%);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(76,175,80,0.10);
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:last-child {
+            background: linear-gradient(90deg, #2196f3 60%, #64b5f6 100%);
+            box-shadow: 0 2px 8px rgba(33,150,243,0.10);
+        }
+        button:disabled {
+            background: #bdbdbd !important;
+            color: #fff !important;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        button:active {
+            transform: scale(0.97);
+            opacity: 0.85;
+        }
+        .msg {
+            color: #d32f2f;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 16px;
+            min-height: 22px;
+        }
+        .punch-times {
+            text-align: center;
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .work-duration {
+            text-align: center;
+            font-size: 17px;
+            color: #388e3c;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>考勤打卡</h2>
+    <div class="login-status" id="loginStatus"
+         style="text-align:center;font-size:15px;color:#666;margin-bottom:10px;"></div>
+    <div class="datetime" id="datetime"></div>
+    <div class="location" id="location">已成功获取当前打卡位置</div>
+    <div class="photo">
+        <button id="photoBtn"><span style="font-size:20px;">📷</span> <span>拍照上传</span></button>
+        <br>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;">
+        <img id="photoPreview" class="photo-preview" style="display:none;"/>
+    </div>
+    <div class="btn-group">
+        <button id="btnOn">上班打卡</button>
+        <button id="btnOff">下班打卡</button>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="punch-times">
+        <div id="punchInTime"></div>
+        <div id="punchOutTime"></div>
+    </div>
+    <div class="work-duration" id="workDuration"></div>
+</div>
+<script>
+    // 获取语言参数
+    function getLang() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('lang') || 'zh';
+    }
+    const lang = getLang();
+    // 多语言字典（部分示例，可扩展）
+    const dict = {
+        zh: {
+            punch_title: '考勤打卡',
+            punch_in: '上班打卡',
+            punch_out: '下班打卡',
+            punch_in_done: '已上班打卡',
+            punch_out_done: '已下班打卡',
+            photo: '拍照上传',
+            location: '已成功获取当前打卡位置',
+            success: '打卡成功！',
+            already_punched: '���天已打卡',
+            current_time: '当前时间',
+            punch_in_time: '上班打卡时间',
+            punch_out_time: '下班打卡时间',
+            today_work_duration: '今��工时',
+            summary_work_duration: '今日工时总结',
+        },
+        th: {
+            punch_title: 'บันทึกเวลาเข้างาน',
+            punch_in: 'เข้างาน',
+            punch_out: 'ออกงาน',
+            punch_in_done: 'บันทึกเข้างานแล้ว',
+            punch_out_done: 'บันทึกออกงานแล้ว',
+            photo: 'ถ่ายรูป',
+            location: 'ตำแหน่งบันทึกเวลาได้��ับเรียบร้อย',
+            success: 'บันทึกสำเร็จ!',
+            already_punched: 'บันทึกวันนี้แล้ว',
+            current_time: 'เวลาปัจจุบัน',
+            punch_in_time: 'เวลาเข้างาน',
+            punch_out_time: 'เวลาออกงาน',
+            today_work_duration: 'เวลาทำงานวันนี้',
+            summary_work_duration: 'สรุปเวลาทำงานวันนี้',
+        }
+    };
+    function t(key) { return dict[lang][key] || key; }
+    // 设置多语言文本
+    function setLangText() {
+        document.querySelector('h2').innerText = t('punch_title');
+        document.getElementById('btnOn').innerText = t('punch_in');
+        document.getElementById('btnOff').innerText = t('punch_out');
+        document.getElementById('photoBtn').innerText = t('photo');
+        document.getElementById('location').innerText = t('location');
+    }
+    setLangText();
+
+    // 登录状态显示与跳转
+    function updateLoginStatus() {
+        fetch('/attendance/api/check_login')
+            .then(res => res.json())
+            .then(data => {
+                const loginStatusEl = document.getElementById('loginStatus');
+                if (data.logged_in) {
+                    // 登录状态显示（可扩展显示用户名）
+                    loginStatusEl.innerHTML = '<span style="color:#388e3c;">已登录</span>';
+                } else {
+                    loginStatusEl.innerHTML = '<span style="color:#d32f2f;">未登录</span> <button id="loginBtn" style="margin-left:10px;padding:6px 18px;font-size:15px;border-radius:8px;border:none;background:#2196f3;color:#fff;cursor:pointer;">登录</button>';
+                    document.getElementById('loginBtn').onclick = function() {
+                        window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+                    };
+                }
+            });
+    }
+    updateLoginStatus();
+
+    // 检��登录状态
+    function checkLogin() {
+        fetch('/attendance/api/check_login')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.logged_in) {
+                    window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+                }
+            });
+    }
+    checkLogin();
+
+    // 地理位置展示（只显示成功获取，不显示经纬度）
+    let latitude = null, longitude = null;
+    function updateLocationDisplay(lat, lng) {
+        document.getElementById('lat').innerText = lat !== null ? lat.toFixed(6) : '未知';
+        document.getElementById('lng').innerText = lng !== null ? lng.toFixed(6) : '未知';
+    }
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            latitude = pos.coords.latitude;
+            longitude = pos.coords.longitude;
+            // 只显示“已成功获取当前打卡位置”，不显示经纬度
+        }, function() {
+            // 允许未获取到位置也能打卡
+        });
+    } else {
+        updateLocationDisplay(null, null);
+    }
+
+    // 拍照按钮逻辑
+    const photoBtn = document.getElementById('photoBtn');
+    const photoInput = document.getElementById('photoInput');
+    photoBtn.onclick = function() {
+        photoInput.click();
+    };
+    photoInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            document.getElementById('photoPreview').src = URL.createObjectURL(file);
+            document.getElementById('photoPreview').style.display = 'block';
+        } else {
+            document.getElementById('photoPreview').style.display = 'none';
+        }
+    });
+
+    // 实时显示当前日期时间
+    function updateDateTime() {
+        const now = new Date();
+        const str = `${t('current_time')}: ${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.toLocaleTimeString()}`;
+        document.getElementById('datetime').innerText = str;
+    }
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+
+    // 打卡时间和工时显示
+    function updatePunchStatus() {
+        fetch('/attendance/punch_status?lang=' + lang)
+            .then(res => res.json())
+            .then(data => {
+                // 按钮状态
+                if (data.punched_in) {
+                    document.getElementById('btnOn').disabled = true;
+                    document.getElementById('btnOn').style.background = '#bdbdbd';
+                    document.getElementById('btnOn').innerText = t('punch_in_done');
+                }
+                if (data.punched_out) {
+                    document.getElementById('btnOff').disabled = true;
+                    document.getElementById('btnOff').style.background = '#bdbdbd';
+                    document.getElementById('btnOff').innerText = t('punch_out_done');
+                }
+                // 打卡时间显示
+                let punchInStr = data.punch_in_time ? `${t('punch_in_time')}: ${data.punch_in_time}` : '';
+                let punchOutStr = data.punch_out_time ? `${t('punch_out_time')}: ${data.punch_out_time}` : '';
+                document.getElementById('punchInTime').innerText = punchInStr;
+                document.getElementById('punchOutTime').innerText = punchOutStr;
+                // 工时长显示
+                let workDurationEl = document.getElementById('workDuration');
+                if (data.punch_in_time) {
+                    let start = new Date(data.punch_in_time.replace(/-/g,'/'));
+                    let end = data.punch_out_time ? new Date(data.punch_out_time.replace(/-/g,'/')) : new Date();
+                    let diff = Math.max(0, end - start);
+                    let h = Math.floor(diff / 3600000);
+                    let m = Math.floor((diff % 3600000) / 60000);
+                    let s = Math.floor((diff % 60000) / 1000);
+                    let str = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                    if (data.punch_out_time) {
+                        workDurationEl.innerText = `${t('summary_work_duration')}: ${str}`;
+                    } else {
+                        workDurationEl.innerText = `${t('today_work_duration')}: ${str}`;
+                    }
+                } else {
+                    workDurationEl.innerText = '';
+                }
+            });
+    }
+    updatePunchStatus();
+
+    // 打卡请求与计时器
+    let workStartTime = null;
+    let workEndTime = null;
+    let timerInterval = null;
+    function punch(type) {
+        if (latitude === null || longitude === null) {
+            showMsg('请等待地理位置获取完成');
+            return;
+        }
+        let formData = new FormData();
+        formData.append('type', type); // on/off
+        formData.append('latitude', latitude);
+        formData.append('longitude', longitude);
+        if (photoInput.files[0]) {
+            formData.append('photo', photoInput.files[0]);
+        }
+        fetch('/attendance/punch_api', {
+            method: 'POST',
+            body: formData
+        }).then(res => res.json())
+          .then(data => {
+            if (data.success) {
+                showMsg(t('success'), true);
+                updatePunchStatus();
+                // 记录上班时间，启动计时器
+                if (type === 'on') {
+                    workStartTime = new Date();
+                    workEndTime = null;
+                    startTimer();
+                } else if (type === 'off') {
+                    // 记录下班时间，停止计时器
+                    workEndTime = new Date();
+                    stopTimer();
+                }
+            } else {
+                showMsg(data.msg || '打卡失败');
+            }
+          }).catch(() => {
+            showMsg('网络错误，打卡失败');
+          });
+    }
+    function showMsg(msg, success) {
+        const el = document.getElementById('msg');
+        el.innerText = msg;
+        el.style.color = success ? '#388e3c' : '#d32f2f';
+        setTimeout(() => { el.innerText = ''; }, 3000);
+    }
+    document.getElementById('btnOn').onclick = function() { punch('on'); };
+    document.getElementById('btnOff').onclick = function() { punch('off'); };
+
+    // 计时器功能
+    function startTimer() {
+        document.getElementById('timer').style.display = 'block';
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+    function stopTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        updateTimer(true);
+    }
+    function updateTimer(final) {
+        let timerEl = document.getElementById('timer');
+        if (!workStartTime) {
+            timerEl.style.display = 'none';
+            return;
+        }
+        let now = workEndTime ? workEndTime : new Date();
+        let diff = Math.max(0, now - workStartTime);
+        let h = Math.floor(diff / 3600000);
+        let m = Math.floor((diff % 3600000) / 60000);
+        let s = Math.floor((diff % 60000) / 1000);
+        let str = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        timerEl.innerText = workEndTime ? `今日工作时长：${str}` : `已工作 ${str}`;
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>考勤打卡 API 测试页面</h3>
+    <form id="punchForm" class="mb-3">
+        <div class="row">
+            <div class="col-md-3">
+                <label>user_id</label>
+                <input type="number" class="form-control" name="user_id" placeholder="员工ID">
+            </div>
+            <div class="col-md-3">
+                <label>line_id</label>
+                <input type="text" class="form-control" name="line_id" placeholder="LINE ID">
+            </div>
+            <div class="col-md-3">
+                <label>action</label>
+                <select class="form-control" name="action">
+                    <option value="CLOCK_IN">CLOCK_IN（上班）</option>
+                    <option value="CLOCK_OUT">CLOCK_OUT（下班）</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label>timestamp</label>
+                <input type="text" class="form-control" name="timestamp" placeholder="ISO8601时间，可空">
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-md-3">
+                <label>latitude</label>
+                <input type="text" class="form-control" name="latitude" placeholder="纬度">
+            </div>
+            <div class="col-md-3">
+                <label>longitude</label>
+                <input type="text" class="form-control" name="longitude" placeholder="经度">
+            </div>
+            <div class="col-md-3">
+                <label>location_name</label>
+                <input type="text" class="form-control" name="location_name" placeholder="位置描述">
+            </div>
+            <div class="col-md-3">
+                <label>notes</label>
+                <input type="text" class="form-control" name="notes" placeholder="备注">
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <button type="submit" class="btn btn-primary">提交测试</button>
+            </div>
+        </div>
+    </form>
+    <div id="result" class="mt-4">
+        <h5>接口响应：</h5>
+        <pre id="apiResult" style="background:#f8f9fa;padding:1em;"></pre>
+    </div>
+</div>
+<script>
+    const form = document.getElementById('punchForm');
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const data = {};
+      Array.from(form.elements).forEach(el => {
+        if (el.name && el.value !== '') data[el.name] = el.value;
+      });
+      fetch('/attendance/api/punch', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      })
+      .then(r => r.json())
+      .then(res => {
+        document.getElementById('apiResult').textContent = JSON.stringify(res, null, 2);
+      })
+      .catch(err => {
+        document.getElementById('apiResult').textContent = '请求失败：' + err;
+      });
+    });
+</script>
+{% endblock %}
+

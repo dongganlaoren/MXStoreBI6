@@ -100,3 +100,15 @@ class ReimbursementCheckStatus(enum.Enum):
     """
     CHECKED = 'CHECKED'  # 已核对
     UNCHECKED = 'UNCHECKED'  # 未核对
+
+
+# --- 新增：考勤相关枚举 ---
+class AttendanceAction(enum.Enum):
+    CLOCK_IN = 'CLOCK_IN'  # 上班打卡
+    CLOCK_OUT = 'CLOCK_OUT'  # 下班打卡
+
+
+class AttendanceSource(enum.Enum):
+    WEB = 'WEB'
+    LINE = 'LINE'
+    API = 'API'
