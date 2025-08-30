@@ -38,28 +38,41 @@ function cleanup_old_backups() {
     fi
 }
 
-# ====== 备份数据库 ======
+# ====== 备份数据库（交互式选择） ======
 function backup_db() {
     cleanup_old_backups
     echo -e "${BLUE}========== 数据库备份 ==========${NC}"
-    read -p "请输入要备份的数据库名称: " DB_NAME
 
-    # 生产库保护：允许备份
-    if [[ "$DB_NAME" == "$PROTECT_DB" ]]; then
-        echo -e "${YELLOW}[INFO] 备份生产数据库 $DB_NAME ...${NC}"
+    # 获取可备份数据库列表（包括生产库）
+    DB_LIST=($(mysql -u root -N -e "SHOW DATABASES;" | grep -Ev "(information_schema|performance_schema|mysql|sys)"))
+
+    if [ ${#DB_LIST[@]} -eq 0 ]; then
+        echo -e "${RED}[ERROR] 没有可备份的数据库！${NC}"
+        return
     fi
 
-    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-    BACKUP_FILE="$BACKUP_DIR/db_backup_${DB_NAME}_${TIMESTAMP}.sql.gz"
-    echo -e "${YELLOW}[INFO] 正在备份数据库 $DB_NAME ...${NC}"
-    mysqldump -u root "$DB_NAME" 2>>"$LOG_FILE" | gzip > "$BACKUP_FILE"
+    echo -e "${YELLOW}[INFO] 可备份的数据库列表:${NC}"
+    select DB_NAME in "${DB_LIST[@]}"; do
+        if [[ -n "$DB_NAME" ]]; then
+            if [[ "$DB_NAME" == "$PROTECT_DB" ]]; then
+                echo -e "${YELLOW}[INFO] 你选择的是生产数据库: $DB_NAME${NC}"
+            fi
+            TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+            BACKUP_FILE="$BACKUP_DIR/db_backup_${DB_NAME}_${TIMESTAMP}.sql.gz"
+            echo -e "${YELLOW}[INFO] 正在备份数据库 $DB_NAME ...${NC}"
+            mysqldump -u root "$DB_NAME" 2>>"$LOG_FILE" | gzip > "$BACKUP_FILE"
 
-    if [[ $? -eq 0 ]]; then
-        echo -e "${GREEN}[SUCCESS] 数据库 $DB_NAME 备份成功: $BACKUP_FILE${NC}" | tee -a "$LOG_FILE"
-        echo "$(date '+%Y-%m-%d %H:%M:%S') | BACKUP | DB: $DB_NAME | File: $BACKUP_FILE" >> "$LOG_FILE"
-    else
-        echo -e "${RED}[ERROR] 数据库备份失败！${NC}" | tee -a "$LOG_FILE"
-    fi
+            if [[ $? -eq 0 ]]; then
+                echo -e "${GREEN}[SUCCESS] 数据库 $DB_NAME 备份成功: $BACKUP_FILE${NC}" | tee -a "$LOG_FILE"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') | BACKUP | DB: $DB_NAME | File: $BACKUP_FILE" >> "$LOG_FILE"
+            else
+                echo -e "${RED}[ERROR] 数据库备份失败！${NC}" | tee -a "$LOG_FILE"
+            fi
+            break
+        else
+            echo -e "${RED}无效选择，请重新选择！${NC}"
+        fi
+    done
 }
 
 # ====== 恢复数据库 ======
