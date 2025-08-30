@@ -51,3 +51,7 @@ app/static/uploads/
 init_all.sh
 db_reset.py
 reset_db.sh
+.coverage
+app.log.*
+config_templates/
+logs/

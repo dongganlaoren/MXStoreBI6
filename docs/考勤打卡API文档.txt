@@ -32,6 +32,17 @@
 - location_name：string，可选；位置描述
 - notes：string，可选；备注
 
+参数详细说明：
+- user_id：int，员工ID，优先使用。与 line_id 二选一，若同时提供优先用 user_id。
+- line_id：string，LINE 用户ID。与 user_id 二选一，若 user_id 未传则用 line_id。
+- action：string，必填。打卡类型，枚举值：CLOCK_IN（上班）、CLOCK_OUT（下班）。
+- timestamp：string，ISO8601格式，可选。不传则自动使用服务器当前时间。
+- latitude：number，打卡时的纬度，十进制度，可选。
+- longitude：number，打卡时的经度，十进制度，可选。
+- location_name：string，位置描述，如“门店前台”，可选。
+- notes：string，备注信息，可选。
+- source：string，打卡来源，由后端自动赋值，无需前端传递。若请求参数包含 line_id，则为“LINE”；否则为“API”。
+
 请求示例（使用 user_id）
 curl -sS -X POST "http://127.0.0.1:5000/attendance/api/punch" \
   -H "Content-Type: application/json" \
@@ -78,9 +89,40 @@ curl -sS -X POST "http://127.0.0.1:5000/attendance/api/punch" \
   {"ok": false, "error": "action 无效"}
 - 404 Not Found：用户不存在
   {"ok": false, "error": "用户不存在"}
+- 404 Not Found：line_id 查找失败（需完善信息）
+  {"ok": false, "error": "请完善Mira信息"}
+
+成功响应（打卡成功）
+{
+  "ok": true,
+  "msg": "员工编号打卡成功",
+  "data": {
+    ...打卡记录字段...
+  }
+}
+
+成功响应（打卡成功，中泰双语示例）
+{
+  "ok": true,
+  "msg": "91123上班打卡成功 เข้างานบันทึกสำเร็จ",
+  "data": {
+    ...打卡记录字段...
+  }
+}
+或
+{
+  "ok": true,
+  "msg": "91123下班打卡成功 ออกงานบันทึกสำเร็จ",
+  "data": {
+    ...打卡记录字段...
+  }
+}
 
 业务规则与说明
 - user_id 与 line_id 至少提供一个；若同时提供，优先使用 user_id
+- 若请求参数包含 line_id，但查不到用户，返回“请完善Mira信息”
+- 若 user_id 和 line_id 都未提供或都查不到，返回“用户不存在”
+- 打卡成功时，返回“员工编号打卡成功”消息
 - timestamp 不传时采用服务器时间；解析失败会忽略并使用服务器时间
 - 本 API 不接收照片；如需照片请走 Web 端打卡页 /attendance/punch
 
@@ -148,4 +190,3 @@ curl -sS -X POST "http://127.0.0.1:5000/attendance/api/days" \
 七、变更历史
 - 2025-08-28：首次发布
 - 出勤判定：每天 ≥ 9 小时计 1 天
-

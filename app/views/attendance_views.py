@@ -239,6 +239,8 @@ def api_punch():
         user = User.query.filter_by(user_id=int(user_id)).first()
     elif line_id:
         user = User.query.filter_by(line_id=line_id).first()
+        if not user:
+            return jsonify({'ok': False, 'error': '请完善Mira信息'}), 404
     if not user:
         return jsonify({'ok': False, 'error': '用户不存在'}), 404
 
@@ -278,7 +280,15 @@ def api_punch():
         notes=data.get('notes'),
     )
     db.session.commit()
-    return jsonify({'ok': True, 'data': rec.to_dict()})
+    # 返回员工编号+上班/下班打卡成功（中泰双语）
+    if action == AttendanceAction.CLOCK_IN:
+        action_text_cn = '上班'
+        action_text_th = 'เข้างาน'
+    else:
+        action_text_cn = '下班'
+        action_text_th = 'ออกงาน'
+    msg = f'{user.employee_number}{action_text_cn}打卡成功 {action_text_th}บันทึกสำเร็จ'
+    return jsonify({'ok': True, 'msg': msg, 'data': rec.to_dict()})
 
 
 # --- API：出勤天数查询 ---
@@ -316,3 +326,9 @@ def api_days():
 
     data = compute_attendance_days(uid, sd, ed)
     return jsonify({'ok': True, 'data': data})
+
+
+# --- API：测试页面 ---
+@attendance_bp.route('/api_test', methods=['GET'])
+def api_test_page():
+    return render_template('attendance/api_test.html')
