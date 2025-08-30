@@ -26,7 +26,7 @@ def _save_photo(file: Optional[FileStorage], user_id: int) -> Optional[str]:
     ext = os.path.splitext(filename)[1].lower()
     if ext not in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
         raise ValueError('不支持的图片类型')
-    # 构建存储路径: app/static/uploads/attendance/{user_id}/{YYYYMMDD}/{uuid}{ext}
+    # 构建存���路径: app/static/uploads/attendance/{user_id}/{YYYYMMDD}/{uuid}{ext}
     base_folder = current_app.config.get('UPLOAD_FOLDER', 'app/static/uploads')
     date_folder = datetime.now().strftime('%Y%m%d')
     rel_dir = os.path.join('attendance', str(user_id), date_folder)
@@ -62,7 +62,7 @@ def _daterange_days(start: date, end: date) -> Tuple[datetime, datetime]:
 def compute_attendance_days(user_id: int, start_d: date, end_d: date) -> Dict:
     """
     规则：按自然日汇总，同一天内：取最早 CLOCK_IN 与最晚 CLOCK_OUT 计算跨度，>= 9 小时记 1 天。
-    缺少成对打卡视为 0 小时。仅统计 [start_d, end_d] 区间。
+    缺少成对打卡视为 0 ���时。仅统计 [start_d, end_d] 区间。
     返回：{"total_days": int, "details": [{"date": 'YYYY-MM-DD', "hours": float, "is_count": bool}]}
     """
     start_dt, end_dt = _daterange_days(start_d, end_d)
@@ -332,3 +332,92 @@ def api_days():
 @attendance_bp.route('/api_test', methods=['GET'])
 def api_test_page():
     return render_template('attendance/api_test.html')
+
+
+# --- 新版手机端打卡页面 ---
+@attendance_bp.route('/punch_mobile', methods=['GET'])
+@login_required
+def punch_mobile():
+    return render_template('attendance/punch.html')
+
+
+# --- 手机端打卡API ---
+@attendance_bp.route('/punch_api', methods=['POST'])
+@login_required
+@csrf.exempt
+def punch_api():
+    action_type = request.form.get('type')  # 'on' 或 'off'
+    latitude = request.form.get('latitude')
+    longitude = request.form.get('longitude')
+    photo = request.files.get('photo')
+    # 校验参数
+    if action_type not in ('on', 'off'):
+        return jsonify({'success': False, 'msg': '打卡类型无效'})
+    try:
+        lat = float(latitude) if latitude else None
+        lng = float(longitude) if longitude else None
+    except Exception:
+        lat, lng = None, None
+    # 保存图片
+    try:
+        photo_path = _save_photo(photo, current_user.user_id) if photo else None
+    except Exception as e:
+        current_app.logger.warning(f'保存考勤照片失败: {e}')
+        photo_path = None
+    # 记录打卡
+    from app.models.enums import AttendanceAction, AttendanceSource
+    action = AttendanceAction.CLOCK_IN if action_type == 'on' else AttendanceAction.CLOCK_OUT
+    rec = AttendanceRecord.create(
+        user_id=current_user.user_id,
+        store_id=getattr(current_user, 'store_id', None),
+        action=action,
+        source=AttendanceSource.WEB,
+        timestamp=datetime.now(),
+        latitude=lat,
+        longitude=lng,
+        location_name=None,
+        photo_path=photo_path,
+        notes=None,
+    )
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+# --- 登录状态检测API ---
+
+
+@attendance_bp.route('/api/check_login', methods=['GET'])
+def check_login():
+    return jsonify({'logged_in': current_user.is_authenticated})
+
+
+# --- 打卡状态查询 ---
+@attendance_bp.route('/punch_status')
+@login_required
+def punch_status():
+    from app.models import AttendanceRecord
+    from app.models.enums import AttendanceAction
+    from datetime import datetime, date
+    today = date.today()
+    start_dt = datetime.combine(today, datetime.min.time())
+    end_dt = datetime.combine(today, datetime.max.time())
+    recs = AttendanceRecord.query.filter(
+        AttendanceRecord.user_id == current_user.user_id,
+        AttendanceRecord.timestamp >= start_dt,
+        AttendanceRecord.timestamp <= end_dt
+    ).order_by(AttendanceRecord.timestamp.asc()).all()
+    punch_in_time = None
+    punch_out_time = None
+    for r in recs:
+        if r.action == AttendanceAction.CLOCK_IN and punch_in_time is None:
+            punch_in_time = r.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        if r.action == AttendanceAction.CLOCK_OUT:
+            punch_out_time = r.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+    punched_in = punch_in_time is not None
+    punched_out = punch_out_time is not None
+    return jsonify({
+        'punched_in': punched_in,
+        'punched_out': punched_out,
+        'punch_in_time': punch_in_time,
+        'punch_out_time': punch_out_time
+    })
