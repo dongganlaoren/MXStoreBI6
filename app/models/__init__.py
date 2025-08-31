@@ -9,7 +9,8 @@ from .daily_sales import DailySales
 from .email_task_log import EmailTaskLog, EmailTaskType, EmailTaskStatus
 from .enums import AttachmentType, FinancialCheckStatus, RoleType
 from .store import Store
-from .testaaa import TestAaa
+# TestAaa 模型已删除，移除此处导入以避免导入错误
+# from .testaaa import TestAaa
 # 监控相关模型已移除
 # from .system_monitor import (
 #     SystemLog, SystemMetric, SystemAlert, HealthCheck,
