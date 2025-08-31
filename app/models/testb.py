@@ -1,16 +1,16 @@
-# app/models/testaaa.py
+# app/models/testb.py
 
 from datetime import datetime
 
 from app.extensions import db
 
 
-class TestAaa(db.Model):
-    """测试用表：testaaa
+class TestB(db.Model):
+    """新的测试表：testb
 
-    简单示例模型，包含基本字段与 to_dict 方法，便于后续迁移与使用。
+    包含 id, name, value, created_at, updated_in
     """
-    __tablename__ = "testaaa"
+    __tablename__ = "testb"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment="主键 ID")
     name = db.Column(db.String(100), nullable=False, comment="名称")
@@ -19,7 +19,7 @@ class TestAaa(db.Model):
     updated_in = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, comment="更新时间")
 
     def __repr__(self):
-        return f"<TestAaa id={self.id} name={self.name}>"
+        return f"<TestB id={self.id} name={self.name}>"
 
     def to_dict(self):
         return {
