@@ -54,4 +54,4 @@ reset_db.sh
 .coverage
 app.log.*
 config_templates/
-logs/
+logs/migrations/
