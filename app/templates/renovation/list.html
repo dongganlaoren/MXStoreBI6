@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}{{ get_text('renovation_list') }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ get_text('renovation_list') }}</h2>
+        {% if current_user.role.value in ['ADMIN', 'HEAD_MANAGER'] %}
+        <a href="{{ url_for('renovation.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> {{ get_text('renovation_create') }}
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- 筛选表单 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">{{ get_text('task_status') }}</label>
+                    <select name="status" class="form-select">
+                        <option value="">{{ get_text('all_status') }}</option>
+                        <option value="PENDING" {% if current_filters.status == 'PENDING' %}selected{% endif %}>{{ get_text('task_status_pending') }}</option>
+                        <option value="PROCESSING" {% if current_filters.status == 'PROCESSING' %}selected{% endif %}>{{ get_text('task_status_processing') }}</option>
+                        <option value="AWAITING_VERIFICATION" {% if current_filters.status == 'AWAITING_VERIFICATION' %}selected{% endif %}>{{ get_text('task_status_awaiting_verification') }}</option>
+                        <option value="COMPLETED" {% if current_filters.status == 'COMPLETED' %}selected{% endif %}>{{ get_text('task_status_completed') }}</option>
+                        <option value="CLOSED" {% if current_filters.status == 'CLOSED' %}selected{% endif %}>{{ get_text('task_status_closed') }}</option>
+                        <option value="REJECTED" {% if current_filters.status == 'REJECTED' %}selected{% endif %}>{{ get_text('task_status_rejected') }}</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">{{ get_text('task_priority') }}</label>
+                    <select name="priority" class="form-select">
+                        <option value="">{{ get_text('filter_by_priority') }}</option>
+                        <option value="URGENT" {% if current_filters.priority == 'URGENT' %}selected{% endif %}>{{ get_text('priority_urgent') }}</option>
+                        <option value="HIGH" {% if current_filters.priority == 'HIGH' %}selected{% endif %}>{{ get_text('priority_high') }}</option>
+                        <option value="MEDIUM" {% if current_filters.priority == 'MEDIUM' %}selected{% endif %}>{{ get_text('priority_medium') }}</option>
+                        <option value="LOW" {% if current_filters.priority == 'LOW' %}selected{% endif %}>{{ get_text('priority_low') }}</option>
+                    </select>
+                </div>
+
+                {% if current_user.role.value in ['ADMIN', 'HEAD_MANAGER'] %}
+                <div class="col-md-2">
+                    <label class="form-label">{{ get_text('responsible_store') }}</label>
+                    <select name="store_id" class="form-select">
+                        <option value="">{{ get_text('all_stores') }}</option>
+                        {% for store in stores %}
+                        <option value="{{ store.store_id }}" {% if current_filters.store_id == store.store_id %}selected{% endif %}>{{ store.store_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div class="col-md-2">
+                    <label class="form-label">{{ get_text('time') }}</label>
+                    <select name="date_range" class="form-select">
+                        <option value="">{{ get_text('reimbursement_all_time') }}</option>
+                        <option value="today" {% if current_filters.date_range == 'today' %}selected{% endif %}>{{ get_text('today') }}</option>
+                        <option value="week" {% if current_filters.date_range == 'week' %}selected{% endif %}>{{ get_text('this_week') }}</option>
+                        <option value="month" {% if current_filters.date_range == 'month' %}selected{% endif %}>{{ get_text('this_month') }}</option>
+                        <option value="overdue" {% if current_filters.date_range == 'overdue' %}selected{% endif %}>{{ get_text('overdue') }}</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">{{ get_text('search_tasks') }}</label>
+                    <input type="text" name="search" class="form-control" value="{{ current_filters.search }}" placeholder="{{ get_text('search_tasks') }}">
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary me-2">{{ get_text('filter') }}</button>
+                    <a href="{{ url_for('renovation.index') }}" class="btn btn-outline-secondary">{{ get_text('reset') }}</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 任务列表 -->
+    <div class="card">
+        <div class="card-body">
+            {% if tasks %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>{{ get_text('task_title') }}</th>
+                            <th>{{ get_text('task_priority') }}</th>
+                            <th>{{ get_text('task_status') }}</th>
+                            <th>{{ get_text('responsible_store') }}</th>
+                            <th>{{ get_text('responsible_person') }}</th>
+                            <th>{{ get_text('due_date') }}</th>
+                            <th>{{ get_text('created_date') }}</th>
+                            <th>{{ get_text('action') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr>
+                            <td>{{ task.id }}</td>
+                            <td>
+                                <a href="{{ url_for('renovation.detail', task_id=task.id) }}" class="text-decoration-none">
+                                    {{ task.title }}
+                                </a>
+                                {% if task.is_overdue %}
+                                <span class="badge bg-danger ms-1">{{ get_text('overdue') }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if task.priority.value == 'URGENT' %}
+                                <span class="badge bg-danger">{{ get_text('priority_urgent') }}</span>
+                                {% elif task.priority.value == 'HIGH' %}
+                                <span class="badge bg-warning">{{ get_text('priority_high') }}</span>
+                                {% elif task.priority.value == 'MEDIUM' %}
+                                <span class="badge bg-info">{{ get_text('priority_medium') }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ get_text('priority_low') }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if task.status.value == 'PENDING' %}
+                                <span class="badge bg-secondary">{{ get_text('task_status_pending') }}</span>
+                                {% elif task.status.value == 'PROCESSING' %}
+                                <span class="badge bg-primary">{{ get_text('task_status_processing') }}</span>
+                                {% elif task.status.value == 'AWAITING_VERIFICATION' %}
+                                <span class="badge bg-warning">{{ get_text('task_status_awaiting_verification') }}</span>
+                                {% elif task.status.value == 'COMPLETED' %}
+                                <span class="badge bg-success">{{ get_text('task_status_completed') }}</span>
+                                {% elif task.status.value == 'CLOSED' %}
+                                <span class="badge bg-dark">{{ get_text('task_status_closed') }}</span>
+                                {% else %}
+                                <span class="badge bg-danger">{{ get_text('task_status_rejected') }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ task.store.store_name if task.store else '-' }}</td>
+                            <td>{{ task.assignee.real_name if task.assignee else '-' }}</td>
+                            <td>
+                                {% if task.due_date %}
+                                {{ task.due_date.strftime('%Y-%m-%d %H:%M') }}
+                                {% if task.days_remaining is not none %}
+                                <br><small class="{% if task.is_overdue %}text-danger{% elif task.days_remaining <= 1 %}text-warning{% else %}text-muted{% endif %}">
+                                    {% if task.is_overdue %}{{ get_text('overdue') }}{% else %}{{ task.days_remaining }} {{ get_text('days_remaining') }}{% endif %}
+                                </small>
+                                {% endif %}
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>{{ task.created_at.strftime('%Y-%m-%d %H:%M') if task.created_at else '-' }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('renovation.detail', task_id=task.id) }}" class="btn btn-outline-primary">{{ get_text('detail') }}</a>
+
+                                    {% if current_user.id == task.assigned_to and task.status.value in ['PENDING', 'PROCESSING'] %}
+                                    <a href="{{ url_for('renovation.update', task_id=task.id) }}" class="btn btn-outline-success">{{ get_text('upload_evidence') }}</a>
+                                    {% endif %}
+
+                                    {% if current_user.role.value in ['ADMIN', 'HEAD_MANAGER'] and task.status.value == 'AWAITING_VERIFICATION' %}
+                                    <a href="{{ url_for('renovation.verify', task_id=task.id) }}" class="btn btn-outline-warning">{{ get_text('verify_task') }}</a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            {% if pagination.pages > 1 %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('renovation.index', page=pagination.prev_num, **current_filters) }}">{{ get_text('prev_page') }}</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in pagination.iter_pages() %}
+                    {% if page_num %}
+                    {% if page_num != pagination.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('renovation.index', page=page_num, **current_filters) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('renovation.index', page=pagination.next_num, **current_filters) }}">{{ get_text('next_page') }}</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">{{ get_text('reimbursement_no_data') }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

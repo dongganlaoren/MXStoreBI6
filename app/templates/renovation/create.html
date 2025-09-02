@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}{{ get_text('renovation_create') }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">{{ get_text('renovation_create') }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control") }}
+                            {% if form.title.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.title.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", rows="4") }}
+                            {% if form.description.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.description.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.category.label(class="form-label") }}
+                                    {{ form.category(class="form-select") }}
+                                    {% if form.category.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.category.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.priority.label(class="form-label") }}
+                                    {{ form.priority(class="form-select") }}
+                                    {% if form.priority.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.priority.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.store_id.label(class="form-label") }}
+                                    {{ form.store_id(class="form-select") }}
+                                    {% if form.store_id.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.store_id.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.assigned_to.label(class="form-label") }}
+                                    {{ form.assigned_to(class="form-select") }}
+                                    {% if form.assigned_to.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.assigned_to.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.due_date.label(class="form-label") }}
+                                    {{ form.due_date(class="form-control", type="datetime-local") }}
+                                    {% if form.due_date.errors %}
+                                    <div class="text-danger small">
+                                        {% for error in form.due_date.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.attachments.label(class="form-label") }}
+                            {{ form.attachments(class="form-control", multiple=true) }}
+                            <div class="form-text">{{ get_text('reimbursement_attachment_tip') }}</div>
+                            {% if form.attachments.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.attachments.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('renovation.index') }}" class="btn btn-secondary">{{ get_text('return')
+                                }}</a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 设置默认截止时间为7天后
+    document.addEventListener('DOMContentLoaded', function() {
+        const dueDateInput = document.querySelector('input[name="due_date"]');
+        if (dueDateInput && !dueDateInput.value) {
+            const now = new Date();
+            now.setDate(now.getDate() + 7); // 默认7天后
+            dueDateInput.value = now.toISOString().slice(0, 16);
+        }
+
+        // 店铺联动责任人
+        const storeSelect = document.querySelector('select[name="store_id"]');
+        const assigneeSelect = document.querySelector('select[name="assigned_to"]');
+        if (storeSelect && assigneeSelect) {
+            function updateAssigneeOptions(storeId) {
+                fetch(`/renovation/get_store_manager?store_id=${storeId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        assigneeSelect.innerHTML = '';
+                        if (data.length === 0) {
+                            const opt = document.createElement('option');
+                            opt.value = '';
+                            opt.textContent = '无分店长';
+                            assigneeSelect.appendChild(opt);
+                        } else {
+                            data.forEach(function(manager) {
+                                const opt = document.createElement('option');
+                                opt.value = manager.user_id;
+                                opt.textContent = manager.real_name;
+                                assigneeSelect.appendChild(opt);
+                            });
+                        }
+                    });
+            }
+            // 初始化
+            updateAssigneeOptions(storeSelect.value);
+            // 监听变化
+            storeSelect.addEventListener('change', function() {
+                updateAssigneeOptions(this.value);
+            });
+        }
+    });
+</script>
+{% endblock %}

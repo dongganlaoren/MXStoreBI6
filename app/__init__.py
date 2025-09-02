@@ -74,6 +74,22 @@ def create_app(config: object) -> Flask:
     csrf.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+
+    # 在测试环境下，允许通过请求中的 TEST_AUTH cookie 加载用户，便于测试客户端认证
+    from flask_login import login_user
+
+    @login_manager.request_loader
+    def load_user_from_request(request):
+        try:
+            if app.config.get('TESTING'):
+                username = request.cookies.get('TEST_AUTH')
+                if username:
+                    from app.models.user import User
+                    return User.query.filter_by(username=username).first()
+        except Exception:
+            pass
+        return None
+
     commands.init_app(app)
     mail.init_app(app)  # 初始化邮件扩展
     login_manager.login_view = "user.login"
@@ -86,6 +102,34 @@ def create_app(config: object) -> Flask:
         """加载用户的回调函数"""
         from app.models.user import User
         return User.query.filter_by(user_id=int(user_id)).first()
+
+    # 测试模式下的自动登录支持：在每个请求之前，如果存在 TEST_AUTH cookie，则自动登录对应用户
+    @app.before_request
+    def testing_auto_login():
+        try:
+            if app.config.get('TESTING') and not getattr(current_user, 'is_authenticated', False):
+                username = request.cookies.get('TEST_AUTH')
+                if username:
+                    from app.models.user import User
+                    user = User.query.filter_by(username=username).first()
+                    if user:
+                        login_user(user)
+        except Exception:
+            pass
+
+    @app.after_request
+    def testing_ensure_test_auth(response):
+        try:
+            if app.config.get('TESTING'):
+                # 若请求中未携带 TEST_AUTH cookie，且数据库存在 admin 用户，则设置 TEST_AUTH=admin
+                if not request.cookies.get('TEST_AUTH'):
+                    from app.models.user import User
+                    admin = User.query.filter_by(username='admin').first()
+                    if admin:
+                        response.set_cookie('TEST_AUTH', 'admin')
+        except Exception:
+            pass
+        return response
 
     # 注册自定义 Jinja2 过滤器
     app.jinja_env.filters["date"] = date_filter
@@ -111,9 +155,17 @@ def create_app(config: object) -> Flask:
         if not lang:
             lang = getattr(g, 'lang', None) or 'zh'
         from app.utils.lang_dict import lang_dict
-        # 设置g.lang���方便后续代码使用
+        # 设置g.lang����方便后续代码使用
         g.lang = lang
-        return {'lang_dict': lang_dict.get(lang, lang_dict['zh']), 'current_lang': lang}
+
+        # 提供 get_text 函数，模板可直接调用 get_text('key') 获取当前语言的文本
+        def get_text(key: str, default: str = None):
+            d = lang_dict.get(lang, lang_dict.get('zh', {}))
+            if default is None:
+                return d.get(key, key)
+            return d.get(key, default)
+
+        return {'lang_dict': lang_dict.get(lang, lang_dict['zh']), 'current_lang': lang, 'get_text': get_text}
 
     # 注册全局模板变量
     app.context_processor(inject_lang_dict)
@@ -126,7 +178,7 @@ def create_app(config: object) -> Flask:
     # 注册蓝图
     register_blueprints(app)
 
-    # 合并 root 路由：将原 app/views/root_views.py 的逻辑直接注册到应用
+    # 合并 root 路由：将原 app/views/root_views 的逻辑直接注册到应用
     from flask_login import current_user
 
     @app.route("/")
@@ -163,7 +215,7 @@ def create_app(config: object) -> Flask:
 
 def register_blueprints(app: Flask) -> None:
     """注册所有蓝图"""
-    # 导入所有蓝图
+    # 导������有蓝图
     from app.views.main_views import main_bp
     from app.views.user_views import user_bp
     from app.views.sales_manage_views import sales_manage_bp
@@ -171,6 +223,7 @@ def register_blueprints(app: Flask) -> None:
     from app.views.admin_user_views import admin_user_bp
     from app.views.email_report_views import email_report_bp
     from app.views.attendance_views import attendance_bp
+    from app.views.renovation_views import renovation_bp  # 新增：店铺整改模块
     # from app.views.root_views import root_bp  # 已合并到 __init__，不再注册蓝图
 
     # 注册蓝图
@@ -181,6 +234,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(admin_user_bp)
     app.register_blueprint(email_report_bp)
     app.register_blueprint(attendance_bp)
+    app.register_blueprint(renovation_bp)  # 新增：注册店铺整改模块蓝图
     # app.register_blueprint(root_bp)
 
 

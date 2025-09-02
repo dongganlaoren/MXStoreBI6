@@ -14,7 +14,7 @@ from app.models import DailySales, Store, FinancialCheckStatus, RoleType, BankDe
 sales_manage_bp = Blueprint('sales_manage', __name__)
 
 
-# 营业信息��理列表
+# 营业信息管理列表
 @sales_manage_bp.route('/manage/list', methods=['GET'])
 @login_required
 def manage_list():

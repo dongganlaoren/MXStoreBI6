@@ -120,9 +120,9 @@
                 </td>
                 <td>
                     {% if req.check_status and req.check_status.value == 'CHECKED' %}
-                    {{ lang['reimbursement_checked'] }}
+                    {{ lang.get('reimbursement_checked', '已核对') }}
                     {% else %}
-                    {{ lang['reimbursement_unchecked'] }}
+                    {{ lang.get('reimbursement_unchecked', '未核对') }}
                     {% endif %}
                 </td>
                 <td>
@@ -160,7 +160,8 @@
                     <form method="post" action="{{ url_for('reimbursement.mark_checked', request_id=req.request_id) }}"
                           style="display:inline;">
                         {{ form.csrf_token }}
-                        <button type="submit" class="btn btn-sm btn-outline-success ms-1">{{ lang['mark_checked'] }}
+                        <button type="submit" class="btn btn-sm btn-outline-success ms-1">{{ lang.get('mark_checked',
+                            '标记已审核') }}
                         </button>
                     </form>
                     {% endif %}

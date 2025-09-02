@@ -30,5 +30,6 @@ else:
 # --- 主程序入口 ---
 if __name__ == '__main__':
     # 推荐：开发环境用127.0.0.1，局域网调试用0.0.0.0，避免Can't assign requested address
-    app.run(host='0.0.0.0', port=5432, debug=True)
+    port = int(os.getenv('FLASK_RUN_PORT', 5000))  # 使用环境变量或默认端口5000
+    app.run(host='0.0.0.0', port=port, debug=True)
     print("Flask 应用已停止运行。")

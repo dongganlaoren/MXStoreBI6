@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}{{ get_text('renovation_detail') }} - {{ task.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 页面标题和操作按钮 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ get_text('renovation_detail') }}</h2>
+        <div>
+            <a href="{{ url_for('renovation.index') }}" class="btn btn-secondary">{{ get_text('back_to_list') }}</a>
+
+            {% if current_user.id == task.assigned_to and task.status.value in ['PENDING', 'PROCESSING'] %}
+            <a href="{{ url_for('renovation.update', task_id=task.id) }}" class="btn btn-success">{{
+                get_text('upload_evidence') }}</a>
+            {% endif %}
+
+            {% if current_user.role.value in ['ADMIN', 'HEAD_MANAGER'] and task.status.value == 'AWAITING_VERIFICATION'
+            %}
+            <a href="{{ url_for('renovation.verify', task_id=task.id) }}" class="btn btn-warning">{{
+                get_text('verify_task') }}</a>
+            {% endif %}
+
+            {% if current_user.id == task.assigned_to and task.status.value == 'REJECTED' %}
+            <button class="btn btn-primary" onclick="reopenTask({{ task.id }})">{{ get_text('reopen_task') }}</button>
+            {% endif %}
+
+            {% if current_user.role.value in ['ADMIN', 'HEAD_MANAGER'] and task.status.value == 'COMPLETED' %}
+            <button class="btn btn-dark" onclick="closeTask({{ task.id }})">{{ get_text('close_task') }}</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 任务基本信息 -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">{{ get_text('renovation_task') }} #{{ task.id }}</h5>
+                </div>
+                <div class="card-body">
+                    <h4>{{ task.title }}</h4>
+                    <p class="text-muted">{{ task.description }}</p>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>{{ get_text('task_priority') }}:</strong></td>
+                                    <td>
+                                        {% if task.priority.value == 'URGENT' %}
+                                        <span class="badge bg-danger">{{ get_text('priority_urgent') }}</span>
+                                        {% elif task.priority.value == 'HIGH' %}
+                                        <span class="badge bg-warning">{{ get_text('priority_high') }}</span>
+                                        {% elif task.priority.value == 'MEDIUM' %}
+                                        <span class="badge bg-info">{{ get_text('priority_medium') }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ get_text('priority_low') }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{{ get_text('task_status') }}:</strong></td>
+                                    <td>
+                                        {% if task.status.value == 'PENDING' %}
+                                        <span class="badge bg-secondary">{{ get_text('task_status_pending') }}</span>
+                                        {% elif task.status.value == 'PROCESSING' %}
+                                        <span class="badge bg-primary">{{ get_text('task_status_processing') }}</span>
+                                        {% elif task.status.value == 'AWAITING_VERIFICATION' %}
+                                        <span class="badge bg-warning">{{ get_text('task_status_awaiting_verification') }}</span>
+                                        {% elif task.status.value == 'COMPLETED' %}
+                                        <span class="badge bg-success">{{ get_text('task_status_completed') }}</span>
+                                        {% elif task.status.value == 'CLOSED' %}
+                                        <span class="badge bg-dark">{{ get_text('task_status_closed') }}</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">{{ get_text('task_status_rejected') }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{{ get_text('responsible_store') }}:</strong></td>
+                                    <td>{{ task.store.store_name if task.store else '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{{ get_text('responsible_person') }}:</strong></td>
+                                    <td>{{ task.assignee.real_name if task.assignee else '-' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>{{ get_text('created_date') }}:</strong></td>
+                                    <td>{{ task.created_at.strftime('%Y-%m-%d %H:%M') if task.created_at else '-' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{{ get_text('due_date') }}:</strong></td>
+                                    <td>
+                                        {% if task.due_date %}
+                                        {{ task.due_date.strftime('%Y-%m-%d %H:%M') }}
+                                        {% if task.is_overdue %}
+                                        <span class="badge bg-danger ms-1">{{ get_text('overdue') }}</span>
+                                        {% elif task.days_remaining <= 1 %}
+                                        <span class="badge bg-warning ms-1">{{ task.days_remaining }} {{ get_text('days_remaining') }}</span>
+                                        {% endif %}
+                                        {% else %}-{% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{{ get_text('completed_date') }}:</strong></td>
+                                    <td>{{ task.completed_at.strftime('%Y-%m-%d %H:%M') if task.completed_at else '-'
+                                        }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>{{ get_text('verifier') }}:</strong></td>
+                                    <td>{{ task.verifier.real_name if task.verifier else '-' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if task.verification_result %}
+                    <div class="alert {% if task.verification_result.value == 'PASSED' %}alert-success{% else %}alert-danger{% endif %}"
+                         role="alert">
+                        <h6 class="alert-heading">{{ get_text('task_verification') }}</h6>
+                        <p class="mb-1">
+                            <strong>{{ get_text('verification_comments') }}:</strong> {{ task.verification_comments }}
+                        </p>
+                        <small>{{ get_text('verifier') }}: {{ task.verifier.real_name if task.verifier else '-' }} | {{
+                            task.verified_at.strftime('%Y-%m-%d %H:%M') if task.verified_at else '-' }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 侧边栏信息 -->
+        <div class="col-md-4">
+            <!-- 附件列表 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">{{ get_text('file_attachments') }}</h6>
+                </div>
+                <div class="card-body">
+                    {% if attachments %}
+                    <div class="list-group list-group-flush">
+                        {% for attachment in attachments %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-paperclip text-muted"></i>
+                                    <small>{{ attachment.file_name }}</small>
+                                    <br>
+                                    <small class="text-muted">{{ attachment.uploader.real_name if attachment.uploader
+                                        else '-' }} | {{ attachment.created_at.strftime('%m-%d %H:%M') if
+                                        attachment.created_at else '-' }}</small>
+                                </div>
+                                <a href="{{ url_for('static', filename='uploads/renovation/' + task.id|string + '/' + attachment.file_name) }}"
+                                   class="btn btn-sm btn-outline-primary" target="_blank">{{
+                                    get_text('download_attachment') }}</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">{{ get_text('no_attachments') }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务记录 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">{{ get_text('task_records') }}</h5>
+        </div>
+        <div class="card-body">
+            {% if records %}
+            <div class="timeline">
+                {% for record in records %}
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h6 class="timeline-title">{{ record.action.value }}</h6>
+                        <p class="timeline-text">{{ record.content }}</p>
+                        <small class="text-muted">{{ record.operator.real_name if record.operator else '-' }} | {{
+                            record.created_at.strftime('%Y-%m-%d %H:%M') if record.created_at else '-' }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted text-center">{{ get_text('no_key_change_history') }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 20px;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: 0;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #007bff;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px #007bff;
+    }
+
+    .timeline-item:not(:last-child)::before {
+        content: '';
+        position: absolute;
+        left: 5px;
+        top: 17px;
+        width: 2px;
+        height: calc(100% + 5px);
+        background-color: #dee2e6;
+    }
+
+    .timeline-title {
+        margin-bottom: 5px;
+        color: #495057;
+    }
+
+    .timeline-text {
+        margin-bottom: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function reopenTask(taskId) {
+        if (confirm('{{ get_text("确定要重新开启此任务吗？") }}')) {
+            fetch(`{{ url_for('renovation.reopen', task_id=0) }}`.replace('0', taskId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+    }
+
+    function closeTask(taskId) {
+        if (confirm('{{ get_text("确定要关闭此任务吗？") }}')) {
+            fetch(`{{ url_for('renovation.close_task', task_id=0) }}`.replace('0', taskId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+    }
+</script>
+{% endblock %}

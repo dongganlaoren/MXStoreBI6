@@ -1,8 +1,7 @@
 """
 自动生成门店、用户、日报、财务报销申请测试数据，严格符合模型字段定义。
 """
-import random
-from datetime import datetime, timedelta, date
+from datetime import datetime, date
 
 from faker import Faker
 from sqlalchemy import text
@@ -10,8 +9,7 @@ from werkzeug.security import generate_password_hash
 
 from app.extensions import db
 from app.models import Store, User, DailySales
-from app.models.enums import ReimbursementPrimaryCategory, ReimbursementSecondaryCategory, ReimbursementStatus
-from app.models.enums import RoleType, FinancialCheckStatus
+from app.models.enums import RoleType
 from app.models.reimbursement import ReimbursementRequest
 
 fake = Faker("zh_CN")
@@ -27,8 +25,11 @@ def generate_fake_data():
                 db.session.execute(text('PRAGMA foreign_keys = OFF'))
             elif 'mysql' in db_url:
                 db.session.execute(text('SET FOREIGN_KEY_CHECKS=0'))
+            # 仅清空非 alembic_version 表
             for table in table_names:
-                if table == "alembic_version":
+                if table and table.lower() == "alembic_version":
+                    # 明确跳过版本表，避免迁移状态被破坏
+                    print("跳过 alembic_version 表，不进行清空/修改")
                     continue
                 db.session.execute(text(f'DELETE FROM {table}'))
             if 'sqlite' in db_url:
@@ -71,15 +72,30 @@ def generate_fake_data():
         admin_user.role = RoleType.ADMIN
         admin_user.user_status = 1
         admin_user.real_name = fake.name()
-        admin_user.email = fake.email()
+        # 要求：固定 admin 邮箱
+        admin_user.email = "32191681@qq.com"
         admin_user.phone = fake.phone_number()
         admin_user.created_at = datetime.now()
         admin_user.updated_at = datetime.now()
         db.session.add(admin_user)
         db.session.commit()
-        # 管理组用户
-        for idx, role in enumerate([RoleType.FINANCE, RoleType.HEAD_MANAGER]):
-            uname = chr(97 + idx) * 3  # bbb, ccc
+
+        # 要求：新增管理组用户 aaa 并指定邮箱
+        aaa = User()
+        aaa.username = "aaa"
+        aaa.password_hash = generate_password_hash("aaa")
+        aaa.role = RoleType.FINANCE
+        aaa.user_status = 1
+        aaa.real_name = fake.name()
+        aaa.email = "renweimin@gmail.com"
+        aaa.phone = fake.phone_number()
+        aaa.created_at = datetime.now()
+        aaa.updated_at = datetime.now()
+        db.session.add(aaa)
+
+        # 其他管理组用户（保留原逻辑）
+        for idx, role in enumerate([RoleType.HEAD_MANAGER]):
+            uname = "ccc"  # 仅保留��个示例管理用户
             user = User()
             user.username = uname
             user.password_hash = generate_password_hash(uname)
@@ -92,6 +108,7 @@ def generate_fake_data():
             user.updated_at = datetime.now()
             db.session.add(user)
         db.session.commit()
+
         # 门店分店长和员工
         for store in stores:
             # 分店长
@@ -124,7 +141,7 @@ def generate_fake_data():
             db.session.add(emp)
         db.session.commit()
 
-        # 生成日报测试数据（3个月，每门店每天一条）
+        # 预备 store -> users 映射供后续报销数据使用
         users = User.query.all()
         store_users = {}
         for store in stores:
@@ -132,99 +149,16 @@ def generate_fake_data():
                                            u.store_id == store.store_id and u.role in [RoleType.BRANCH_MANAGER,
                                                                                        RoleType.EMPLOYEE]]
         today = date.today()
-        start_date = (today.replace(day=1) - timedelta(days=3 * 31)).replace(day=1)
-        end_date = today
+
+        # 暂停生成日报测试数据：仅清空后跳过插入
         db.session.query(DailySales).delete()
         db.session.commit()
-        for store in stores:
-            d = start_date
-            while d <= end_date:
-                user_list = store_users.get(store.store_id, [])
-                if not user_list:
-                    d += timedelta(days=1)
-                    continue
-                user = random.choice(user_list)
-                cash_income = round(random.uniform(100, 500), 2)
-                pos_income = round(random.uniform(200, 800), 2)
-                day_pass_income = round(random.uniform(50, 300), 2)
-                voucher_amount = round(random.uniform(0, 50), 2)
-                pos_total = round(cash_income + pos_income + day_pass_income + voucher_amount, 2)
-                electronic_actual_arrival = round(random.uniform(200, 800), 2)
-                bank_deposit = round(random.uniform(100, 500), 2)
-                bank_fee = round(random.uniform(0, 10), 2)
-                takeaway_amount = round(random.uniform(100, 400), 2)
-                actual_sales = round(takeaway_amount + day_pass_income + electronic_actual_arrival + bank_deposit, 2)
-                theoretical_total = round(pos_total + takeaway_amount - voucher_amount - bank_deposit, 2)
-                # 昨日数据全部设为 APPROVED，其他日期随机
-                if d == today - timedelta(days=1):
-                    financial_check_status = FinancialCheckStatus.APPROVED
-                else:
-                    financial_check_status = random.choice([
-                        FinancialCheckStatus.PENDING,
-                        FinancialCheckStatus.APPROVED
-                    ])
-                sales = DailySales()
-                sales.store_id = store.store_id
-                sales.user_id = user.user_id
-                sales.report_date = d
-                sales.cash_income = cash_income
-                sales.pos_income = pos_income
-                sales.day_pass_income = day_pass_income
-                sales.voucher_amount = voucher_amount
-                sales.pos_total = pos_total
-                sales.electronic_actual_arrival = electronic_actual_arrival
-                sales.bank_deposit = bank_deposit
-                sales.bank_fee = bank_fee
-                sales.takeaway_amount = takeaway_amount
-                sales.actual_sales = actual_sales
-                sales.theoretical_total = theoretical_total
-                sales.financial_check_status = financial_check_status
-                db.session.add(sales)
-                d += timedelta(days=1)
-        db.session.commit()
-        print(f"已生成3个月测试日报数据（昨日全部为 APPROVED）")
+        print("已跳过日报测试数据生成（按要求暂时取消）")
 
-        # 生成财务报销申请测试数据（2个月，每门店每天一条）
+        # 暂停生成财务报销申请测试数据：仅清空后跳过插入
         db.session.query(ReimbursementRequest).delete()
         db.session.commit()
-        admin_user = User.query.filter_by(username='admin').first()
-        admin_id = admin_user.user_id if admin_user else None
-        start_date = (today.replace(day=1) - timedelta(days=2 * 31)).replace(day=1)
-        end_date = today
-        for store in stores:
-            d = start_date
-            while d <= end_date:
-                user_list = store_users.get(store.store_id, [])
-                if not user_list:
-                    d += timedelta(days=1)
-                    continue
-                user = random.choice(user_list)
-                amount = round(random.uniform(100, 2000), 2)
-                primary_category = random.choice(list(ReimbursementPrimaryCategory))
-                secondary_category = random.choice(list(ReimbursementSecondaryCategory))
-                status = random.choice([
-                    ReimbursementStatus.APPROVED, ReimbursementStatus.PENDING, ReimbursementStatus.REJECTED])
-                approval_comments = fake.sentence() if status == ReimbursementStatus.APPROVED else None
-                approved_at = datetime.combine(d,
-                                               datetime.min.time()) if status == ReimbursementStatus.APPROVED else None
-                reimb = ReimbursementRequest()
-                reimb.store_id = store.store_id
-                reimb.submitter_id = user.user_id
-                reimb.primary_category = primary_category
-                reimb.secondary_category = secondary_category
-                reimb.amount = amount
-                reimb.currency = 'THB'
-                reimb.description = f"测试报销申请 {store.store_id} {d}"
-                reimb.status = status
-                reimb.approver_id = admin_id
-                reimb.approval_comments = approval_comments
-                reimb.created_at = datetime.combine(d, datetime.min.time())
-                reimb.updated_at = datetime.combine(d, datetime.min.time())
-                reimb.approved_at = approved_at
-                db.session.add(reimb)
-                d += timedelta(days=1)
-        db.session.commit()
-        print(f"已生成2个月财务报销申请测试数据（审批人仅admin，审批意见和审批时间有值）")
+        print("已跳过财务报销申请测试数据生成（按要求暂时取消）")
 
     except Exception as e:
         db.session.rollback()

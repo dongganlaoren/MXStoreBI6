@@ -112,3 +112,91 @@ class AttendanceSource(enum.Enum):
     WEB = 'WEB'
     LINE = 'LINE'
     API = 'API'
+
+
+# --- 新增：店铺整改模块枚举 ---
+class RenovationTaskStatus(enum.Enum):
+    """
+    整改任务状态枚举
+    """
+    PENDING = 'PENDING'  # 待处理
+    PROCESSING = 'PROCESSING'  # 处理中
+    AWAITING_VERIFICATION = 'AWAITING_VERIFICATION'  # 待验收
+    COMPLETED = 'COMPLETED'  # 已完成
+    CLOSED = 'CLOSED'  # 已关闭
+    REJECTED = 'REJECTED'  # 验收不通过
+
+
+class RenovationTaskPriority(enum.Enum):
+    """
+    整改任务优先级枚举
+    """
+    URGENT = 'URGENT'  # 紧急
+    HIGH = 'HIGH'  # 高
+    MEDIUM = 'MEDIUM'  # 中
+    LOW = 'LOW'  # 低
+
+
+class RenovationTaskCategory(enum.Enum):
+    """
+    整改任务分类枚举
+    """
+    HYGIENE = 'HYGIENE'  # 卫生问题
+    EQUIPMENT = 'EQUIPMENT'  # 设备维护
+    SERVICE = 'SERVICE'  # 服务质量
+    SAFETY = 'SAFETY'  # 安全隐患
+    OTHER = 'OTHER'  # 其他问题
+
+
+class RenovationRecordAction(enum.Enum):
+    """
+    整改记录操作类型枚举
+    """
+    CREATE = 'CREATE'  # 创建任务
+    UPDATE = 'UPDATE'  # 更新状态
+    UPLOAD_EVIDENCE = 'UPLOAD_EVIDENCE'  # 上传证据
+    SUBMIT_FOR_VERIFICATION = 'SUBMIT_FOR_VERIFICATION'  # 提交验收
+    VERIFY = 'VERIFY'  # 验收
+    REJECT = 'REJECT'  # 驳回
+    CLOSE = 'CLOSE'  # 关闭任务
+
+
+class VerificationResult(enum.Enum):
+    """
+    验收结果枚举
+    """
+    PASSED = 'PASSED'  # 验收通过
+    FAILED = 'FAILED'  # 验收不通过
+
+
+# --- 新增：系统通知模块枚举 ---
+class NotificationType(enum.Enum):
+    """
+    通知类型枚举
+    """
+    RENOVATION_TASK_ASSIGNED = 'RENOVATION_TASK_ASSIGNED'  # 整改任务分配通知
+    RENOVATION_OVERDUE_WARNING = 'RENOVATION_OVERDUE_WARNING'  # 逾期预警通知
+    RENOVATION_VERIFICATION_NEEDED = 'RENOVATION_VERIFICATION_NEEDED'  # 验收通知
+    RENOVATION_VERIFICATION_RESULT = 'RENOVATION_VERIFICATION_RESULT'  # 结果通知
+    REIMBURSEMENT_NOTIFICATION = 'REIMBURSEMENT_NOTIFICATION'  # 报销通知（预留）
+    ATTENDANCE_NOTIFICATION = 'ATTENDANCE_NOTIFICATION'  # 考勤通知（预留）
+    SYSTEM_NOTIFICATION = 'SYSTEM_NOTIFICATION'  # 系统通知（预留）
+
+
+class NotificationChannel(enum.Enum):
+    """
+    通知渠道枚举
+    """
+    EMAIL = 'EMAIL'  # 邮件
+    WEB = 'WEB'  # 站内信
+    PUSH = 'PUSH'  # 推送
+
+
+class NotificationStatus(enum.Enum):
+    """
+    通知发送状态枚举
+    """
+    PENDING = 'PENDING'  # 待发送
+    SENT = 'SENT'  # 已发送
+    FAILED = 'FAILED'  # 发送失败
+    RETRY = 'RETRY'  # 重试中

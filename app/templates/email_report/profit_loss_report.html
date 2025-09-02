@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- 页面标题 -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="bi bi-graph-up me-2 text-success"></i>{{ page_title }}
+                </h1>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="printReport()">
+                        <i class="bi bi-printer me-1"></i>打印报表
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="exportToExcel()">
+                        <i class="bi bi-file-earmark-excel me-1"></i>导出Excel
+                    </button>
+                </div>
+            </div>
+
+            <!-- 筛选条件表单 -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-funnel me-2"></i>筛选条件</h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="store_id" class="form-label">门店选择</label>
+                            <select class="form-select" id="store_id" name="store_id">
+                                <option value="">全部门店</option>
+                                {% for store in stores %}
+                                <option value="{{ store.store_id }}"
+                                        {% if selected_store_id== store.store_id %}selected{% endif %}>
+                                    {{ store.store_name or store.store_id }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label">开始日期</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date"
+                                   value="{{ start_date_str }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label">结束日期</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date"
+                                   value="{{ end_date_str }}">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-search me-1"></i>查询
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetFilters()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>重置
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 汇总信息卡片 -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        总收入
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        ฿{{ "{:,.2f}".format(summary.total_revenue) }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-currency-dollar fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        总成本
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        ฿{{ "{:,.2f}".format(summary.total_cost) }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-calculator fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-{{ 'success' if summary.total_profit >= 0 else 'danger' }} shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-{{ 'success' if summary.total_profit >= 0 else 'danger' }} text-uppercase mb-1">
+                                        总利润
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        ฿{{ "{:,.2f}".format(summary.total_profit) }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-{{ 'graph-up' if summary.total_profit >= 0 else 'graph-down' }} fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        利润率
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ "{:.2f}".format(summary.overall_profit_margin) }}%
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-percent fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图表展示区域 -->
+            <div class="row mb-4">
+                <div class="col-lg-8">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">各店铺损益对比</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="profitChart" width="100%" height="50"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">成本分类占比</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="costCategoryChart" width="100%" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 详细数据表格 -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        损益明细表 - {{ period_str }}
+                        <span class="badge bg-secondary ms-2">{{ summary.store_count }}家门店</span>
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="profitLossTable" width="100%"
+                               cellspacing="0">
+                            <thead class="table-dark">
+                            <tr>
+                                <th>排名</th>
+                                <th>门店编号</th>
+                                <th>门店名称</th>
+                                <th>总收入 (฿)</th>
+                                <th>总成本 (฿)</th>
+                                <th>净利润 (฿)</th>
+                                <th>利润率 (%)</th>
+                                <th>盈亏状态</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for row in rows %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ row.store_id }}</td>
+                                <td>{{ row.store_name }}</td>
+                                <td class="text-end">{{ "{:,.2f}".format(row.total_revenue) }}</td>
+                                <td class="text-end">{{ "{:,.2f}".format(row.total_cost) }}</td>
+                                <td class="text-end {% if row.profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "{:,.2f}".format(row.profit) }}
+                                </td>
+                                <td class="text-end {% if row.profit_margin >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "{:.2f}".format(row.profit_margin) }}%
+                                </td>
+                                <td class="text-center">
+                                    {% if row.profit >= 0 %}
+                                    <span class="badge bg-success">盈利</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">亏损</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                            <tfoot class="table-secondary">
+                            <tr class="fw-bold">
+                                <td colspan="3">总计</td>
+                                <td class="text-end">{{ "{:,.2f}".format(summary.total_revenue) }}</td>
+                                <td class="text-end">{{ "{:,.2f}".format(summary.total_cost) }}</td>
+                                <td class="text-end {% if summary.total_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "{:,.2f}".format(summary.total_profit) }}
+                                </td>
+                                <td class="text-end {% if summary.overall_profit_margin >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "{:.2f}".format(summary.overall_profit_margin) }}%
+                                </td>
+                                <td class="text-center">
+                                    {% if summary.total_profit >= 0 %}
+                                    <span class="badge bg-success">整体盈利</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">整体亏损</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // 图表数据
+    const chartData = {
+        stores: {{ rows | map(attribute='store_name') | list | tojson }},
+        revenues: {{ rows | map(attribute='total_revenue') | list | tojson }},
+        costs: {{ rows | map(attribute='total_cost') | list | tojson }},
+        profits: {{ rows | map(attribute='profit') | list | tojson }},
+        categories: {{ categories | tojson }}
+    };
+
+    // 损益对比图
+    const ctx1 = document.getElementById('profitChart').getContext('2d');
+    const profitChart = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+            labels: chartData.stores,
+            datasets: [{
+                label: '收入',
+                data: chartData.revenues,
+                backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }, {
+                label: '成本',
+                data: chartData.costs,
+                backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            }, {
+                label: '利润',
+                data: chartData.profits,
+                backgroundColor: chartData.profits.map(p => p >= 0 ? 'rgba(75, 192, 192, 0.8)' : 'rgba(255, 159, 64, 0.8)'),
+                borderColor: chartData.profits.map(p => p >= 0 ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 159, 64, 1)'),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '฿' + value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ฿' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 成本分类饼图
+    const ctx2 = document.getElementById('costCategoryChart').getContext('2d');
+    const costCategoryChart = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: chartData.categories.map(c => c.category),
+            datasets: [{
+                data: chartData.categories.map(c => c.amount),
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF',
+                    '#FF9F40',
+                    '#FF6384',
+                    '#C9CBCF'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return context.label + ': ฿' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 工具函数
+    function resetFilters() {
+        document.getElementById('store_id').value = '';
+        document.getElementById('start_date').value = '';
+        document.getElementById('end_date').value = '';
+    }
+
+    function printReport() {
+        window.print();
+    }
+
+    function exportToExcel() {
+        // 简单的CSV导出功能
+        let csv = 'data:text/csv;charset=utf-8,';
+        csv += '排名,门店编号,门店名称,总收入,总成本,净利润,利润率,盈亏状态\n';
+
+        {% for row in rows %}
+        csv += '{{ loop.index }},"{{ row.store_id }}","{{ row.store_name }}",{{ row.total_revenue }},{{ row.total_cost }},{{ row.profit }},{{ row.profit_margin }},{% if row.profit >= 0 %}盈利{% else %}亏损{% endif %}\n';
+        {% endfor %}
+
+        const encodedUri = encodeURI(csv);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', '损益报表_{{ period_str }}.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // 表格增强
+    document.addEventListener('DOMContentLoaded', function() {
+        // 添加表格排序功能
+        const table = document.getElementById('profitLossTable');
+        const headers = table.querySelectorAll('thead th');
+
+        headers.forEach((header, index) => {
+            if (index > 0 && index < 7) { // 可排序的列
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', () => sortTable(index));
+            }
+        });
+    });
+
+    function sortTable(columnIndex) {
+        const table = document.getElementById('profitLossTable');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        const isNumeric = columnIndex >= 3 && columnIndex <= 6;
+
+        rows.sort((a, b) => {
+            const aValue = a.cells[columnIndex].textContent.trim();
+            const bValue = b.cells[columnIndex].textContent.trim();
+
+            if (isNumeric) {
+                const aNum = parseFloat(aValue.replace(/[^\d.-]/g, ''));
+                const bNum = parseFloat(bValue.replace(/[^\d.-]/g, ''));
+                return bNum - aNum; // 降序
+            } else {
+                return aValue.localeCompare(bValue);
+            }
+        });
+
+        // 重新排列行
+        rows.forEach((row, index) => {
+            row.cells[0].textContent = index + 1; // 更新排名
+            tbody.appendChild(row);
+        });
+    }
+</script>
+
+<style>
+    .border-left-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
+    .border-left-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
+    .border-left-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
+    .border-left-warning {
+        border-left: 0.25rem solid #f6c23e !important;
+    }
+    .border-left-danger {
+        border-left: 0.25rem solid #e74a3b !important;
+    }
+
+    .text-xs {
+        font-size: 0.7rem;
+    }
+
+    @media print {
+        .btn, .card-header {
+            display: none !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+    }
+</style>
+{% endblock %}

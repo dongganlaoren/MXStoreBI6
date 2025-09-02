@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}{{ get_text('upload_evidence') }} - {{ task.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">{{ get_text('upload_evidence') }}</h4>
+                </div>
+                <div class="card-body">
+                    <!-- 任务信息概览 -->
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">{{ task.title }}</h6>
+                        <p class="mb-0">{{ task.description }}</p>
+                    </div>
+
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ form.evidence_description.label(class="form-label") }}
+                            {{ form.evidence_description(class="form-control", rows="4", placeholder="请描述您的整改措施和结果...")
+                            }}
+                            {% if form.evidence_description.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.evidence_description.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.attachments.label(class="form-label") }}
+                            {{ form.attachments(class="form-control", multiple=true) }}
+                            <div class="form-text">{{ get_text('reimbursement_attachment_tip') }}</div>
+                            {% if form.attachments.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.attachments.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('renovation.detail', task_id=task.id) }}" class="btn btn-secondary">{{
+                                get_text('return') }}</a>
+                            {{ form.submit(class="btn btn-success") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
 # 财务报销相关模型
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.extensions import db
 from app.models.enums import ReimbursementStatus, ReimbursementAttachmentType, ReimbursementPrimaryCategory, \
@@ -23,8 +23,9 @@ class ReimbursementRequest(db.Model):
     check_status = db.Column(db.Enum(ReimbursementCheckStatus), default=ReimbursementCheckStatus.UNCHECKED,
                              nullable=False, comment="核对状态")
     approval_comments = db.Column(db.Text, nullable=True, comment="审批意见")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, comment="创建时间")
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False,
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, comment="创建时间")
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                           onupdate=lambda: datetime.now(timezone.utc), nullable=False,
                            comment="更新时间")
     approved_at = db.Column(db.DateTime, nullable=True, comment="审批通过时间")
     approver_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False, comment="审批人ID")
@@ -46,7 +47,7 @@ class ReimbursementCCRecipient(db.Model):
     request_id = db.Column(db.Integer, db.ForeignKey('reimbursement_requests.request_id'), nullable=False,
                            comment="报销申请ID")
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False, comment="抄送人用户ID")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, comment="创建时间")
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, comment="创建时间")
 
     # 关联用户信息
     user = db.relationship('User', backref='reimbursement_cc_received', foreign_keys=[user_id])
@@ -64,7 +65,7 @@ class ReimbursementDefaultCCRecipient(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment="配置记录ID")
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False, comment="默认抄送人用户ID")
     is_active = db.Column(db.Boolean, default=True, nullable=False, comment="是否启用")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, comment="创建时间")
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, comment="创建时间")
     created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False, comment="创建人ID")
 
     # 关联用户信息
@@ -89,6 +90,6 @@ class ReimbursementAttachment(db.Model):
     file_path = db.Column(db.String(255), nullable=False, comment="文件存储路径")
     file_size = db.Column(db.Integer, nullable=False, comment="文件大小（字节）")
     mime_type = db.Column(db.String(100), nullable=False, comment="文件MIME类型")
-    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, comment="上传时间")
+    uploaded_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, comment="上传时间")
 
     uploader = db.relationship('User', backref='reimbursement_attachments', foreign_keys=[uploader_id])

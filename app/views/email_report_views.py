@@ -13,8 +13,11 @@ from app.extensions import db
 from app.models import User, DailySales, Store
 from app.models.email_report_config import EmailReportConfig
 from app.models.email_task_log import EmailTaskLog, EmailTaskType, EmailTaskStatus
-from app.models.enums import RoleType, FinancialCheckStatus
-from app.utils.notify import send_sales_report_mail, query_sales_reports, render_sales_report_html, send_notify_mail
+from app.models.enums import ReimbursementStatus
+from app.models.enums import RoleType, FinancialCheckStatus, ReimbursementPrimaryCategory
+from app.models.reimbursement import ReimbursementRequest
+from app.utils.notify import send_notify_mail
+from app.utils.notify import send_sales_report_mail, query_sales_reports, render_sales_report_html
 
 # 定时任务注册入口
 email_report_bp = Blueprint('email_report', __name__)
@@ -244,7 +247,7 @@ def email_report_config():
         # 日报
         if info.daily_enabled:
             freq_desc.append(
-                f"<span style='color:#5470C6;font-weight:600;'>{role_name}日报：</span>每天{info.daily_time}发送，统计前一天数据。")
+                f"<span style='color:#5470C6;font-weight:600;'>{role_name}日报：</span>每天{info.daily_time}发送，统计前���天数据。")
         # 周报
         if info.weekly_enabled:
             week_map = ['一', '二', '三', '四', '五', '六', '日']
@@ -369,7 +372,13 @@ def sales_reports_center(period: str):
                 'theory_sales'),
             func.sum(DailySales.takeaway_amount).label('takeaway'),
             func.sum(DailySales.actual_sales).label('actual_sales'),
-            func.sum(DailySales.total_error).label('error')
+            func.sum(DailySales.total_error).label('error'),
+            # 新增：电子支付相关统计
+            func.sum(DailySales.pos_income).label('total_pos_income'),
+            func.sum(DailySales.electronic_actual_arrival).label('total_electronic_actual'),
+            func.sum(DailySales.bank_deposit).label('total_bank_deposit'),
+            func.sum(DailySales.bank_fee).label('total_bank_fee'),
+            func.sum(DailySales.cash_income).label('total_cash_income')
         ).filter(
             DailySales.report_date >= start_date_sel,
             DailySales.report_date <= end_date_sel,
@@ -385,49 +394,109 @@ def sales_reports_center(period: str):
             'total_takeaway': 0.0,
             'total_actual': 0.0,
             'total_error': 0.0,
-            'theory_diff': 0.0
+            'theory_diff': 0.0,
+            # 新增：电子支付统计汇总
+            'total_pos_income': 0.0,
+            'total_electronic_actual': 0.0,
+            'total_bank_deposit': 0.0,
+            'total_bank_fee': 0.0,
+            'total_cash_income': 0.0,
+            'electronic_variance': 0.0,  # 电子支付差异
+            'bank_efficiency': 0.0  # 银行存款效率
         }
         for r in rows_q:
+            # 计算电子支付差异：实际到账 - POS显示金额
+            electronic_variance = float(r.total_electronic_actual or 0) - float(r.total_pos_income or 0)
+            # 计算银行存款效率：存款金额 / (存款金额 + 手续费) * 100
+            bank_total = float(r.total_bank_deposit or 0) + float(r.total_bank_fee or 0)
+            bank_efficiency = (float(r.total_bank_deposit or 0) / bank_total * 100) if bank_total > 0 else 0
+
             report_data.append({
                 'store_id': r.store_id,
                 'theory_sales': float(r.theory_sales or 0),
                 'takeaway': float(r.takeaway or 0),
                 'actual_sales': float(r.actual_sales or 0),
                 'error': float(r.error or 0),
+                # 新增字段
+                'pos_income': float(r.total_pos_income or 0),
+                'electronic_actual': float(r.total_electronic_actual or 0),
+                'bank_deposit': float(r.total_bank_deposit or 0),
+                'bank_fee': float(r.total_bank_fee or 0),
+                'cash_income': float(r.total_cash_income or 0),
+                'electronic_variance': electronic_variance,
+                'bank_efficiency': bank_efficiency
             })
             total_data['total_theory'] += float(r.theory_sales or 0)
             total_data['total_takeaway'] += float(r.takeaway or 0)
             total_data['total_actual'] += float(r.actual_sales or 0)
             total_data['total_error'] += float(r.error or 0)
+            # 新增汇总
+            total_data['total_pos_income'] += float(r.total_pos_income or 0)
+            total_data['total_electronic_actual'] += float(r.total_electronic_actual or 0)
+            total_data['total_bank_deposit'] += float(r.total_bank_deposit or 0)
+            total_data['total_bank_fee'] += float(r.total_bank_fee or 0)
+            total_data['total_cash_income'] += float(r.total_cash_income or 0)
+
+        # 计算总体电子支付差异和银行存款效率
+        total_data['electronic_variance'] = total_data['total_electronic_actual'] - total_data['total_pos_income']
+        total_bank_total = total_data['total_bank_deposit'] + total_data['total_bank_fee']
+        total_data['bank_efficiency'] = (
+                total_data['total_bank_deposit'] / total_bank_total * 100) if total_bank_total > 0 else 0
 
         period_str, last_period_str = format_period_str(start_date_sel, end_date_sel, p)
 
-    # 将 report_data 聚合为“按店铺”的汇总
+    # 将 report_data 聚合为"按店铺"的汇总
     per_store = {}
     for r in (report_data or []):
         sid = r.get('store_id') or r.get('store', '')
         if sid not in per_store:
-            per_store[sid] = {'theory_sales': 0.0, 'actual_sales': 0.0, 'takeaway': 0.0, 'error': 0.0}
+            per_store[sid] = {
+                'theory_sales': 0.0, 'actual_sales': 0.0, 'takeaway': 0.0, 'error': 0.0,
+                'pos_income': 0.0, 'electronic_actual': 0.0, 'bank_deposit': 0.0,
+                'bank_fee': 0.0, 'cash_income': 0.0, 'electronic_variance': 0.0, 'bank_efficiency': 0.0
+            }
         per_store[sid]['theory_sales'] += float(r.get('theory_sales') or 0)
         per_store[sid]['actual_sales'] += float(r.get('actual_sales') or 0)
         per_store[sid]['takeaway'] += float(r.get('takeaway') or 0)
         per_store[sid]['error'] += float(r.get('error') or 0)
+        # 新增字段聚合
+        per_store[sid]['pos_income'] += float(r.get('pos_income') or 0)
+        per_store[sid]['electronic_actual'] += float(r.get('electronic_actual') or 0)
+        per_store[sid]['bank_deposit'] += float(r.get('bank_deposit') or 0)
+        per_store[sid]['bank_fee'] += float(r.get('bank_fee') or 0)
+        per_store[sid]['cash_income'] += float(r.get('cash_income') or 0)
 
     store_map = {s.store_id: s.store_name for s in (stores or [])}
-    rows = [{
-        'store_id': sid,
-        'store_name': store_map.get(sid, sid),
-        'theory_sales': per_store[sid]['theory_sales'],
-        'actual_sales': per_store[sid]['actual_sales'],
-        'takeaway': per_store[sid]['takeaway'],
-        'error': per_store[sid]['error']
-    } for sid in per_store.keys()]
+    rows = []
+    for sid in per_store.keys():
+        # 重新计算每个店铺的电子支付差异和银行存款效率
+        store_data = per_store[sid]
+        electronic_variance = store_data['electronic_actual'] - store_data['pos_income']
+        bank_total = store_data['bank_deposit'] + store_data['bank_fee']
+        bank_efficiency = (store_data['bank_deposit'] / bank_total * 100) if bank_total > 0 else 0
+
+        rows.append({
+            'store_id': sid,
+            'store_name': store_map.get(sid, sid),
+            'theory_sales': store_data['theory_sales'],
+            'actual_sales': store_data['actual_sales'],
+            'takeaway': store_data['takeaway'],
+            'error': store_data['error'],
+            # 新增展示字段
+            'pos_income': store_data['pos_income'],
+            'electronic_actual': store_data['electronic_actual'],
+            'bank_deposit': store_data['bank_deposit'],
+            'bank_fee': store_data['bank_fee'],
+            'cash_income': store_data['cash_income'],
+            'electronic_variance': electronic_variance,
+            'bank_efficiency': bank_efficiency
+        })
 
     rows.sort(key=lambda x: x['theory_sales'], reverse=True)
 
     page_title = {'day': '销售日报', 'week': '销售周报', 'month': '销售月报'}.get(p, '销售报表')
 
-    # 用于筛选表单回显
+    # 用于筛选��单回显
     start_date_str = (start_date_sel or default_start).strftime('%Y-%m-%d')
     end_date_str = (end_date_sel or default_end).strftime('%Y-%m-%d')
 
@@ -659,10 +728,10 @@ def send_report_by_filters():
 
     p = request.form.get('period', 'day')
     if p not in ('day', 'week', 'month'):
-        flash('无效的报表类型', 'warning')
+        flash('无效���报表类型', 'warning')
         return redirect(url_for('main.index'))
 
-    # 读取筛选参数
+    # 读取筛选参数（通过表单隐藏字段传入）
     store_id_arg = request.form.get('store_id') or None
     start_date_arg = request.form.get('start_date')
     end_date_arg = request.form.get('end_date')
@@ -728,7 +797,7 @@ def send_report_by_filters():
         total_theory += float(row.theory_sales or 0)
         total_takeaway += float(row.takeaway or 0)
 
-    # 计算环比
+    # 计算环比区间并计算理论营业额用于差值
     span_days = (end_date_sel - start_date_sel).days + 1
     prev_end = start_date_sel - timedelta(days=1)
     prev_start = prev_end - timedelta(days=span_days - 1)
@@ -759,79 +828,40 @@ def send_report_by_filters():
 
     html = render_sales_report_html(p, report_data, total_data, period_str, last_period_str)
 
-    # 构造标题与正文（标注筛选）
-    period_map_cn = {'day': '日报', 'week': '周报', 'month': '月报'}
-    subject = f"【销售{period_map_cn.get(p, '')}】{period_str} 汇总信息（筛选）"
-    body = f"请查收{subject}，详情见下表。"
-
-    mode = request.form.get('send_mode', 'custom')
+    # 读取发送模式与收件人
+    mode = request.form.get('send_mode', 'custom')  # custom | by_role
+    recipients: list[str] = []
     if mode == 'by_role':
         roles = request.form.getlist('roles')
-        if not roles:
-            flash('请至少选择一个角色', 'warning')
-            back = {'day': 'daily', 'week': 'weekly', 'month': 'monthly'}[p]
-            return redirect(url_for('email_report.sales_reports_center', period=back))
-        success_count = fail_count = 0
-        recipients_all = []
         for r in roles:
             try:
                 role_enum = RoleType[r]
             except Exception:
                 continue
             users = User.query.filter(User.role == role_enum).all()
-            for u in users:
-                rec = [u.email] if u.email else []
-                if not rec:
-                    continue
-                ok = send_notify_mail(subject, rec, body, html=html, async_send=True)
-                recipients_all.extend(rec)
-                if ok:
-                    success_count += 1
-                else:
-                    fail_count += 1
-        # 可选：写日志
-        if recipients_all:
-            log = EmailTaskLog(
-                task_type=EmailTaskType.daily,
-                start_date=start_date_sel,
-                end_date=end_date_sel,
-                recipients=','.join(recipients_all),
-                status=(EmailTaskStatus.partial_fail if (success_count and fail_count) else (
-                    EmailTaskStatus.fail if fail_count and not success_count else EmailTaskStatus.success
-                )),
-                success_count=success_count,
-                fail_count=fail_count
-            )
-            db.session.add(log)
-            db.session.commit()
-        if fail_count and success_count:
-            flash(f'部分发送失败：成功{success_count}，失败{fail_count}', 'warning')
-        elif fail_count and not success_count:
-            flash('发送失败，请稍后重试', 'danger')
-        else:
-            flash(f'发送成功，共{success_count}封', 'success')
+            recipients.extend([u.email for u in users if getattr(u, 'email', None)])
     else:
         recipients_raw = request.form.get('recipients', '')
-        recipients = [x.strip() for x in recipients_raw.replace(';', ',').split(',') if x.strip()]
-        if not recipients:
-            flash('请填写至少一个收件人邮箱', 'warning')
-            back = {'day': 'daily', 'week': 'weekly', 'month': 'monthly'}[p]
-            return redirect(url_for('email_report.sales_reports_center', period=back))
-        ok = send_notify_mail(subject, recipients, body, html=html, async_send=True)
-        # 可选：写日志
-        if recipients:
-            log = EmailTaskLog(
-                task_type=EmailTaskType.daily,
-                start_date=start_date_sel,
-                end_date=end_date_sel,
-                recipients=','.join([r for r in recipients if r]),
-                status=(EmailTaskStatus.success if ok else EmailTaskStatus.fail),
-                success_count=(len(recipients) if ok else 0),
-                fail_count=(0 if ok else len(recipients))
-            )
-            db.session.add(log)
-            db.session.commit()
-        flash('发送成功' if ok else '发送失败，请稍后重试', 'success' if ok else 'danger')
+        # 兼容逗号/分号分隔
+        for token in recipients_raw.replace('；', ';').replace('，', ',').replace(';', ',').split(','):
+            t = (token or '').strip()
+            if t:
+                recipients.append(t)
+
+    if not recipients:
+        flash('请填写至少一个有效收件人或选择角色', 'warning')
+        back = {'day': 'daily', 'week': 'weekly', 'month': 'monthly'}[p]
+        return redirect(url_for('email_report.sales_reports_center', period=back))
+
+    # 发送邮件（使用系统通知发送器）
+    subj_map = {'day': '销售日报', 'week': '销售周报', 'month': '销售月报'}
+    subject = f"【{subj_map.get(p, '销售报表')}】{period_str} 汇总信息（按筛选）"
+    ok = send_notify_mail(subject, recipients, body='请查收销售报表（按筛选条件）。', html=html)
+
+    if ok:
+        flash(f'发送成功，共{len(recipients)}封', 'success')
+    else:
+        flash('发送失败，请稍后重试', 'danger')
 
     back = {'day': 'daily', 'week': 'weekly', 'month': 'monthly'}[p]
     return redirect(url_for('email_report.sales_reports_center', period=back))
@@ -904,3 +934,349 @@ def smtp_check():
     # 都失败，返回最后错误
     current_app.logger.error(f"SMTP自检失败: {err}")
     return jsonify(ok=False, error=err, server=server, port=port, ssl=use_ssl, tls=use_tls), 200
+
+
+# 新增：成本统计中心（按报销数据聚合）
+@email_report_bp.route('/reports/costs', methods=['GET'])
+@login_required
+def cost_reports_center():
+    """
+    报表中心 - 成本统计（按店铺汇总）
+    仅管理员与财务可访问。数据来源为报销模块（已审批的报销申请），按审批时间聚合。
+    支持按店铺和时间区间筛选，默认统计上个月���
+    """
+    # 权限限制：仅管理员与财务可访问
+    if current_user.role not in (RoleType.ADMIN, RoleType.FINANCE):
+        flash('无权限访问报表中心', 'warning')
+        return redirect(url_for('main.index'))
+
+    # 解析查询参数
+    store_id_arg = request.args.get('store_id')
+    start_date_arg = request.args.get('start_date')
+    end_date_arg = request.args.get('end_date')
+
+    def parse_date_safe(s: Optional[str]) -> Optional[date]:
+        if not s:
+            return None
+        try:
+            return datetime.strptime(s, '%Y-%m-%d').date()
+        except Exception:
+            return None
+
+    # 默认：上个月整月
+    today = date.today()
+    last_month = (today.replace(day=1) - timedelta(days=1))
+    default_start = date(last_month.year, last_month.month, 1)
+    default_end = date(last_month.year, last_month.month, last_month.day)
+
+    start_date_sel = parse_date_safe(start_date_arg) or default_start
+    end_date_sel = parse_date_safe(end_date_arg) or default_end
+
+    # 门店列表供筛选
+    store_query = Store.query
+    if store_id_arg:
+        store_query = store_query.filter(Store.store_id == store_id_arg)
+    stores = store_query.order_by(Store.store_id.asc()).all()
+
+    # 按店铺聚合报销金额（仅 APPROVED 并且有 approved_at 时间）
+    rows_q = db.session.query(
+        ReimbursementRequest.store_id,
+        func.sum(ReimbursementRequest.amount).label('total_amount')
+    ).filter(
+        ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+        ReimbursementRequest.approved_at != None,
+        ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
+        ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
+    )
+    if store_id_arg:
+        rows_q = rows_q.filter(ReimbursementRequest.store_id == store_id_arg)
+    rows_q = rows_q.group_by(ReimbursementRequest.store_id).all()
+
+    rows = []
+    total_amount = 0.0
+    for r in rows_q:
+        amt = float(r.total_amount or 0)
+        rows.append({'store_id': r.store_id or '', 'total_amount': amt})
+        total_amount += amt
+
+    # 按二级分类汇总（全局）
+    cat_q = db.session.query(
+        ReimbursementRequest.secondary_category,
+        func.sum(ReimbursementRequest.amount).label('cat_amount')
+    ).filter(
+        ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+        ReimbursementRequest.approved_at != None,
+        ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
+        ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
+    )
+    if store_id_arg:
+        cat_q = cat_q.filter(ReimbursementRequest.store_id == store_id_arg)
+    cat_q = cat_q.group_by(ReimbursementRequest.secondary_category).all()
+
+    categories = []
+    for c in cat_q:
+        cat_name = getattr(c.secondary_category, 'value', str(c.secondary_category)) if c.secondary_category else '未分类'
+        categories.append({'category': cat_name, 'amount': float(c.cat_amount or 0)})
+
+    # 回显
+    start_date_str = start_date_sel.strftime('%Y-%m-%d')
+    end_date_str = end_date_sel.strftime('%Y-%m-%d')
+
+    # 将店铺名称映射
+    store_map = {s.store_id: s.store_name for s in (stores or [])}
+    for row in rows:
+        row['store_name'] = store_map.get(row['store_id'], row['store_id'])
+
+    # 按金额降序排序
+    rows.sort(key=lambda x: x['total_amount'], reverse=True)
+
+    period_str = f"{start_date_str} ~ {end_date_str}" if start_date_sel != end_date_sel else start_date_str
+
+    # ===== 新增：计算公摊成本（一级分类）并进行分摊 =====
+    # 支持 query 参数 allocate_count 指定分摊到前 N 个门店（按营业额排序）；默认分摊到所有可见店铺
+    try:
+        allocate_count = int(request.args.get('allocate_count') or 0)
+    except Exception:
+        allocate_count = 0
+    # 分摊方式参数（'proportional' 或 'equal'），默认 'proportional'
+    allocate_method = request.args.get('allocate_method', 'proportional')
+
+    # 计算公摊成本总额（primary_category == SHARED_COST）
+    shared_total = db.session.query(func.sum(ReimbursementRequest.amount)).filter(
+        ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+        ReimbursementRequest.primary_category == ReimbursementPrimaryCategory.SHARED_COST,
+        ReimbursementRequest.approved_at != None,
+        ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
+        ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
+    )
+    if store_id_arg:
+        shared_total = shared_total.filter(ReimbursementRequest.store_id == store_id_arg)
+    shared_total = float(shared_total.scalar() or 0.0)
+
+    # 取每店的理论营业额作为分摊权重（若无则为0）
+    sales_q = db.session.query(
+        DailySales.store_id,
+        func.sum(func.coalesce(DailySales.pos_total, 0) + func.coalesce(DailySales.takeaway_amount, 0)).label('theory')
+    ).filter(
+        DailySales.report_date >= start_date_sel,
+        DailySales.report_date <= end_date_sel,
+        DailySales.financial_check_status == FinancialCheckStatus.APPROVED
+    )
+    if store_id_arg:
+        sales_q = sales_q.filter(DailySales.store_id == store_id_arg)
+    sales_q = sales_q.group_by(DailySales.store_id).all()
+    store_theory = {r.store_id: float(r.theory or 0.0) for r in sales_q}
+
+    # 选择分摊目标门店（按理论营业额降序），如果 allocate_count<=0 则为全部门店
+    store_ids = [r['store_id'] for r in rows]
+    store_theory_list = [(sid, store_theory.get(sid, 0.0)) for sid in store_ids]
+    store_theory_list.sort(key=lambda x: x[1], reverse=True)
+    if allocate_count > 0 and allocate_count < len(store_theory_list):
+        target_stores = [sid for sid, _ in store_theory_list[:allocate_count]]
+    else:
+        target_stores = [sid for sid, _ in store_theory_list]
+
+    # 计算分摊：如果所有目标门店的理论营业额之和大于0，则按比例分摊；否则均等分摊
+    total_theory_for_alloc = sum(store_theory.get(sid, 0.0) for sid in target_stores)
+    allocation_map = {}
+    if target_stores and shared_total > 0:
+        if allocate_method == 'equal':
+            per = shared_total / len(target_stores)
+            for sid in target_stores:
+                allocation_map[sid] = per
+        else:
+            if total_theory_for_alloc > 0:
+                for sid in target_stores:
+                    allocation_map[sid] = shared_total * (store_theory.get(sid, 0.0) / total_theory_for_alloc)
+            else:
+                per = shared_total / len(target_stores)
+                for sid in target_stores:
+                    allocation_map[sid] = per
+
+    # 将分摊结果合并回 rows，计算含分摊的成本
+    total_after_allocation = 0.0
+    for row in rows:
+        sid = row['store_id']
+        alloc = float(allocation_map.get(sid, 0.0))
+        row['allocated_shared'] = alloc
+        row['cost_after_allocation'] = row['total_amount'] + alloc
+        total_after_allocation += row['cost_after_allocation']
+
+    # 传递共享总额与分摊参数给模板
+    shared_info = {
+        'shared_total': shared_total,
+        'allocate_count': allocate_count,
+        'allocate_method': allocate_method,
+        'allocated_sum': sum(allocation_map.values())
+    }
+
+    return render_template('email_report/cost_report.html',
+                           page_title='成本统计',
+                           period_str=period_str,
+                           total_amount=total_amount,
+                           rows=rows,
+                           categories=categories,
+                           stores=stores,
+                           selected_store_id=store_id_arg or '',
+                           start_date_str=start_date_str,
+                           end_date_str=end_date_str,
+                           shared_info=shared_info,
+                           total_after_allocation=total_after_allocation)
+
+
+@email_report_bp.route('/profit_loss_reports', methods=['GET'])
+@login_required
+def profit_loss_reports_center():
+    """
+    报表中心 - 损益报表（按店铺汇总）
+    仅管理员与财务可访问。计算各店铺的纯利润盈亏信息。
+    收入来源：销售数据（DailySales.actual_sales）
+    成本来源：报销数据（已审批的报销申请）
+    支持按店铺和时间区间筛选，默认统计上个月。
+    """
+    # 权限限制：仅管理员与财务可访问
+    if current_user.role not in (RoleType.ADMIN, RoleType.FINANCE):
+        flash('无权限访问报表中心', 'warning')
+        return redirect(url_for('main.index'))
+
+    # 解析查询参数
+    store_id_arg = request.args.get('store_id')
+    start_date_arg = request.args.get('start_date')
+    end_date_arg = request.args.get('end_date')
+
+    def parse_date_safe(s: Optional[str]) -> Optional[date]:
+        if not s:
+            return None
+        try:
+            return datetime.strptime(s, '%Y-%m-%d').date()
+        except Exception:
+            return None
+
+    # 默认：上个月整月
+    today = date.today()
+    last_month = (today.replace(day=1) - timedelta(days=1))
+    default_start = date(last_month.year, last_month.month, 1)
+    default_end = date(last_month.year, last_month.month, last_month.day)
+
+    start_date_sel = parse_date_safe(start_date_arg) or default_start
+    end_date_sel = parse_date_safe(end_date_arg) or default_end
+
+    # 门店列表供筛选
+    store_query = Store.query
+    if store_id_arg:
+        store_query = store_query.filter(Store.store_id == store_id_arg)
+    stores = store_query.order_by(Store.store_id.asc()).all()
+
+    # 1. 查询销售收入（从DailySales表）
+    sales_query = db.session.query(
+        DailySales.store_id,
+        func.sum(DailySales.actual_sales).label('total_revenue')
+    ).filter(
+        DailySales.report_date >= start_date_sel,
+        DailySales.report_date <= end_date_sel
+    )
+    if store_id_arg:
+        sales_query = sales_query.filter(DailySales.store_id == store_id_arg)
+    sales_data = sales_query.group_by(DailySales.store_id).all()
+
+    # 2. 查询成本支出（从ReimbursementRequest表）
+    cost_query = db.session.query(
+        ReimbursementRequest.store_id,
+        func.sum(ReimbursementRequest.amount).label('total_cost')
+    ).filter(
+        ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+        ReimbursementRequest.approved_at != None,
+        ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
+        ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
+    )
+    if store_id_arg:
+        cost_query = cost_query.filter(ReimbursementRequest.store_id == store_id_arg)
+    cost_data = cost_query.group_by(ReimbursementRequest.store_id).all()
+
+    # 3. 整合数据：构建店铺损益表
+    store_map = {s.store_id: s.store_name for s in stores}
+
+    # 创建收入字典
+    revenue_dict = {s.store_id: float(s.total_revenue or 0) for s in sales_data}
+
+    # 创建成本字典
+    cost_dict = {c.store_id: float(c.total_cost or 0) for c in cost_data}
+
+    # 获取所有有数据的店铺ID
+    all_store_ids = set(revenue_dict.keys()) | set(cost_dict.keys())
+    if store_id_arg:
+        all_store_ids = {store_id_arg} & all_store_ids
+
+    rows = []
+    total_revenue = 0.0
+    total_cost = 0.0
+    total_profit = 0.0
+
+    for store_id in sorted(all_store_ids):
+        revenue = revenue_dict.get(store_id, 0.0)
+        cost = cost_dict.get(store_id, 0.0)
+        profit = revenue - cost
+        profit_margin = (profit / revenue * 100) if revenue > 0 else 0.0
+
+        rows.append({
+            'store_id': store_id,
+            'store_name': store_map.get(store_id, store_id),
+            'total_revenue': revenue,
+            'total_cost': cost,
+            'profit': profit,
+            'profit_margin': profit_margin
+        })
+
+        total_revenue += revenue
+        total_cost += cost
+        total_profit += profit
+
+    # 按利润降序排序
+    rows.sort(key=lambda x: x['profit'], reverse=True)
+
+    # 总体利润率
+    overall_profit_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0.0
+
+    # 4. 按成本分类统计（用于饼图展示）
+    category_query = db.session.query(
+        ReimbursementRequest.secondary_category,
+        func.sum(ReimbursementRequest.amount).label('cat_amount')
+    ).filter(
+        ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+        ReimbursementRequest.approved_at != None,
+        ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
+        ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
+    )
+    if store_id_arg:
+        category_query = category_query.filter(ReimbursementRequest.store_id == store_id_arg)
+    category_data = category_query.group_by(ReimbursementRequest.secondary_category).all()
+
+    categories = []
+    for c in category_data:
+        cat_name = getattr(c.secondary_category, 'value', str(c.secondary_category)) if c.secondary_category else '未分类'
+        categories.append({'category': cat_name, 'amount': float(c.cat_amount or 0)})
+
+    # 回显参数
+    start_date_str = start_date_sel.strftime('%Y-%m-%d')
+    end_date_str = end_date_sel.strftime('%Y-%m-%d')
+    period_str = f"{start_date_str} ~ {end_date_str}" if start_date_sel != end_date_sel else start_date_str
+
+    # 汇总信息
+    summary = {
+        'total_revenue': total_revenue,
+        'total_cost': total_cost,
+        'total_profit': total_profit,
+        'overall_profit_margin': overall_profit_margin,
+        'store_count': len(rows)
+    }
+
+    return render_template('email_report/profit_loss_report.html',
+                           page_title='损益报表',
+                           period_str=period_str,
+                           summary=summary,
+                           rows=rows,
+                           categories=categories,
+                           stores=stores,
+                           selected_store_id=store_id_arg or '',
+                           start_date_str=start_date_str,
+                           end_date_str=end_date_str)

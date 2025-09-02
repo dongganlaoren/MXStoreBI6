@@ -26,8 +26,9 @@
             <select name="store_id" class="form-select">
                 <option value="">全部店铺</option>
                 {% for s in stores or [] %}
-                <option value="{{ s.store_id }}" {% if selected_store_id and selected_store_id|string==s.store_id|string
-                        %}selected{% endif %}>{{ s.store_name }} ({{ s.store_id }})
+                <option value="{{ s.store_id }}" {% if selected_store_id and
+                        (selected_store_id|string)==(s.store_id|string) %}selected{% endif %}>{{ s.store_name }} ({{
+                    s.store_id }})
                 </option>
                 {% endfor %}
             </select>
@@ -59,7 +60,6 @@
                       class="row g-3">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="period" value="{{ period }}">
-                    <!-- 用于按筛选发送的隐藏字段 -->
                     <input type="hidden" name="store_id" id="hidden_store_id" value="{{ selected_store_id }}">
                     <input type="hidden" name="start_date" id="hidden_start_date" value="{{ start_date_str }}">
                     <input type="hidden" name="end_date" id="hidden_end_date" value="{{ end_date_str }}">
@@ -116,47 +116,103 @@
         <div>统计周期：<b>{{ period_str }}</b></div>
         <div>环比周期：<b>{{ last_period_str }}</b></div>
         {% if data_incomplete %}
-        <div class="mt-2 alert alert-warning py-2">
-            当前周期数据不完整，页面为尽量展示的统计，邮件发送可能会失败。
-        </div>
+        <div class="mt-2 alert alert-warning py-2">当前周期数据不完整，页面为尽量展示的统计，邮件发送可能会失败。</div>
         {% endif %}
     </div>
 
     <div class="row g-3 mb-3">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card shadow-sm">
                 <div class="card-body">
                     <div class="text-muted">理论营业额</div>
-                    <div class="fs-4 fw-bold text-primary">฿{{ (total_data.total_theory if total_data else 0)|money }}
+                    <div class="fs-4 fw-bold text-primary">฿{{ (total_data.get('total_theory', 0) if total_data else
+                        0)|money }}
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card shadow-sm">
                 <div class="card-body">
                     <div class="text-muted">实际到账</div>
-                    <div class="fs-4 fw-bold text-danger">฿{{ (total_data.total_actual if total_data else 0)|money }}
+                    <div class="fs-4 fw-bold text-danger">฿{{ (total_data.get('total_actual', 0) if total_data else
+                        0)|money }}
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card shadow-sm">
                 <div class="card-body">
                     <div class="text-muted">外卖收入</div>
-                    <div class="fs-4 fw-bold text-success">฿{{ (total_data.total_takeaway if total_data else 0)|money
-                        }}
+                    <div class="fs-4 fw-bold text-success">฿{{ (total_data.get('total_takeaway', 0) if total_data else
+                        0)|money }}
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card shadow-sm">
                 <div class="card-body">
                     <div class="text-muted">总误差</div>
-                    <div class="fs-4 fw-bold text-secondary">฿{{ (total_data.total_error if total_data else 0)|money
-                        }}
+                    <div class="fs-4 fw-bold text-secondary">฿{{ (total_data.get('total_error', 0) if total_data else
+                        0)|money }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted">电子支付差异</div>
+                    <div class="fs-5 fw-bold {% if (total_data.get('electronic_variance', 0) if total_data else 0) != 0 %}text-warning{% else %}text-success{% endif %}">
+                        ฿{{ (total_data.get('electronic_variance', 0) if total_data else 0)|money }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted">银行存款效率</div>
+                    <div class="fs-5 fw-bold {% if (total_data.get('bank_efficiency', 0) if total_data else 0) >= 95 %}text-success{% else %}text-warning{% endif %}">
+                        {{ "%.1f"|format((total_data.get('bank_efficiency', 0) if total_data else 0)) }}%
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">电子支付与银行存款统计详情</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            <div class="text-muted">POS电子支付</div>
+                            <div class="fs-5 fw-bold text-info">฿{{ (total_data.get('total_pos_income', 0) if total_data
+                                else 0)|money }}
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="text-muted">实际到账金额</div>
+                            <div class="fs-5 fw-bold text-success">฿{{ (total_data.get('total_electronic_actual', 0) if
+                                total_data else 0)|money }}
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="text-muted">银行存款</div>
+                            <div class="fs-5 fw-bold text-primary">฿{{ (total_data.get('total_bank_deposit', 0) if
+                                total_data else 0)|money }}
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="text-muted">银行手续费</div>
+                            <div class="fs-5 fw-bold text-warning">฿{{ (total_data.get('total_bank_fee', 0) if
+                                total_data else 0)|money }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -172,6 +228,12 @@
                 <th class="text-end">实际到账</th>
                 <th class="text-end">外卖</th>
                 <th class="text-end">误差</th>
+                <th class="text-end">POS电子支付</th>
+                <th class="text-end">电子实际到账</th>
+                <th class="text-end">电子支付差异</th>
+                <th class="text-end">银行存款</th>
+                <th class="text-end">银行手续费</th>
+                <th class="text-end">存款效率</th>
             </tr>
             </thead>
             <tbody>
@@ -184,10 +246,20 @@
                 <td class="text-end">{{ (r.actual_sales or 0)|money }}</td>
                 <td class="text-end">{{ (r.takeaway or 0)|money }}</td>
                 <td class="text-end">{{ (r.error or 0)|money }}</td>
+                <td class="text-end">{{ (r.pos_income or 0)|money }}</td>
+                <td class="text-end">{{ (r.electronic_actual or 0)|money }}</td>
+                <td class="text-end {% if (r.electronic_variance or 0) != 0 %}text-warning{% else %}text-success{% endif %}">
+                    {{ (r.electronic_variance or 0)|money }}
+                </td>
+                <td class="text-end">{{ (r.bank_deposit or 0)|money }}</td>
+                <td class="text-end">{{ (r.bank_fee or 0)|money }}</td>
+                <td class="text-end {% if (r.bank_efficiency or 0) >= 95 %}text-success{% else %}text-warning{% endif %}">
+                    {{ "%.1f"|format(r.bank_efficiency or 0) }}%
+                </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="5" class="text-center text-muted">暂无数据</td>
+                <td colspan="11" class="text-center text-muted">暂无数据</td>
             </tr>
             {% endfor %}
             </tbody>
@@ -229,13 +301,8 @@
       function syncMode(){
         if(!modeCustom || !modeRole) return;
         const byRole = modeRole.checked;
-        if(byRole){
-          boxRoles?.classList.remove('d-none');
-          boxRecipients?.classList.add('d-none');
-        } else {
-          boxRoles?.classList.add('d-none');
-          boxRecipients?.classList.remove('d-none');
-        }
+        if(byRole){ boxRoles?.classList.remove('d-none'); boxRecipients?.classList.add('d-none'); }
+        else { boxRoles?.classList.add('d-none'); boxRecipients?.classList.remove('d-none'); }
       }
       modeCustom?.addEventListener('change', syncMode);
       modeRole?.addEventListener('change', syncMode);
@@ -254,28 +321,18 @@
       function syncAction(){
         const sendCustomUrl = '{{ url_for('email_report.send_report_custom') }}';
         const sendByFiltersUrl = '{{ url_for('email_report.send_report_by_filters') }}';
-        if(useFilters?.checked){
-          customForm.action = sendByFiltersUrl;
-          syncFiltersToHidden();
-        } else {
-          customForm.action = sendCustomUrl;
-        }
+        if(useFilters?.checked){ customForm.action = sendByFiltersUrl; syncFiltersToHidden(); }
+        else { customForm.action = sendCustomUrl; }
       }
       useFilters?.addEventListener('change', syncAction);
       syncAction();
 
-      customForm?.addEventListener('submit', function(){
-        if(useFilters?.checked){
-          syncFiltersToHidden();
-        }
-      });
+      customForm?.addEventListener('submit', function(){ if(useFilters?.checked){ syncFiltersToHidden(); } });
 
-      // 预览（仅当按钮存在时启用）
       const btnPreview = document.getElementById('btnPreview');
       btnPreview?.addEventListener('click', async function(){
         try{
-          const params = new URLSearchParams();
-          params.set('period', '{{ period }}');
+          const params = new URLSearchParams(); params.set('period', '{{ period }}');
           const storeSel = filterForm.querySelector('select[name="store_id"]');
           const sd = filterForm.querySelector('input[name="start_date"]').value;
           const ed = filterForm.querySelector('input[name="end_date"]').value;
@@ -284,18 +341,11 @@
           if(ed) params.set('end_date', ed);
           const url = '{{ url_for('email_report.preview_report_html') }}' + '?' + params.toString();
           const r = await fetch(url, {credentials:'same-origin'});
-          const html = await r.text();
-          document.getElementById('previewBody').innerHTML = html;
-          const modalEl = document.getElementById('previewModal');
-          const modal = new bootstrap.Modal(modalEl);
-          modal.show();
-        }catch(e){
-          document.getElementById('previewBody').innerText = '预览失败';
-          const modalEl = document.getElementById('previewModal');
-          const modal = new bootstrap.Modal(modalEl);
-          modal.show();
-        }
+          const html = await r.text(); document.getElementById('previewBody').innerHTML = html;
+          const modalEl = document.getElementById('previewModal'); const modal = new bootstrap.Modal(modalEl); modal.show();
+        }catch(e){ document.getElementById('previewBody').innerText = '预览失败'; const modalEl = document.getElementById('previewModal'); const modal = new bootstrap.Modal(modalEl); modal.show(); }
       });
     })();
 </script>
+
 {% endblock %}

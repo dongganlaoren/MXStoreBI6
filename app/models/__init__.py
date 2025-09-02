@@ -8,6 +8,7 @@ from .bank_deposit_history import BankDepositHistory
 from .daily_sales import DailySales
 from .email_task_log import EmailTaskLog, EmailTaskType, EmailTaskStatus
 from .enums import AttachmentType, FinancialCheckStatus, RoleType
+from .reimbursement import ReimbursementRequest
 from .store import Store
 # TestAaa 模型已删除，移除此处导入以避免导入错误
 # from .testaaa import TestAaa

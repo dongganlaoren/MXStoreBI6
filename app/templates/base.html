@@ -53,19 +53,36 @@
                         <span class="menu-text">{{ lang_dict['home'] if lang_dict.get('home') else '首页' }}</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2"
-                       href="{{ url_for('sales_manage.manage_list') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                        <i class="bi bi-clipboard-data"></i>
-                        <span class="menu-text">{{ lang_dict['sales_manage'] if lang_dict.get('sales_manage') else '营业管理' }}</span>
+                <li class="nav-item dropdown">
+                    <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2 dropdown-toggle" href="#"
+                       id="storeManageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-shop"></i>
+                        <span class="menu-text">{{ lang_dict['store_manage'] if lang_dict.get('store_manage') else '店铺管理' }}</span>
                     </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
+                        style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 15px; margin-top: 8px; min-width:220px;">
+                        <li>
+                            <a class="dropdown-item py-2"
+                               href="{{ url_for('sales_manage.manage_list') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                                <i class="bi bi-clipboard-data me-2 text-primary"></i>{{ lang_dict['sales_manage'] if
+                                lang_dict.get('sales_manage') else '营业管理' }}
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2"
+                               href="{{ url_for('renovation.index') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                                <i class="bi bi-tools me-2 text-secondary"></i>{{ lang_dict['store_renovation'] if
+                                lang_dict.get('store_renovation') else '店铺整改' }}
+                            </a>
+                        </li>
+                    </ul>
                 </li>
                 <!-- 新增：考勤打卡入口 -->
                 <li class="nav-item">
                     <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2"
                        href="{{ url_for('attendance.punch') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
                         <i class="bi bi-alarm"></i>
-                        <span class="menu-text">考勤打卡</span>
+                        <span class="menu-text">{{ lang_dict['attendance_punch'] if lang_dict.get('attendance_punch') else '考勤打卡' }}</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -82,21 +99,39 @@
                     <a class="nav-link menu-link dropdown-toggle d-flex align-items-center gap-2 px-3 py-2" href="#"
                        id="reportCenterDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-bar-chart-line-fill"></i>
-                        <span class="menu-text">报表中心</span>
+                        <span class="menu-text">{{ lang_dict['report_center'] if lang_dict.get('report_center') else '报表中心' }}</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
                         style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 15px; margin-top: 8px;">
                         <li><a class="dropdown-item py-2"
                                href="{{ url_for('email_report.sales_reports_center', period='daily') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                            <i class="bi bi-calendar-day me-2 text-primary"></i>销售日报
+                            <i class="bi bi-calendar-day me-2 text-primary"></i>{{ lang_dict['sales_daily'] if
+                            lang_dict.get('sales_daily') else '销售日报' }}
                         </a></li>
                         <li><a class="dropdown-item py-2"
                                href="{{ url_for('email_report.sales_reports_center', period='weekly') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                            <i class="bi bi-calendar-week me-2 text-success"></i>销售周报
+                            <i class="bi bi-calendar-week me-2 text-success"></i>{{ lang_dict['sales_weekly'] if
+                            lang_dict.get('sales_weekly') else '销售周报' }}
                         </a></li>
                         <li><a class="dropdown-item py-2"
                                href="{{ url_for('email_report.sales_reports_center', period='monthly') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                            <i class="bi bi-calendar-month me-2 text-info"></i>销售月报
+                            <i class="bi bi-calendar-month me-2 text-info"></i>{{ lang_dict['sales_monthly'] if
+                            lang_dict.get('sales_monthly') else '销售月报' }}
+                        </a></li>
+                        <li><a class="dropdown-item py-2"
+                               href="{{ url_for('email_report.cost_reports_center') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                            <i class="bi bi-calculator-fill me-2 text-warning"></i>{{ lang_dict['cost_reports'] if
+                            lang_dict.get('cost_reports') else '成本统计' }}
+                        </a></li>
+                        <li><a class="dropdown-item py-2"
+                               href="{{ url_for('email_report.profit_loss_reports_center') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                            <i class="bi bi-graph-up me-2 text-success"></i>{{ lang_dict['profit_loss'] if
+                            lang_dict.get('profit_loss') else '损益报表' }}
+                        </a></li>
+                        <li><a class="dropdown-item py-2"
+                               href="{{ url_for('email_report.sales_reports_center', period='daily') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                            <i class="bi bi-graph-up-arrow me-2 text-danger"></i>{{ lang_dict['sales_summary'] if
+                            lang_dict.get('sales_summary') else '销售额统计' }}
                         </a></li>
                     </ul>
                 </li>
@@ -224,7 +259,7 @@
         border-bottom: 1px solid rgba(255,255,255,0.2);
     }
 
-    /* 品牌LOGO样式 */
+    /* ���牌LOGO样式 */
     .navbar-brand {
         transition: all 0.3s ease;
         z-index: 1052;
@@ -299,219 +334,249 @@
         content: '';
         position: absolute;
         top: 0;
-        left: -100%;
+        left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        transition: left 0.5s;
+        background: rgba(255,255,255,0.06);
+        border-radius: 12px;
+        transform: scaleY(0);
+        transform-origin: top center;
+        transition: transform 0.18s ease;
+        z-index: -1;
     }
 
-    .navbar-nav .nav-link.menu-link:hover::before {
-        left: 100%;
+    .navbar-nav .nav-link.menu-link:hover::before,
+    .navbar-nav .nav-link.menu-link:focus::before,
+    .navbar-nav .nav-link.menu-link.active::before {
+        transform: scaleY(1);
     }
 
     .navbar-nav .nav-link.menu-link:hover,
     .navbar-nav .nav-link.menu-link:focus,
     .navbar-nav .nav-link.menu-link.active {
-        background: rgba(255,255,255,0.2);
         color: #fff !important;
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-        border-color: rgba(255,255,255,0.3);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        border-color: rgba(255,255,255,0.18);
     }
 
     .navbar-nav .nav-link.menu-link i {
         font-size: 1.1rem;
-        transition: all 0.3s ease;
+        transition: transform 0.18s ease;
     }
 
     .navbar-nav .nav-link.menu-link:hover i {
-        transform: scale(1.1);
+        transform: scale(1.08);
     }
 
-    /* 折叠菜单样式 */
-    .navbar-collapse {
-        position: relative;
-        z-index: 1049;
+    /* Hide Bootstrap's default caret pseudo-element so we only show the left icon + text.
+       The UI design uses a left icon (bi-*) and no caret on desktop, to reduce visual clutter. */
+    .nav-link.dropdown-toggle::after {
+        display: none !important;
+        content: none !important;
+        width: 0 !important;
+        height: 0 !important;
     }
 
-    /* 下拉菜单样式 */
-    .dropdown-menu {
-        border-radius: 15px !important;
-        padding: 0.5rem 0;
-        margin-top: 8px !important;
-        border: 1px solid rgba(255,255,255,0.2);
-        box-shadow: 0 10px 40px rgba(0,0,0,0.15) !important;
-        z-index: 1055;
+    /* ALSO hide any explicit caret icon elements if present in templates (safety-net) */
+    .bi-caret-down-fill,
+    .bi-caret-down,
+    i.bi.bi-caret-down-fill {
+        display: none !important;
     }
 
-    .dropdown-item {
-        padding: 0.6rem 1.2rem;
-        font-weight: 500;
-        border-radius: 8px;
-        margin: 0 0.5rem;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        position: relative;
-        z-index: 1;
-    }
+     /* ���叠菜单样式 */
+     .navbar-collapse {
+         position: relative;
+         z-index: 1049;
+     }
 
-    .dropdown-item:hover,
-    .dropdown-item:focus {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        transform: translateX(5px);
-    }
+     /* 下拉菜单样式 */
+     .dropdown-menu {
+         border-radius: 15px !important;
+         padding: 0.5rem 0;
+         margin-top: 8px !important;
+         border: 1px solid rgba(255,255,255,0.2);
+         box-shadow: 0 10px 40px rgba(0,0,0,0.15) !important;
+         z-index: 1055;
+         min-width: 200px; /* 统一最小宽度，避免不同下拉宽度跳动 */
+     }
 
-    .dropdown-item i {
-        width: 20px;
-        text-align: center;
-    }
+     .dropdown-item {
+         padding: 0.55rem 1rem;
+         font-weight: 500;
+         border-radius: 6px;
+         margin: 0; /* 去掉横向外边距，避免下拉内部间距造成布局错乱 */
+         transition: all 0.12s ease;
+         display: flex;
+         align-items: center;
+         position: relative;
+         z-index: 1;
+     }
 
-    .dropdown-divider {
-        margin: 0.5rem 1rem;
-        border-color: rgba(0,0,0,0.1);
-    }
+     .dropdown-item:hover,
+     .dropdown-item:focus {
+         background: linear-gradient(135deg, #667eea, #764ba2);
+         color: white;
+         transform: translateX(3px);
+     }
 
-    /* 响应式设计 */
-    @media (min-width: 992px) {
-        .navbar-nav {
-            gap: 0.5rem !important;
-        }
-        .navbar-nav .nav-link.menu-link {
-            padding-left: 1.2rem !important;
-            padding-right: 1.2rem !important;
-            font-size: 1.05rem;
-            min-height: 48px;
-        }
-        .menu-text {
-            display: inline;
-        }
-    }
+     .dropdown-item i {
+         width: 20px;
+         text-align: center;
+     }
 
-    @media (max-width: 991.98px) {
-        .navbar-nav {
-            gap: 0.2rem !important;
-            margin-top: 1rem;
-            padding: 0 1rem 1rem 1rem;
-            background: rgba(102, 126, 234, 0.95);
-            border-radius: 0 0 15px 15px;
-            backdrop-filter: blur(10px);
-            position: relative;
-            z-index: 1049;
-        }
+     .dropdown-divider {
+         margin: 0.5rem 1rem;
+         border-color: rgba(0,0,0,0.1);
+     }
 
-        .navbar-nav .nav-link.menu-link {
-            padding: 0.8rem 1rem !important;
-            font-size: 1.1rem;
-            min-height: 50px;
-            margin-bottom: 0.3rem;
-            justify-content: flex-start;
-            border-radius: 10px;
-            position: relative;
-            z-index: 1;
-        }
+     /* 确保右对齐的下拉在桌面端靠右展示 */
+     @media (min-width: 992px) {
+         .navbar-nav .dropdown-menu.dropdown-menu-end {
+             right: 0;
+             left: auto;
+         }
+     }
 
-        .dropdown-menu {
-            background: rgba(255,255,255,0.98) !important;
-            margin-left: 1rem !important;
-            width: calc(100% - 2rem);
-            position: static !important;
-            border: none !important;
-            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1) !important;
-            border-radius: 10px !important;
-            margin-top: 0.5rem !important;
-        }
+     /* 响应式设计 */
+     @media (min-width: 992px) {
+         .navbar-nav {
+             gap: 0.5rem !important;
+         }
+         .navbar-nav .nav-link.menu-link {
+             padding-left: 1.2rem !important;
+             padding-right: 1.2rem !important;
+             font-size: 1.05rem;
+             min-height: 48px;
+         }
+         .menu-text {
+             display: inline;
+         }
+     }
 
-        .brand-subtitle {
-            display: none !important;
-        }
+     @media (max-width: 991.98px) {
+         .navbar-nav {
+             gap: 0.2rem !important;
+             margin-top: 1rem;
+             padding: 0 1rem 1rem 1rem;
+             background: rgba(102, 126, 234, 0.95);
+             border-radius: 0 0 15px 15px;
+             backdrop-filter: blur(10px);
+             position: relative;
+             z-index: 1049;
+         }
 
-        /* 确保折叠菜单可以正常点击 */
-        .navbar-collapse.show,
-        .navbar-collapse.collapsing {
-            position: relative;
-            z-index: 1049;
-        }
+         .navbar-nav .nav-link.menu-link {
+             padding: 0.8rem 1rem !important;
+             font-size: 1.1rem;
+             min-height: 50px;
+             margin-bottom: 0.3rem;
+             justify-content: flex-start;
+             border-radius: 10px;
+             position: relative;
+             z-index: 1;
+         }
 
-        .navbar-collapse .navbar-nav {
-            pointer-events: auto;
-        }
+         .dropdown-menu {
+             background: rgba(255,255,255,0.98) !important;
+             margin-left: 1rem !important;
+             width: calc(100% - 2rem);
+             position: static !important;
+             border: none !important;
+             box-shadow: inset 0 2px 10px rgba(0,0,0,0.1) !important;
+             border-radius: 10px !important;
+             margin-top: 0.5rem !important;
+         }
 
-        .navbar-collapse .nav-link {
-            pointer-events: auto;
-        }
-    }
+         .brand-subtitle {
+             display: none !important;
+         }
 
-    @media (max-width: 576px) {
-        .menu-text {
-            font-size: 0.95rem;
-        }
-        .navbar-brand .brand-text {
-            font-size: 1.3rem;
-        }
+         /* 确保折叠菜单可以正常点击 */
+         .navbar-collapse.show,
+         .navbar-collapse.collapsing {
+             position: relative;
+             z-index: 1049;
+         }
 
-        .navbar-nav {
-            padding: 0 0.5rem 1rem 0.5rem;
-        }
+         .navbar-collapse .navbar-nav {
+             pointer-events: auto;
+         }
 
-        .navbar-nav .nav-link.menu-link {
-            padding: 0.7rem 0.8rem !important;
-            font-size: 1rem;
-        }
-    }
+         .navbar-collapse .nav-link {
+             pointer-events: auto;
+         }
+     }
 
-    /* 动画效果 */
-    @keyframes fadeInDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
+     @media (max-width: 576px) {
+         .menu-text {
+             font-size: 0.95rem;
+         }
+         .navbar-brand .brand-text {
+             font-size: 1.3rem;
+         }
 
-    .dropdown-menu.show {
-        animation: fadeInDown 0.3s ease;
-    }
+         .navbar-nav {
+             padding: 0 0.5rem 1rem 0.5rem;
+         }
 
-    /* 活跃状态指示器 */
-    .navbar-nav .nav-link.menu-link.active::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 60%;
-        height: 3px;
-        background: linear-gradient(90deg, transparent, #fff, transparent);
-        border-radius: 2px;
-    }
+         .navbar-nav .nav-link.menu-link {
+             padding: 0.7rem 0.8rem !important;
+             font-size: 1rem;
+         }
+     }
 
-    /* 修复可能的点击事件冲突 */
-    .navbar::before {
-        pointer-events: none;
-    }
+     /* 动画��果 */
+     @keyframes fadeInDown {
+         from {
+             opacity: 0;
+             transform: translateY(-10px);
+         }
+         to {
+             opacity: 1;
+             transform: translateY(0);
+         }
+     }
 
-    .navbar-nav .nav-link.menu-link::before {
-        pointer-events: none;
-    }
+     .dropdown-menu.show {
+         animation: fadeInDown 0.3s ease;
+     }
 
-    .navbar-nav .nav-link.active-lang {
-        background: #fff !important;
-        color: #764ba2 !important;
-        font-weight: bold;
-        border: 2px solid #764ba2;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(118,75,162,0.08);
-    }
-    .navbar-nav .nav-link.active-lang:hover {
-        background: #f3e9fa !important;
-        color: #764ba2 !important;
-    }
+     /* 活跃状态指示器 */
+     .navbar-nav .nav-link.menu-link.active::after {
+         content: '';
+         position: absolute;
+         bottom: 0;
+         left: 50%;
+         transform: translateX(-50%);
+         width: 60%;
+         height: 3px;
+         background: linear-gradient(90deg, transparent, #fff, transparent);
+         border-radius: 2px;
+     }
+
+     /* 修复可能的点击事件冲突 */
+     .navbar::before {
+         pointer-events: none;
+     }
+
+     .navbar-nav .nav-link.menu-link::before {
+         pointer-events: none;
+     }
+
+     .navbar-nav .nav-link.active-lang {
+         background: #fff !important;
+         color: #764ba2 !important;
+         font-weight: bold;
+         border: 2px solid #764ba2;
+         border-radius: 8px;
+         box-shadow: 0 2px 8px rgba(118,75,162,0.08);
+     }
+     .navbar-nav .nav-link.active-lang:hover {
+         background: #f3e9fa !important;
+         color: #764ba2 !important;
+     }
 </style>
 
 <!-- 主要内容区域 -->
