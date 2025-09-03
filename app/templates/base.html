@@ -77,14 +77,6 @@
                         </li>
                     </ul>
                 </li>
-                <!-- 新增：考勤打卡入口 -->
-                <li class="nav-item">
-                    <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2"
-                       href="{{ url_for('attendance.punch') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                        <i class="bi bi-alarm"></i>
-                        <span class="menu-text">{{ lang_dict['attendance_punch'] if lang_dict.get('attendance_punch') else '考勤打卡' }}</span>
-                    </a>
-                </li>
                 <li class="nav-item">
                     <a class="nav-link menu-link d-flex align-items-center gap-2 px-3 py-2"
                        href="{{ url_for('reimbursement.list_requests') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
@@ -159,6 +151,11 @@
                             <i class="bi bi-list-ul me-2 text-success"></i>{{ lang_dict['all_reimbursement'] if
                             lang_dict.get('all_reimbursement') else '全部报销申请' }}
                         </a></li>
+                        <li><a class="dropdown-item py-2"
+                               href="{{ url_for('reimbursement.default_cc_config') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                            <i class="bi bi-share me-2 text-warning"></i>{{ lang_dict['default_cc_config'] if
+                            lang_dict.get('default_cc_config') else '默认抄送人' }}
+                        </a></li>
                         <li><a class="dropdown-item py-2" href="/email_report/config">
                             <i class="bi bi-envelope-fill me-2 text-info"></i>{{ lang_dict['email_settings'] if
                             lang_dict.get('email_settings') else '邮件设置' }}
@@ -189,6 +186,10 @@
                                href="{{ url_for('user.profile') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
                             <i class="bi bi-person-gear me-2 text-info"></i>{{ lang_dict['profile'] if
                             lang_dict.get('profile') else '个人资料' }}
+                        </a></li>
+                        <li><a class="dropdown-item py-2"
+                               href="{{ url_for('attendance.punch') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                            <i class="bi bi-alarm me-2 text-primary"></i>{{ lang_dict['attendance_punch'] if lang_dict.get('attendance_punch') else '考勤打卡' }}
                         </a></li>
                         <li>
                             <hr class="dropdown-divider">
