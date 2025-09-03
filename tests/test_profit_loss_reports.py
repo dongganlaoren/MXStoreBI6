@@ -217,13 +217,13 @@ class TestProfitLossReports:
         data = response.get_data(as_text=True)
 
         # 验证总收入：50000 + 30000 + 20000 = 100000
-        assert '100,000.00' in data
+        assert '฿100,000.00' in data
 
         # 验证总成本：20000 + 12000 + 25000 = 57000
-        assert '57,000.00' in data
+        assert '฿57,000.00' in data
 
         # 验证总利润：100000 - 57000 = 43000
-        assert '43,000.00' in data
+        assert '฿43,000.00' in data
 
         # 验证各门店盈亏状态
         assert '测试门店1' in data  # 盈利门店
@@ -238,8 +238,8 @@ class TestProfitLossReports:
 
         # 应该只显示门店1的数据
         assert '测试门店1' in data
-        assert '50,000.00' in data  # 门店1收入
-        assert '20,000.00' in data  # 门店1成本
+        assert '฿50,000.00' in data  # 门店1收入
+        assert '฿20,000.00' in data  # 门店1成本
 
         # 不应该显示其他门店数据
         assert '测试门店2' not in data

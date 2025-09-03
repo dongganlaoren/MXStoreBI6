@@ -626,7 +626,13 @@ def edit(request_id):
         except Exception as e:
             db.session.rollback()
             flash(f'保存失败: {e}', 'danger')
-    current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
+    
+    # 安全获取当前语言设置，避免用户对象已删除的问题
+    try:
+        current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
+    except:
+        current_lang = request.args.get('lang') or 'zh'
+    
     lang = lang_dict.get(current_lang, lang_dict['zh'])
     return render_template('reimbursement/create.html', form=form, lang=lang, current_lang=current_lang, is_edit=True)
 

@@ -14,7 +14,7 @@ from app.models import User, DailySales, Store
 from app.models.email_report_config import EmailReportConfig
 from app.models.email_task_log import EmailTaskLog, EmailTaskType, EmailTaskStatus
 from app.models.enums import ReimbursementStatus
-from app.models.enums import RoleType, FinancialCheckStatus, ReimbursementPrimaryCategory
+from app.models.enums import RoleType, FinancialCheckStatus, ReimbursementPrimaryCategory, ReimbursementCheckStatus
 from app.models.reimbursement import ReimbursementRequest
 from app.utils.notify import send_notify_mail
 from app.utils.notify import send_sales_report_mail, query_sales_reports, render_sales_report_html
@@ -972,18 +972,21 @@ def cost_reports_center():
     start_date_sel = parse_date_safe(start_date_arg) or default_start
     end_date_sel = parse_date_safe(end_date_arg) or default_end
 
-    # 门店列表供筛选
-    store_query = Store.query
-    if store_id_arg:
-        store_query = store_query.filter(Store.store_id == store_id_arg)
-    stores = store_query.order_by(Store.store_id.asc()).all()
+    # 门店列表供筛选 - 始终读取全部门店用于下拉框回显和切换，数据筛选由后续查询使用 store_id_arg 控制
+    stores = Store.query.order_by(Store.store_id.asc()).all()
 
-    # 按店铺聚合报销金额（仅 APPROVED 并且有 approved_at 时间）
+    # 预先初始化 shared_total，防止在某些分支中被引用时尚未赋值导致 UnboundLocalError
+    shared_total = 0.0
+
+    # 按店铺聚合报销金额（仅 APPROVED 并且有 approved_at 时间，且店铺存在）
     rows_q = db.session.query(
         ReimbursementRequest.store_id,
         func.sum(ReimbursementRequest.amount).label('total_amount')
+    ).join(
+        Store, ReimbursementRequest.store_id == Store.store_id
     ).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+    (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
         ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
@@ -992,31 +995,100 @@ def cost_reports_center():
         rows_q = rows_q.filter(ReimbursementRequest.store_id == store_id_arg)
     rows_q = rows_q.group_by(ReimbursementRequest.store_id).all()
 
+    # 将查询结果转换为按店铺的字典，便于补齐没有报销记录的店铺
+    cost_by_store = { (r.store_id or ''): float(r.total_amount or 0) for r in rows_q }
+
     rows = []
     total_amount = 0.0
-    for r in rows_q:
-        amt = float(r.total_amount or 0)
-        rows.append({'store_id': r.store_id or '', 'total_amount': amt})
+    # 如果前端传入了 store_id，则仅展示该店（即使其无报销记录也应显示）；
+    # 否则展示所有门店，未出现于 cost_by_store 的店铺 total_amount 为 0
+    if store_id_arg:
+        # 尝试读取该店的信息以保证回显名称正确
+        single_store = Store.query.filter(Store.store_id == store_id_arg).first()
+        sid = single_store.store_id if single_store else (store_id_arg or '')
+        amt = cost_by_store.get(sid, 0.0)
+        rows.append({'store_id': sid, 'total_amount': amt})
         total_amount += amt
+    else:
+        for s in stores:
+            sid = s.store_id or ''
+            amt = cost_by_store.get(sid, 0.0)
+            rows.append({'store_id': sid, 'total_amount': amt})
+            total_amount += amt
 
-    # 按二级分类汇总（全局）
-    cat_q = db.session.query(
-        ReimbursementRequest.secondary_category,
-        func.sum(ReimbursementRequest.amount).label('cat_amount')
-    ).filter(
+    # ===== 计算公摊成本（一级分类）并进行分摊 =====
+    # 公摊成本均等分摊到所有店铺
+
+    # 计算公摊成本总额（primary_category == SHARED_COST）
+    shared_total_query = db.session.query(func.sum(ReimbursementRequest.amount)).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+        ReimbursementRequest.primary_category == ReimbursementPrimaryCategory.SHARED_COST,
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
         ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
     )
-    if store_id_arg:
-        cat_q = cat_q.filter(ReimbursementRequest.store_id == store_id_arg)
-    cat_q = cat_q.group_by(ReimbursementRequest.secondary_category).all()
 
+    # 公摊总额为全局共享成本总和，不应因为前端的 store_id 筛选而把共享记录排除
+    shared_total = float(shared_total_query.scalar() or 0.0)
+
+    # 调试信息：检查公摊成本记录数量
+    shared_count_query = db.session.query(func.count(ReimbursementRequest.request_id)).filter(
+        ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+        ReimbursementRequest.primary_category == ReimbursementPrimaryCategory.SHARED_COST,
+        ReimbursementRequest.approved_at != None,
+        ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
+        ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
+    )
+
+    shared_count = shared_count_query.scalar() or 0
+    current_app.logger.info(f"[成本统计] 公摊成本记录数量: {shared_count}")
+    current_app.logger.info(f"[成本统计] 公摊成本总额: {shared_total}")
+    current_app.logger.info(f"[成本统计] 查询时间范围: {start_date_sel} ~ {end_date_sel}")
+    current_app.logger.info(f"[成本统计] 筛选店铺: {store_id_arg}")
+
+    # 按二级分类汇总
     categories = []
-    for c in cat_q:
-        cat_name = getattr(c.secondary_category, 'value', str(c.secondary_category)) if c.secondary_category else '未分类'
-        categories.append({'category': cat_name, 'amount': float(c.cat_amount or 0)})
+    # 如果前端按单个店铺筛选，则按该店铺的报销记录聚合，并把该店应分摊的公摊金额作为独立类别展示
+    if store_id_arg:
+        cat_q = db.session.query(
+            ReimbursementRequest.secondary_category,
+            func.sum(ReimbursementRequest.amount).label('cat_amount')
+        ).filter(
+            ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+            (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+            ReimbursementRequest.approved_at != None,
+            ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
+            ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time()),
+            ReimbursementRequest.store_id == store_id_arg
+        ).group_by(ReimbursementRequest.secondary_category).all()
+
+        for c in cat_q:
+            cat_name = getattr(c.secondary_category, 'value', str(c.secondary_category)) if c.secondary_category else '未分类'
+            categories.append({'category': cat_name, 'amount': float(c.cat_amount or 0)})
+
+        # 把该店的公摊份额作为单独的类别显示（均等分摊到所有店铺）
+        total_stores = Store.query.count() or 0
+        if total_stores > 0 and shared_total > 0:
+            per_store_shared = float(shared_total) / total_stores
+            categories.append({'category': '公摊', 'amount': per_store_shared})
+    else:
+        # 全局聚合（包含共享记录）
+        cat_q = db.session.query(
+            ReimbursementRequest.secondary_category,
+            func.sum(ReimbursementRequest.amount).label('cat_amount')
+        ).filter(
+            ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+            (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+            ReimbursementRequest.approved_at != None,
+            ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
+            ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
+        ).group_by(ReimbursementRequest.secondary_category).all()
+
+        for c in cat_q:
+            cat_name = getattr(c.secondary_category, 'value', str(c.secondary_category)) if c.secondary_category else '未分类'
+            categories.append({'category': cat_name, 'amount': float(c.cat_amount or 0)})
 
     # 回显
     start_date_str = start_date_sel.strftime('%Y-%m-%d')
@@ -1032,26 +1104,50 @@ def cost_reports_center():
 
     period_str = f"{start_date_str} ~ {end_date_str}" if start_date_sel != end_date_sel else start_date_str
 
-    # ===== 新增：计算公摊成本（一级分类）并进行分摊 =====
-    # 支持 query 参数 allocate_count 指定分摊到前 N 个门店（按营业额排序）；默认分摊到所有可见店铺
-    try:
-        allocate_count = int(request.args.get('allocate_count') or 0)
-    except Exception:
-        allocate_count = 0
-    # 分摊方式参数（'proportional' 或 'equal'），默认 'proportional'
-    allocate_method = request.args.get('allocate_method', 'proportional')
-
-    # 计算公摊成本总额（primary_category == SHARED_COST）
-    shared_total = db.session.query(func.sum(ReimbursementRequest.amount)).filter(
+    # 调试信息：检查公摊成本记录数量
+    shared_count_query = db.session.query(func.count(ReimbursementRequest.request_id)).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+        ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED,
         ReimbursementRequest.primary_category == ReimbursementPrimaryCategory.SHARED_COST,
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
         ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
     )
+
+    shared_count = shared_count_query.scalar() or 0
+    current_app.logger.info(f"[成本统计] 公摊成本记录数量: {shared_count}")
+    current_app.logger.info(f"[成本统计] 公摊成本总额: {shared_total}")
+    current_app.logger.info(f"[成本统计] 查询时间范围: {start_date_sel} ~ {end_date_sel}")
+    current_app.logger.info(f"[成本统计] 筛选店铺: {store_id_arg}")
+
+    # 调试信息：检查所有报销记录统计
+    total_records = db.session.query(func.count(ReimbursementRequest.request_id)).join(
+        Store, ReimbursementRequest.store_id == Store.store_id
+    ).filter(
+        ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+        ReimbursementRequest.approved_at != None,
+        ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
+        ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
+    )
     if store_id_arg:
-        shared_total = shared_total.filter(ReimbursementRequest.store_id == store_id_arg)
-    shared_total = float(shared_total.scalar() or 0.0)
+        total_records = total_records.filter(ReimbursementRequest.store_id == store_id_arg)
+    
+    total_count = total_records.scalar() or 0
+    current_app.logger.info(f"[成本统计] 符合条件的总记录数: {total_count}")
+
+    # 调试：直接查询公摊成本记录
+    shared_records = db.session.query(ReimbursementRequest).filter(
+        ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+        ReimbursementRequest.primary_category == ReimbursementPrimaryCategory.SHARED_COST,
+        ReimbursementRequest.approved_at != None,
+        ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
+        ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
+    )
+
+    shared_list = shared_records.all()
+    current_app.logger.info(f"[成本统计] 公摊成本记录详情: {[(r.request_id, r.amount, r.store_id) for r in shared_list]}")
 
     # 取每店的理论营业额作为分摊权重（若无则为0）
     sales_q = db.session.query(
@@ -1067,31 +1163,23 @@ def cost_reports_center():
     sales_q = sales_q.group_by(DailySales.store_id).all()
     store_theory = {r.store_id: float(r.theory or 0.0) for r in sales_q}
 
-    # 选择分摊目标门店（按理论营业额降序），如果 allocate_count<=0 则为全部门店
+    # 分摊到所有店铺（均等分摊）——始终以系统中全部店铺为分母
     store_ids = [r['store_id'] for r in rows]
-    store_theory_list = [(sid, store_theory.get(sid, 0.0)) for sid in store_ids]
-    store_theory_list.sort(key=lambda x: x[1], reverse=True)
-    if allocate_count > 0 and allocate_count < len(store_theory_list):
-        target_stores = [sid for sid, _ in store_theory_list[:allocate_count]]
-    else:
-        target_stores = [sid for sid, _ in store_theory_list]
+    all_stores = Store.query.order_by(Store.store_id.asc()).all()
+    target_stores = [s.store_id for s in all_stores] if all_stores else store_ids
 
-    # 计算分摊：如果所有目标门店的理论营业额之和大于0，则按比例分摊；否则均等分摊
-    total_theory_for_alloc = sum(store_theory.get(sid, 0.0) for sid in target_stores)
+    # 计算分摊：均等分摊到目标店铺集合
     allocation_map = {}
+    per = 0.0
     if target_stores and shared_total > 0:
-        if allocate_method == 'equal':
-            per = shared_total / len(target_stores)
-            for sid in target_stores:
-                allocation_map[sid] = per
-        else:
-            if total_theory_for_alloc > 0:
-                for sid in target_stores:
-                    allocation_map[sid] = shared_total * (store_theory.get(sid, 0.0) / total_theory_for_alloc)
-            else:
-                per = shared_total / len(target_stores)
-                for sid in target_stores:
-                    allocation_map[sid] = per
+        per = shared_total / len(target_stores)
+        for sid in target_stores:
+            allocation_map[sid] = per
+
+    # 调试信息：输出分摊计算结果
+    current_app.logger.info(f"[成本统计] 目标店铺数量: {len(target_stores)}")
+    current_app.logger.info(f"[成本统计] 每店分摊金额: {per if target_stores and shared_total > 0 else 0}")
+    current_app.logger.info(f"[成本统计] 分摊映射: {allocation_map}")
 
     # 将分摊结果合并回 rows，计算含分摊的成本
     total_after_allocation = 0.0
@@ -1102,11 +1190,9 @@ def cost_reports_center():
         row['cost_after_allocation'] = row['total_amount'] + alloc
         total_after_allocation += row['cost_after_allocation']
 
-    # 传递共享总额与分摊参数给模板
+    # 传递共享总额给模板
     shared_info = {
         'shared_total': shared_total,
-        'allocate_count': allocate_count,
-        'allocate_method': allocate_method,
         'allocated_sum': sum(allocation_map.values())
     }
 
@@ -1183,8 +1269,11 @@ def profit_loss_reports_center():
     cost_query = db.session.query(
         ReimbursementRequest.store_id,
         func.sum(ReimbursementRequest.amount).label('total_cost')
+    ).join(
+        Store, ReimbursementRequest.store_id == Store.store_id
     ).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+    (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
         ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
@@ -1241,8 +1330,11 @@ def profit_loss_reports_center():
     category_query = db.session.query(
         ReimbursementRequest.secondary_category,
         func.sum(ReimbursementRequest.amount).label('cat_amount')
+    ).join(
+        Store, ReimbursementRequest.store_id == Store.store_id
     ).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
         ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
