@@ -69,26 +69,79 @@ lang_dict = {
         'reimbursement_unchecked': '未核对',
         'reimbursement_check_status': '核对状态',
 
-        # 考勤打卡
-        'punch_title': '考勤打卡',
-        'punch_in': '上班打卡',
-        'punch_out': '下班打卡',
-        'punch_in_done': '已上班打卡',
-        'punch_out_done': '已下班打卡',
-        'photo': '拍照上传',
-        'location_success': '已成功获取当前打卡位置',
-        'punch_success': '打卡成功！',
-        'already_punched': '今天已打卡',
-        'current_time': '当前时间',
-        'punch_in_time': '上班打卡时间',
-        'punch_out_time': '下班打卡时间',
-        'today_work_duration': '今日工时',
-        'summary_work_duration': '今日工时总结',
+        # 报销列表页面
+        'reimbursement_list_title': '报销申请列表',
+        'reimbursement_finance': '财务',
+        'reimbursement_create_btn': '新建报销申请',
+        'reimbursement_mine': '我的申请',
+        'reimbursement_all': '全部申请',
+        'reimbursement_todo': '待审批',
+        'reimbursement_done': '已审批',
+        'reimbursement_cc_to_me': '抄送给我',
+        'reimbursement_all_time': '全部时间',
+        'reimbursement_recent_24h': '最近24小时',
+        'reimbursement_recent_7d': '最近7天',
+        'reimbursement_recent_30d': '最近30天',
+        'reimbursement_custom_date': '自定义日期',
+        'reimbursement_query_btn': '查询',
 
-        # 其它常用词条（可按需扩展）
-        'home_page_title': 'BI 系统',
-        'login': '登录',
-        'register': '注册',
+        # 表格列
+        'reimbursement_submission_date': '提交日期',
+        'store_id_column': '门店ID',
+        'reimbursement_submitter': '提交人',
+        'reimbursement_approver': '审批人',
+        'reimbursement_amount': '金额',
+        'reimbursement_primary_category': '一级分类',
+        'reimbursement_secondary_category': '二级分类',
+        'reimbursement_status': '状态',
+        'SHARED_COST': '公摊成本',
+
+        # 状态
+        'reimbursement_pending': '待审批',
+        'reimbursement_approved': '已通过',
+        'reimbursement_rejected': '已驳回',
+        'reimbursement_draft': '草稿',
+
+        # 操作按钮
+        'reimbursement_detail_btn': '详情',
+        'reimbursement_approve_btn': '审批',
+        'reimbursement_transfer': '转交',
+        'withdraw_btn': '撤回',
+        'reimbursement_edit': '编辑',
+        'reimbursement_delete': '删除',
+        'reimbursement_action': '操作',
+
+        # 确认消息
+        'confirm_withdraw_msg': '确定要撤回此申请吗？',
+        'confirm_delete_draft_msg': '确定要删除此草稿吗？',
+
+        # 转交弹窗
+        'transfer_approver': '转交审批人',
+        'close': '关闭',
+        'search_approver_finance_admin_only': '搜索审批人（仅限财务/管理员）',
+        'enter_name_account_phone': '输入姓名/账号/手机号',
+        'cancel': '取消',
+        'confirm_transfer': '确认转交',
+
+        # 审批页面
+        'reimbursement_approval_title': '报销审批',
+        'reimbursement_application_info': '申请信息',
+        'reimbursement_id': '申请ID',
+        'reimbursement_store': '门店',
+        'reimbursement_reason': '事由',
+        'reimbursement_cc_recipients': '抄送人',
+        'reimbursement_related_attachments': '相关附件',
+        'reimbursement_attachment': '附件',
+        'preview': '预览',
+        'reimbursement_approval_operation': '审批操作',
+        'reimbursement_upload_attachments_tips': '请上传审批相关附件（如发票、收据等）',
+        'reimbursement_approval_pass': '通过',
+        'reimbursement_return': '返回',
+
+        # 管理功能
+        'all_reimbursement': '全部报销申请',
+        'email_settings': '邮件设置',
+        'email_logs': '邮件发送日志',
     },
 
     'th': {
@@ -161,25 +214,78 @@ lang_dict = {
         'reimbursement_unchecked': 'ยังไม่ตรวจสอบ',
         'reimbursement_check_status': 'สถานะการตรวจสอบ',
 
-        # Attendance
-        'punch_title': 'บันทึกเวลาเข้างาน',
-        'punch_in': 'เข้างาน',
-        'punch_out': 'ออกงาน',
-        'punch_in_done': 'บันทึกเข้างานแล้ว',
-        'punch_out_done': 'บันทึกออกงานแล้ว',
-        'photo': 'ถ่ายรูป',
-        'location_success': 'ตำแหน่งบันทึกเวลาได้รับเรียบร้อย',
-        'punch_success': 'บันทึกสำเร็จ!',
-        'already_punched': 'บันทึกวันนี้แล้ว',
-        'current_time': 'เวลาปัจจุบัน',
-        'punch_in_time': 'เว���าเข้างาน',
-        'punch_out_time': 'เวลาออกงาน',
-        'today_work_duration': 'เวลาทำงานวันนี้',
-        'summary_work_duration': 'สรุปเวลาทำงานวันนี้',
+        # 报销列表页面（泰文）
+        'reimbursement_list_title': 'รายการคำขอเบิกจ่าย',
+        'reimbursement_finance': 'การเงิน',
+        'reimbursement_create_btn': 'สร้างคำขอเบิกจ่ายใหม่',
+        'reimbursement_mine': 'คำขอของฉัน',
+        'reimbursement_all': 'คำขอทั้งหมด',
+        'reimbursement_todo': 'รอดำเนินการ',
+        'reimbursement_done': 'ดำเนินการแล้ว',
+        'reimbursement_cc_to_me': 'ส่งถึงฉัน',
+        'reimbursement_all_time': 'เวลาทั้งหมด',
+        'reimbursement_recent_24h': '24 ชั่วโมงล่าสุด',
+        'reimbursement_recent_7d': '7 วันล่าสุด',
+        'reimbursement_recent_30d': '30 วันล่าสุด',
+        'reimbursement_custom_date': 'วันที่กำหนดเอง',
+        'reimbursement_query_btn': 'ค้นหา',
 
-        # Misc
-        'home_page_title': 'ระบบ BI',
-        'login': 'เข้าสู่ระบบ',
-        'register': 'สมัครสมาชิก',
+        # 表格列（泰文）
+        'reimbursement_submission_date': 'วันที่ส่ง',
+        'store_id_column': 'รหัสร้านค้า',
+        'reimbursement_submitter': 'ผู้ส่ง',
+        'reimbursement_approver': 'ผู้อนุมัติ',
+        'reimbursement_amount': 'จำนวนเงิน',
+        'reimbursement_primary_category': 'หมวดหมู่หลัก',
+        'reimbursement_secondary_category': 'หมวดหมู่ย่อย',
+        'reimbursement_status': 'สถานะ',
+        'SHARED_COST': 'ต้นทุนร่วม',
+
+        # 状态（泰文）
+        'reimbursement_pending': 'รอดำเนินการ',
+        'reimbursement_approved': 'อนุมัติแล้ว',
+        'reimbursement_rejected': 'ถูกปฏิเสธ',
+        'reimbursement_draft': 'ร่าง',
+
+        # 操作按钮（泰文）
+        'reimbursement_detail_btn': 'รายละเอียด',
+        'reimbursement_approve_btn': 'อนุมัติ',
+        'reimbursement_transfer': 'โอน',
+        'withdraw_btn': 'ถอน',
+        'reimbursement_edit': 'แก้ไข',
+        'reimbursement_delete': 'ลบ',
+        'reimbursement_action': 'การดำเนินการ',
+
+        # 确认消息（泰文）
+        'confirm_withdraw_msg': 'คุณแน่ใจหรือไม่ว่าต้องการถอนคำขอนี้?',
+        'confirm_delete_draft_msg': 'คุณแน่ใจหรือไม่ว่าต้องการลบร่างนี้?',
+
+        # 转交弹窗（泰文）
+        'transfer_approver': 'โอนผู้อนุมัติ',
+        'close': 'ปิด',
+        'search_approver_finance_admin_only': 'ค้นหาผู้อนุมัติ (เฉพาะการเงิน/ผู้ดูแลระบบ)',
+        'enter_name_account_phone': 'ป้อนชื่อ/บัญชี/หมายเลขโทรศัพท์',
+        'cancel': 'ยกเลิก',
+        'confirm_transfer': 'ยืนยันการโอน',
+
+        # 审批页面（泰文）
+        'reimbursement_approval_title': 'การอนุมัติเบิกจ่าย',
+        'reimbursement_application_info': 'ข้อมูลคำขอ',
+        'reimbursement_id': 'รหัสคำขอ',
+        'reimbursement_store': 'ร้านค้า',
+        'reimbursement_reason': 'เหตุผล',
+        'reimbursement_cc_recipients': 'ผู้รับสำเนา',
+        'reimbursement_related_attachments': 'เอกสารแนบที่เกี่ยวข้อง',
+        'reimbursement_attachment': 'เอกสารแนบ',
+        'preview': 'ดูตัวอย่าง',
+        'reimbursement_approval_operation': 'การดำเนินการอนุมัติ',
+        'reimbursement_upload_attachments_tips': 'กรุณาอัปโหลดเอกสารแนบที่เกี่ยวข้องกับการอนุมัติ (เช่น ใบแจ้งหนี้ ใบเสร็จรับเงิน ฯลฯ)',
+        'reimbursement_approval_pass': 'ผ่าน',
+        'reimbursement_return': 'กลับ',
+
+        # 管理功能（泰文）
+        'all_reimbursement': 'คำขอเบิกจ่ายทั้งหมด',
+        'email_settings': 'การตั้งค่าอีเมล',
+        'email_logs': 'บันทึกการส่งอีเมล',
     }
 }

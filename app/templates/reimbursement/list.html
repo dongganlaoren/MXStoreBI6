@@ -1,5 +1,38 @@
 {% extends 'base.html' %}
 {% block title %}{{ lang['reimbursement_list_title'] }}{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    .d-flex.flex-wrap .btn {
+        margin-bottom: 0.25rem;
+    }
+    .container {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}
+@media (max-width: 576px) {
+    .table th, .table td {
+        padding: 0.5rem 0.25rem;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    .d-flex.flex-wrap {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .d-flex.flex-wrap .btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex align-items-center mb-3">
@@ -24,32 +57,20 @@
             {% elif role == 'FINANCE' %}
             <select class="form-select" name="category">
                 <option value="all" {% if category=='all' %}selected{% endif %}>{{ lang['reimbursement_all'] }}</option>
-                <option value="todo" {% if category=='todo' %}selected{% endif %}>{{ lang['reimbursement_todo'] }}
-                </option>
-                <option value="done" {% if category=='done' %}selected{% endif %}>{{ lang['reimbursement_done'] }}
-                </option>
-                <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}
-                </option>
-                <option value="cc" {% if category=='cc' %}selected{% endif %}>{{ lang['reimbursement_cc_to_me'] }}
-                </option>
-                <option value="unchecked" {% if category=='unchecked' %}selected{% endif %}>{{
-                    lang['reimbursement_unchecked'] }}
-                </option>
+                <option value="todo" {% if category=='todo' %}selected{% endif %}>{{ lang['reimbursement_todo'] }}</option>
+                <option value="done" {% if category=='done' %}selected{% endif %}>{{ lang['reimbursement_done'] }}</option>
+                <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}</option>
+                <option value="cc" {% if category=='cc' %}selected{% endif %}>{{ lang['reimbursement_cc_to_me'] }}</option>
+                <option value="unchecked" {% if category=='unchecked' %}selected{% endif %}>{{ lang['reimbursement_unchecked'] }}</option>
             </select>
             {% else %} {# ADMIN #}
             <select class="form-select" name="category">
                 <option value="all" {% if category=='all' %}selected{% endif %}>{{ lang['reimbursement_all'] }}</option>
-                <option value="todo" {% if category=='todo' %}selected{% endif %}>{{ lang['reimbursement_todo'] }}
-                </option>
-                <option value="done" {% if category=='done' %}selected{% endif %}>{{ lang['reimbursement_done'] }}
-                </option>
-                <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}
-                </option>
-                <option value="cc" {% if category=='cc' %}selected{% endif %}>{{ lang['reimbursement_cc_to_me'] }}
-                </option>
-                <option value="unchecked" {% if category=='unchecked' %}selected{% endif %}>{{
-                    lang['reimbursement_unchecked'] }}
-                </option>
+                <option value="todo" {% if category=='todo' %}selected{% endif %}>{{ lang['reimbursement_todo'] }}</option>
+                <option value="done" {% if category=='done' %}selected{% endif %}>{{ lang['reimbursement_done'] }}</option>
+                <option value="mine" {% if category=='mine' %}selected{% endif %}>{{ lang['reimbursement_mine'] }}</option>
+                <option value="cc" {% if category=='cc' %}selected{% endif %}>{{ lang['reimbursement_cc_to_me'] }}</option>
+                <option value="unchecked" {% if category=='unchecked' %}selected{% endif %}>{{ lang['reimbursement_unchecked'] }}</option>
             </select>
             {% endif %}
         </div>
@@ -63,14 +84,9 @@
                 <option value="24h" {% if time_range=='24h' %}selected{% endif %}>{{ lang['reimbursement_recent_24h']
                     }}
                 </option>
-                <option value="7d" {% if time_range=='7d' %}selected{% endif %}>{{ lang['reimbursement_recent_7d'] }}
-                </option>
-                <option value="30d" {% if time_range=='30d' %}selected{% endif %}>{{ lang['reimbursement_recent_30d']
-                    }}
-                </option>
-                <option value="custom" {% if time_range=='custom' %}selected{% endif %}>{{
-                    lang['reimbursement_custom_date'] }}
-                </option>
+                <option value="7d" {% if time_range=='7d' %}selected{% endif %}>{{ lang['reimbursement_recent_7d'] }}</option>
+                <option value="30d" {% if time_range=='30d' %}selected{% endif %}>{{ lang['reimbursement_recent_30d'] }}</option>
+                <option value="custom" {% if time_range=='custom' %}selected{% endif %}>{{ lang['reimbursement_custom_date'] }}</option>
             </select>
         </div>
         <div class="col-auto" id="custom-date"
@@ -85,19 +101,18 @@
         </div>
     </form>
     <div class="table-responsive rounded shadow-sm">
-        <table class="table table-bordered table-hover align-middle mb-0" style="background:#fff;min-width:1100px;">
+        <table class="table table-bordered table-hover align-middle mb-0" style="background:#fff;">
             <thead class="table-primary text-center align-middle">
             <tr style="font-size:1.02rem;">
-                <th style="min-width:120px;cursor:pointer;" id="sort-date">{{ lang['reimbursement_submission_date'] }}
-                    <span id="sort-arrow">⇅</span></th>
-                <th style="min-width:90px;">{{ lang['store_id_column'] }}</th>
+                <th style="min-width:120px;">{{ lang['reimbursement_submission_date'] }}</th>
+                <th style="min-width:90px;" class="d-none d-sm-table-cell">{{ lang['store_id_column'] }}</th>
                 <th style="min-width:110px;">{{ lang['reimbursement_submitter'] }}</th>
-                <th style="min-width:110px;">{{ lang['reimbursement_approver'] }}</th>
+                <th style="min-width:110px;" class="d-none d-sm-table-cell">{{ lang['reimbursement_approver'] }}</th>
                 <th style="min-width:90px;">{{ lang['reimbursement_amount'] }}</th>
-                <th style="min-width:110px;">{{ lang['reimbursement_primary_category'] }}</th>
-                <th style="min-width:110px;">{{ lang['reimbursement_secondary_category'] }}</th>
+                <th style="min-width:110px;" class="d-none d-lg-table-cell">{{ lang['reimbursement_primary_category'] }}</th>
+                <th style="min-width:110px;" class="d-none d-lg-table-cell">{{ lang['reimbursement_secondary_category'] }}</th>
                 <th style="min-width:110px;">{{ lang['reimbursement_status'] }}</th>
-                <th style="min-width:110px;">{{ lang['reimbursement_check_status'] }}</th>
+                <th style="min-width:110px;" class="d-none d-sm-table-cell">{{ lang['reimbursement_check_status'] }}</th>
                 <th style="min-width:80px;">{{ lang['reimbursement_action'] }}</th>
             </tr>
             </thead>
@@ -105,12 +120,12 @@
             {% for req in requests %}
             <tr>
                 <td>{{ req.created_at.strftime('%Y-%m-%d') if req.created_at else '' }}</td>
-                <td>{% if req.store %}{{ req.store.store_id }}{% else %}{{ lang['SHARED_COST'] }}{% endif %}</td>
+                <td class="d-none d-sm-table-cell">{% if req.store %}{{ req.store.store_id }}{% else %}{{ lang['SHARED_COST'] }}{% endif %}</td>
                 <td>{{ req.submitter.real_name or req.submitter.username }}</td>
-                <td>{{ req.approver.real_name if req.approver else '' }}</td>
+                <td class="d-none d-sm-table-cell">{{ req.approver.real_name if req.approver else '' }}</td>
                 <td>{{ req.amount }}</td>
-                <td>{{ req.primary_category.value }}</td>
-                <td>{{ req.secondary_category.value }}</td>
+                <td class="d-none d-lg-table-cell">{{ req.primary_category.value }}</td>
+                <td class="d-none d-lg-table-cell">{{ req.secondary_category.value }}</td>
                 <td>
                     {% if req.status.value == 'PENDING' %}{{ lang['reimbursement_pending'] }}
                     {% elif req.status.value == 'APPROVED' %}{{ lang['reimbursement_approved'] }}
@@ -118,7 +133,7 @@
                     {% elif req.status.value == 'DRAFT' %}{{ lang['reimbursement_draft'] }}
                     {% else %}{{ req.status.value }}{% endif %}
                 </td>
-                <td>
+                <td class="d-none d-sm-table-cell">
                     {% if req.check_status and req.check_status.value == 'CHECKED' %}
                     {{ lang.get('reimbursement_checked', '已核对') }}
                     {% else %}
@@ -126,46 +141,48 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{{ url_for('reimbursement.detail', request_id=req.request_id) }}"
-                       class="btn btn-sm btn-outline-primary">{{ lang['reimbursement_detail_btn'] }}</a>
-                    {% if not req.check_status or req.check_status.value != 'CHECKED' %}
-                    {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
-                    <a href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}"
-                       class="btn btn-sm btn-success ms-1">{{ lang['reimbursement_approve_btn'] }}</a>
-                    <!-- 转交按钮 -->
-                    <button type="button" class="btn btn-sm btn-warning ms-1" data-bs-toggle="modal"
-                            data-bs-target="#transferModal" data-request-id="{{ req.request_id }}">{{
-                        lang['reimbursement_transfer'] }}
-                    </button>
-                    {% endif %}
-                    {% if req.status.value == 'PENDING' and current_user.user_id == req.submitter_id %}
-                    <form method="post" action="{{ url_for('reimbursement.withdraw', request_id=req.request_id) }}"
-                          style="display:inline;" onsubmit="return confirm('{{ lang['confirm_withdraw_msg'] }}');">
-                        {{ form.csrf_token }}
-                        <button type="submit" class="btn btn-sm btn-warning ms-1">{{ lang['withdraw_btn'] }}</button>
-                    </form>
-                    {% endif %}
-                    {% if req.status.value == 'DRAFT' and current_user.user_id == req.submitter_id %}
-                    <a href="{{ url_for('reimbursement.edit', request_id=req.request_id) }}"
-                       class="btn btn-sm btn-info ms-1">{{ lang['reimbursement_edit'] }}</a>
-                    <form method="post" action="{{ url_for('reimbursement.delete', request_id=req.request_id) }}"
-                          style="display:inline;" onsubmit="return confirm('{{ lang['confirm_delete_draft_msg'] }}');">
-                        {{ form.csrf_token }}
-                        <button type="submit" class="btn btn-sm btn-danger ms-1">{{ lang['reimbursement_delete'] }}
+                    <div class="d-flex flex-wrap gap-1 justify-content-center">
+                        <a href="{{ url_for('reimbursement.detail', request_id=req.request_id) }}"
+                           class="btn btn-sm btn-outline-primary">{{ lang['reimbursement_detail_btn'] }}</a>
+                        {% if not req.check_status or req.check_status.value != 'CHECKED' %}
+                        {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
+                        <a href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}"
+                           class="btn btn-sm btn-success">{{ lang['reimbursement_approve_btn'] }}</a>
+                        <!-- 转交按钮 -->
+                        <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal"
+                                data-bs-target="#transferModal" data-request-id="{{ req.request_id }}">{{
+                            lang['reimbursement_transfer'] }}
                         </button>
-                    </form>
-                    {% endif %}
-                    {% set role = current_user.role.value if current_user.role else '' %}
-                    {% if role in ['FINANCE','ADMIN'] and req.status.value == 'APPROVED' %}
-                    <form method="post" action="{{ url_for('reimbursement.mark_checked', request_id=req.request_id) }}"
-                          style="display:inline;">
-                        {{ form.csrf_token }}
-                        <button type="submit" class="btn btn-sm btn-outline-success ms-1">{{ lang.get('mark_checked',
-                            '标记已审核') }}
-                        </button>
-                    </form>
-                    {% endif %}
-                    {% endif %}
+                        {% endif %}
+                        {% if req.status.value == 'PENDING' and current_user.user_id == req.submitter_id %}
+                        <form method="post" action="{{ url_for('reimbursement.withdraw', request_id=req.request_id) }}"
+                              style="display:inline;" onsubmit="return confirm('{{ lang['confirm_withdraw_msg'] }}');">
+                            {{ form.csrf_token }}
+                            <button type="submit" class="btn btn-sm btn-warning">{{ lang['withdraw_btn'] }}</button>
+                        </form>
+                        {% endif %}
+                        {% if req.status.value == 'DRAFT' and current_user.user_id == req.submitter_id %}
+                        <a href="{{ url_for('reimbursement.edit', request_id=req.request_id) }}"
+                           class="btn btn-sm btn-info">{{ lang['reimbursement_edit'] }}</a>
+                        <form method="post" action="{{ url_for('reimbursement.delete', request_id=req.request_id) }}"
+                              style="display:inline;" onsubmit="return confirm('{{ lang['confirm_delete_draft_msg'] }}');">
+                            {{ form.csrf_token }}
+                            <button type="submit" class="btn btn-sm btn-danger">{{ lang['reimbursement_delete'] }}
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% set role = current_user.role.value if current_user.role else '' %}
+                        {% if role in ['FINANCE','ADMIN'] and req.status.value == 'APPROVED' %}
+                        <form method="post" action="{{ url_for('reimbursement.mark_checked', request_id=req.request_id) }}"
+                              style="display:inline;">
+                            {{ form.csrf_token }}
+                            <button type="submit" class="btn btn-sm btn-outline-success">{{ lang.get('mark_checked',
+                                '标记已审核') }}
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+                    </div>
                 </td>
             </tr>
             {% else %}

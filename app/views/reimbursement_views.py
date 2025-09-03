@@ -128,6 +128,7 @@ def list_requests():
                            start_date=start_date,
                            end_date=end_date,
                            lang=lang,
+                           lang_dict=lang,
                            current_lang=current_lang,
                            form=form
                            )
@@ -177,7 +178,7 @@ def create():
                     flash('当天已存在相同报销申请，请勿重复提交', 'warning')
                     current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
                     lang = lang_dict.get(current_lang, lang_dict['zh'])
-                    return render_template('reimbursement/create.html', form=form, lang=lang, current_lang=current_lang)
+                    return render_template('reimbursement/create.html', form=form, lang=lang, lang_dict=lang, current_lang=current_lang)
             except Exception:
                 # 兜底：任何异常不影响正常提交流程
                 pass
@@ -295,7 +296,7 @@ def create():
         print("表单校验失败:", form.errors)
     current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
     lang = lang_dict.get(current_lang, lang_dict['zh'])
-    return render_template('reimbursement/create.html', form=form, lang=lang, current_lang=current_lang)
+    return render_template('reimbursement/create.html', form=form, lang=lang, lang_dict=lang, current_lang=current_lang)
 
 
 @bp.route('/<int:request_id>')

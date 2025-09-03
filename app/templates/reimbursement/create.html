@@ -108,8 +108,7 @@
 {% endblock %}
 
 {% block scripts %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{{ super() }}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // 一级分类与二级分类联动配置（带多语言兜底）
