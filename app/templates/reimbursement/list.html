@@ -48,7 +48,7 @@
     <form class="row g-3 mb-3 p-3 border rounded bg-light shadow-sm" method="get">
         <input type="hidden" name="lang" value="{{ current_lang }}">
         <div class="col-auto">
-            {% set role = current_user.role.value if current_user.role else '' %}
+            {% set role = current_user.role.value if current_user and current_user.role else '' %}
             {% if role in ['BRANCH_MANAGER', 'EMPLOYEE', 'HEAD_MANAGER'] %}
             <select class="form-select" name="category" disabled>
                 <option value="mine" selected>{{ lang['reimbursement_mine'] }}</option>
@@ -142,8 +142,7 @@
                 </td>
                 <td>
                     <div class="d-flex flex-wrap gap-1 justify-content-center">
-                        <a href="{{ url_for('reimbursement.detail', request_id=req.request_id) }}"
-                           class="btn btn-sm btn-outline-primary">{{ lang['reimbursement_detail_btn'] }}</a>
+                        <a href="{{ url_for('reimbursement.detail', request_id=req.request_id, category=category, time_range=time_range, start_date=start_date, end_date=end_date) }}" class="btn btn-sm btn-outline-primary">{{ lang['reimbursement_detail_btn'] }}</a>
                         {% if not req.check_status or req.check_status.value != 'CHECKED' %}
                         {% if req.status.value == 'PENDING' and current_user.user_id == req.approver_id %}
                         <a href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}"
@@ -171,7 +170,7 @@
                             </button>
                         </form>
                         {% endif %}
-                        {% set role = current_user.role.value if current_user.role else '' %}
+                        {% set role = current_user.role.value if current_user and current_user.role else '' %}
                         {% if role in ['FINANCE','ADMIN'] and req.status.value == 'APPROVED' %}
                         <form method="post" action="{{ url_for('reimbursement.mark_checked', request_id=req.request_id) }}"
                               style="display:inline;">

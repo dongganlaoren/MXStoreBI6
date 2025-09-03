@@ -82,7 +82,7 @@
                         <i class="bi bi-info-circle me-1"></i>
                         {{ lang['can_add_multiple_cc'] }}
                         <span class="text-primary">{{ lang['system_auto_cc_default'] }}</span>
-                        {% if current_user.role and current_user.role.value == 'ADMIN' %}
+                        {% if current_user and current_user.role and current_user.role.value == 'ADMIN' %}
                         <a href="{{ url_for('reimbursement.default_cc_config') }}" class="text-decoration-none ms-2">
                             <i class="bi bi-gear"></i> {{ lang['manage_default_cc'] }}
                         </a>

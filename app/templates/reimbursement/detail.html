@@ -83,7 +83,7 @@
                         <li class="list-group-item d-flex align-items-center justify-content-between">
                                     <span>
                                         <i class="bi bi-paperclip me-2 text-primary"></i>
-                                        <a href="/{{ att.file_path }}" target="_blank" class="attachment-link"
+                                        <a href="/{{ att.file_path }}" class="attachment-link"
                                            style="color: #0d6efd;">{{ att.original_filename }}</a>
                                         <span class="badge bg-primary bg-opacity-75 text-white ms-2 attachment-badge-blue">{{ lang_dict['reimbursement_attachment_submission'] }}</span>
                                     </span>
@@ -141,7 +141,7 @@
                         <li class="list-group-item d-flex align-items-center justify-content-between">
                                     <span>
                                         <i class="bi bi-paperclip me-2 text-success"></i>
-                                        <a href="/{{ att.file_path }}" target="_blank" class="attachment-link"
+                                        <a href="/{{ att.file_path }}" class="attachment-link"
                                            style="color: #198754;">{{ att.original_filename }}</a>
                                         <span class="badge bg-success bg-opacity-75 text-white ms-2 attachment-badge-green">{{ lang_dict['reimbursement_attachment_approval'] }}</span>
                                     </span>
@@ -156,7 +156,7 @@
             </div>
             <!-- 预览弹窗Modal -->
             <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel"
-                 aria-hidden="true">
+                 aria-hidden="true" data-bs-keyboard="true">
                 <div class="modal-dialog modal-xl modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -167,6 +167,9 @@
                         </div>
                         <div class="modal-body" id="previewBody"
                              style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ lang_dict['close'] }}</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -176,8 +179,7 @@
                    href="{{ url_for('reimbursement.approve', request_id=req.request_id) }}">{{
                     lang_dict['reimbursement_approve_btn'] }}</a>
                 {% endif %}
-                <a class="btn btn-secondary px-4" href="{{ url_for('reimbursement.list_requests') }}">{{
-                    lang_dict['reimbursement_back_to_list'] }}</a>
+                <a class="btn btn-secondary px-4" href="{{ url_for('reimbursement.list_requests', category=category, time_range=time_range, start_date=start_date, end_date=end_date) }}">{{ lang_dict['reimbursement_back_to_list'] }}</a>
             </div>
         </div>
     </div>
@@ -207,6 +209,17 @@
     .attachment-badge-green {
         background: #198754 !important;
         color: #fff !important;
+    }
+    .modal-content {
+        border-radius: 0.5rem;
+    }
+    .modal-header {
+        border-bottom: 1px solid #dee2e6;
+        background-color: #f8f9fa;
+    }
+    .modal-footer {
+        border-top: 1px solid #dee2e6;
+        background-color: #f8f9fa;
     }
 </style>
 <script>
@@ -239,7 +252,7 @@
                         <div class="text-center">
                             <i class="bi bi-file-earmark display-1 text-muted mb-3"></i>
                             <p class="text-muted">无法预览此文件类型</p>
-                            <a href="${filePath}" target="_blank" class="btn btn-primary">在新窗口中打开</a>
+                            <a href="${filePath}" class="btn btn-primary">在新窗口中打开</a>
                         </div>
                     `;
                 }

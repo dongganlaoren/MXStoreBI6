@@ -65,7 +65,7 @@
           <td>{{ req.submitter.real_name or req.submitter.username }}</td>
           <td>{{ req.approver.real_name if req.approver else '' }}</td>
           <td>{{ req.submission_date }}</td>
-          <td><a href="{{ url_for('reimbursement.detail', request_id=req.request_id) }}" class="btn btn-sm btn-outline-primary">详情</a></td>
+          <td><a href="{{ url_for('reimbursement.detail', request_id=req.request_id, category='all', time_range='all', start_date=request.args.get('start_date'), end_date=request.args.get('end_date')) }}" class="btn btn-sm btn-outline-primary">详情</a></td>
         </tr>
         {% else %}
         <tr><td colspan="9" class="text-center">暂无数据</td></tr>

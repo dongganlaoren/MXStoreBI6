@@ -6,6 +6,7 @@ from datetime import datetime, date
 from faker import Faker
 from sqlalchemy import text
 from werkzeug.security import generate_password_hash
+import random
 
 from app.extensions import db
 from app.models import Store, User, DailySales
@@ -77,6 +78,7 @@ def generate_fake_data():
         admin_user.phone = fake.phone_number()
         admin_user.created_at = datetime.now()
         admin_user.updated_at = datetime.now()
+        admin_user.employee_number = random.randint(1, 9) * 11111
         db.session.add(admin_user)
         db.session.commit()
 
@@ -91,6 +93,7 @@ def generate_fake_data():
         aaa.phone = fake.phone_number()
         aaa.created_at = datetime.now()
         aaa.updated_at = datetime.now()
+        aaa.employee_number = random.randint(1, 9) * 11111
         db.session.add(aaa)
 
         # 其他管理组用户（保留原逻辑）
@@ -106,6 +109,7 @@ def generate_fake_data():
             user.phone = fake.phone_number()
             user.created_at = datetime.now()
             user.updated_at = datetime.now()
+            user.employee_number = random.randint(1, 9) * 11111
             db.session.add(user)
         db.session.commit()
 
@@ -124,6 +128,7 @@ def generate_fake_data():
             mgr.phone = fake.phone_number()
             mgr.created_at = datetime.now()
             mgr.updated_at = datetime.now()
+            mgr.employee_number = int(store.store_id) * 1000 + random.randint(100, 999)
             db.session.add(mgr)
             # 员工
             emp_username = f"emp_{store.store_id}"
@@ -138,6 +143,7 @@ def generate_fake_data():
             emp.phone = fake.phone_number()
             emp.created_at = datetime.now()
             emp.updated_at = datetime.now()
+            emp.employee_number = int(store.store_id) * 1000 + random.randint(100, 999)
             db.session.add(emp)
         db.session.commit()
 

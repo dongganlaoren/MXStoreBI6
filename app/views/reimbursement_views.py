@@ -55,9 +55,10 @@ def list_requests():
             # 只查提交人为自己
             query = query.filter(ReimbursementRequest.submitter_id == current_user.user_id)
         elif category == 'cc':
-            # 新增：查看抄送给自己的申请
+            # 新增：查看抄送给自己的申请（排除草稿状态）
             query = query.join(ReimbursementCCRecipient).filter(
-                ReimbursementCCRecipient.user_id == current_user.user_id
+                ReimbursementCCRecipient.user_id == current_user.user_id,
+                ReimbursementRequest.status != ReimbursementStatus.DRAFT
             )
         elif category == 'unchecked':
             # 新增：未核对（仅针对已审批通过但未核对的单据）
@@ -82,7 +83,7 @@ def list_requests():
                     ReimbursementRequest.approver_id == current_user.user_id,
                     ReimbursementRequest.submitter_id == current_user.user_id,
                     cc_exists
-                ))
+                )).filter(ReimbursementRequest.status != ReimbursementStatus.DRAFT)
             except Exception:
                 # 兜底：如出现异常，则退化为审批人为自己
                 query = query.filter(ReimbursementRequest.approver_id == current_user.user_id)
@@ -306,8 +307,16 @@ def detail(request_id):
     attachments = req.attachments.all()
     current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
     lang = lang_dict.get(current_lang, lang_dict['zh'])
+    
+    # 获取列表页面的查询参数，用于返回
+    category = request.args.get('category', 'todo')
+    time_range = request.args.get('time_range', 'all')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
     return render_template('reimbursement/detail.html', req=req, attachments=attachments, lang=lang,
-                           current_lang=current_lang)
+                           current_lang=current_lang, category=category, time_range=time_range,
+                           start_date=start_date, end_date=end_date)
 
 
 @bp.route('/<int:request_id>/approve', methods=['GET', 'POST'])
@@ -361,7 +370,15 @@ def approve(request_id):
     # 获取当前语言并传递给模板
     current_lang = request.args.get('lang') or getattr(current_user, 'language', 'zh')
     lang = lang_dict.get(current_lang, lang_dict['zh'])
-    return render_template('reimbursement/approve.html', form=form, req=req, lang=lang, current_lang=current_lang)
+    
+    # 获取列表页面的查询参数，用于返回
+    category = request.args.get('category', 'todo')
+    time_range = request.args.get('time_range', 'all')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    return render_template('reimbursement/approve.html', form=form, req=req, lang=lang, current_lang=current_lang,
+                           category=category, time_range=time_range, start_date=start_date, end_date=end_date)
 
 
 @bp.route('/approver_search')
@@ -499,6 +516,10 @@ def withdraw(request_id):
         flash('仅待审批状态可撤回', 'warning')
         return redirect(url_for('reimbursement.list_requests'))
     req.status = ReimbursementStatus.DRAFT
+    
+    # 删除抄送记录（草稿状态不应该有抄送人）
+    ReimbursementCCRecipient.query.filter_by(request_id=request_id).delete()
+    
     db.session.commit()
     flash('已撤回为草稿，可重新编辑', 'success')
     return redirect(url_for('reimbursement.list_requests'))
@@ -530,8 +551,76 @@ def edit(request_id):
             req.approver_id = int(form.approver_id.data) if form.approver_id.data else None
             req.status = ReimbursementStatus.PENDING  # 重新提交
             req.updated_at = datetime.now()
-            # 附件处理略（如需支持编辑附件可补充）
+            
+            # 重新处理抄送人（编辑时需要重新创建抄送记录）
+            # 先删除旧的抄送记录
+            ReimbursementCCRecipient.query.filter_by(request_id=request_id).delete()
+            
+            # 处理抄送人
+            cc_recipients_data = form.cc_recipients.data
+            cc_emails = []  # 用于收集抄送人邮箱
+            processed_user_ids = set()  # 避免重复添加
+
+            # 首先添加用户手动选择的抄送人
+            if cc_recipients_data:
+                try:
+                    cc_user_ids = loads(cc_recipients_data)
+                    for user_id in cc_user_ids:
+                        if user_id and user_id != req.approver_id and user_id != current_user.user_id:
+                            user_id = int(user_id)
+                            if user_id not in processed_user_ids:
+                                cc_recipient = ReimbursementCCRecipient(
+                                    request_id=req.request_id,
+                                    user_id=user_id
+                                )
+                                db.session.add(cc_recipient)
+                                processed_user_ids.add(user_id)
+                                # 收集抄送人邮箱
+                                cc_user = User.query.get(user_id)
+                                if cc_user and cc_user.email:
+                                    cc_emails.append(cc_user.email)
+                except (JSONDecodeError, ValueError) as e:
+                    logging.warning(f"解析抄送人数据失败: {e}")
+
+            # 自动添加默认抄送人
+            default_cc_recipients = ReimbursementDefaultCCRecipient.query.filter_by(is_active=True).all()
+            for default_cc in default_cc_recipients:
+                user_id = default_cc.user_id
+                # 避免重复添加（排除审批人、申请人和已经手动添加的用户）
+                if (user_id != req.approver_id and
+                        user_id != current_user.user_id and
+                        user_id not in processed_user_ids):
+                    try:
+                        cc_recipient = ReimbursementCCRecipient(
+                            request_id=req.request_id,
+                            user_id=user_id
+                        )
+                        db.session.add(cc_recipient)
+                        processed_user_ids.add(user_id)
+                        # 收集默认抄送人邮箱
+                        if default_cc.user and default_cc.user.email:
+                            cc_emails.append(default_cc.user.email)
+                    except Exception as e:
+                        logging.warning(f"添加默认抄送人失败: user_id={user_id}, error={e}")
+            
             db.session.commit()
+            
+            # 发送邮件通知
+            # 邮件通知审核人
+            approver = User.query.get(req.approver_id) if req.approver_id else None
+            if approver and approver.email:
+                subject = "【系统通知】有新的财务报销申请待您审批"
+                body = f"您好，您有一条新的报销申请待审批。申请人：{current_user.real_name or current_user.username}，金额：{form.amount.data} {form.currency.data}。请及时登录系统处理。"
+                send_notify_mail(subject, [approver.email], body)
+            else:
+                logging.warning(f"审核人未填写邮箱，无法发送报销通知邮件。审核人ID: {req.approver_id}")
+
+            # 邮件通知抄送人
+            if cc_emails:
+                subject = "【系统通知】财务报销申请抄送"
+                body = f"您好，有一条报销申请抄送给您查看。申请人：{current_user.real_name or current_user.username}，金额：{form.amount.data} {form.currency.data}。您可以登录系统查看详情。"
+                send_notify_mail(subject, cc_emails, body)
+            
             flash('草稿已提交', 'success')
             return redirect(url_for('reimbursement.list_requests'))
         except Exception as e:

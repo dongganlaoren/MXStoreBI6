@@ -81,7 +81,7 @@
                         <li class="list-group-item d-flex align-items-center justify-content-between">
                 <span>
                   <i class="bi bi-paperclip me-2 text-primary"></i>
-                  <a href="/{{ att.file_path }}" target="_blank" class="attachment-link" style="color: #0d6efd;">{{ att.original_filename }}</a>
+                  <a href="/{{ att.file_path }}" class="attachment-link" style="color: #0d6efd;">{{ att.original_filename }}</a>
                   <span class="badge bg-primary bg-opacity-75 text-white ms-2 attachment-badge-blue">{{ lang['reimbursement_attachment'] }}</span>
                 </span>
                             <a href="#" class="btn btn-link btn-sm text-primary preview-btn"
@@ -109,8 +109,7 @@
                             <button type="submit" class="btn btn-success px-4 py-2"><i class="bi bi-check-circle"></i>
                                 {{ lang['reimbursement_approval_pass'] }}
                             </button>
-                            <a href="{{ url_for('reimbursement.list_requests') }}"
-                               class="btn btn-secondary ms-2">{{ lang['reimbursement_return'] }}</a>
+                            <a href="{{ url_for('reimbursement.list_requests', category=category, time_range=time_range, start_date=start_date, end_date=end_date) }}" class="btn btn-secondary ms-2">{{ lang['reimbursement_return'] }}</a>
                         </div>
                     </form>
                     <h6 class="mt-4">{{ lang['reimbursement_approval_attachments'] }}</h6>
@@ -122,7 +121,7 @@
                         <li class="list-group-item d-flex align-items-center justify-content-between">
                 <span>
                   <i class="bi bi-paperclip me-2 text-success"></i>
-                  <a href="/{{ att.file_path }}" target="_blank" class="attachment-link" style="color: #198754;">{{ att.original_filename }}</a>
+                  <a href="/{{ att.file_path }}" class="attachment-link" style="color: #198754;">{{ att.original_filename }}</a>
                   <span class="badge bg-success bg-opacity-75 text-white ms-2 attachment-badge-green">{{ lang['reimbursement_attachment'] }}</span>
                 </span>
                             <a href="#" class="btn btn-link btn-sm text-success preview-btn"
@@ -138,7 +137,7 @@
     </div>
 </div>
 <!-- 预览弹窗Modal -->
-<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true" data-bs-keyboard="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
@@ -148,6 +147,9 @@
             </div>
             <div class="modal-body" id="previewBody"
                  style="min-height:60vh;display:flex;align-items:center;justify-content:center;"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ lang['close'] }}</button>
+            </div>
         </div>
     </div>
 </div>
@@ -175,6 +177,17 @@
     .attachment-badge-green {
       background: #198754 !important;
       color: #fff !important;
+    }
+    .modal-content {
+      border-radius: 0.5rem;
+    }
+    .modal-header {
+      border-bottom: 1px solid #dee2e6;
+      background-color: #f8f9fa;
+    }
+    .modal-footer {
+      border-top: 1px solid #dee2e6;
+      background-color: #f8f9fa;
     }
 </style>
 <script>
@@ -215,7 +228,7 @@
           } else if (/(.mp4|.webm|.ogg)$/i.test(fileUrl)) {
             previewBody.innerHTML = `<video src="${fileUrl}" controls style="max-width:100%;max-height:70vh;"></video>`;
           } else {
-            previewBody.innerHTML = `<a href="${fileUrl}" target="_blank">点击下载/查看</a>`;
+            previewBody.innerHTML = `<a href="${fileUrl}">点击下载/查看</a>`;
           }
           previewModal.show();
         });
