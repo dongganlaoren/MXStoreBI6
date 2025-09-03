@@ -986,7 +986,7 @@ def cost_reports_center():
         Store, ReimbursementRequest.store_id == Store.store_id
     ).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
-    (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == None),
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
         ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
@@ -1022,7 +1022,7 @@ def cost_reports_center():
     # 计算公摊成本总额（primary_category == SHARED_COST）
     shared_total_query = db.session.query(func.sum(ReimbursementRequest.amount)).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
-        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == None),
         ReimbursementRequest.primary_category == ReimbursementPrimaryCategory.SHARED_COST,
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
@@ -1035,7 +1035,7 @@ def cost_reports_center():
     # 调试信息：检查公摊成本记录数量
     shared_count_query = db.session.query(func.count(ReimbursementRequest.request_id)).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
-        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == None),
         ReimbursementRequest.primary_category == ReimbursementPrimaryCategory.SHARED_COST,
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
@@ -1057,7 +1057,7 @@ def cost_reports_center():
             func.sum(ReimbursementRequest.amount).label('cat_amount')
         ).filter(
             ReimbursementRequest.status == ReimbursementStatus.APPROVED,
-            (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+            (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == None),
             ReimbursementRequest.approved_at != None,
             ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
             ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time()),
@@ -1080,7 +1080,7 @@ def cost_reports_center():
             func.sum(ReimbursementRequest.amount).label('cat_amount')
         ).filter(
             ReimbursementRequest.status == ReimbursementStatus.APPROVED,
-            (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+            (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == None),
             ReimbursementRequest.approved_at != None,
             ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
             ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
@@ -1125,7 +1125,7 @@ def cost_reports_center():
         Store, ReimbursementRequest.store_id == Store.store_id
     ).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
-        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == None),
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
         ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
@@ -1139,7 +1139,7 @@ def cost_reports_center():
     # 调试：直接查询公摊成本记录
     shared_records = db.session.query(ReimbursementRequest).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
-        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == None),
         ReimbursementRequest.primary_category == ReimbursementPrimaryCategory.SHARED_COST,
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
@@ -1273,7 +1273,7 @@ def profit_loss_reports_center():
         Store, ReimbursementRequest.store_id == Store.store_id
     ).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
-    (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == None),
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
         ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
@@ -1334,7 +1334,7 @@ def profit_loss_reports_center():
         Store, ReimbursementRequest.store_id == Store.store_id
     ).filter(
         ReimbursementRequest.status == ReimbursementStatus.APPROVED,
-        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == ReimbursementCheckStatus.UNCHECKED) | (ReimbursementRequest.check_status == None),
+        (ReimbursementRequest.check_status == ReimbursementCheckStatus.CHECKED) | (ReimbursementRequest.check_status == None),
         ReimbursementRequest.approved_at != None,
         ReimbursementRequest.approved_at >= datetime.combine(start_date_sel, datetime.min.time()),
         ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())

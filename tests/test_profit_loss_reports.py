@@ -9,7 +9,8 @@ from app import create_app, db
 from app.models import User, Store, DailySales, ReimbursementRequest
 from app.models.enums import (
     RoleType, FinancialCheckStatus, ReimbursementStatus,
-    ReimbursementPrimaryCategory, ReimbursementSecondaryCategory
+    ReimbursementPrimaryCategory, ReimbursementSecondaryCategory,
+    ReimbursementCheckStatus
 )
 from config import TestingConfig
 
@@ -127,6 +128,7 @@ def test_cost_data(app, test_stores):
                 secondary_category=ReimbursementSecondaryCategory.STORE_RENT,
                 amount=Decimal('15000.00'),
                 status=ReimbursementStatus.APPROVED,
+                check_status=ReimbursementCheckStatus.CHECKED,
                 approved_at=approved_time,
                 approver_id=1
             ),
@@ -137,6 +139,7 @@ def test_cost_data(app, test_stores):
                 secondary_category=ReimbursementSecondaryCategory.UTILITIES,
                 amount=Decimal('5000.00'),
                 status=ReimbursementStatus.APPROVED,
+                check_status=ReimbursementCheckStatus.CHECKED,
                 approved_at=approved_time,
                 approver_id=1
             ),
@@ -148,6 +151,7 @@ def test_cost_data(app, test_stores):
                 secondary_category=ReimbursementSecondaryCategory.STORE_RENT,
                 amount=Decimal('12000.00'),
                 status=ReimbursementStatus.APPROVED,
+                check_status=ReimbursementCheckStatus.CHECKED,
                 approved_at=approved_time,
                 approver_id=1
             ),
@@ -159,6 +163,7 @@ def test_cost_data(app, test_stores):
                 secondary_category=ReimbursementSecondaryCategory.STORE_RENT,
                 amount=Decimal('25000.00'),
                 status=ReimbursementStatus.APPROVED,
+                check_status=ReimbursementCheckStatus.CHECKED,
                 approved_at=approved_time,
                 approver_id=1
             )
