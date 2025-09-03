@@ -578,6 +578,168 @@
          background: #f3e9fa !important;
          color: #764ba2 !important;
      }
+
+     /* ===========================================
+        菜单样式优化：区分顶级菜单和子菜单
+        =========================================== */
+
+     /* 顶级菜单样式（无子菜单）- 更明显的样式 */
+     .navbar-nav .nav-item:not(.dropdown) .nav-link.menu-link {
+         background: linear-gradient(135deg, rgba(34,197,94,0.15) 0%, rgba(22,163,74,0.15) 100%);
+         border: 2px solid rgba(34,197,94,0.4);
+         position: relative;
+         box-shadow: 0 2px 8px rgba(34,197,94,0.1);
+     }
+
+     .navbar-nav .nav-item:not(.dropdown) .nav-link.menu-link::before {
+         background: linear-gradient(135deg, rgba(34,197,94,0.25) 0%, rgba(22,163,74,0.25) 100%);
+     }
+
+     .navbar-nav .nav-item:not(.dropdown) .nav-link.menu-link:hover {
+         background: linear-gradient(135deg, rgba(34,197,94,0.3) 0%, rgba(22,163,74,0.3) 100%);
+         border-color: rgba(34,197,94,0.8);
+         box-shadow: 0 8px 25px rgba(34,197,94,0.3);
+         transform: translateY(-3px);
+     }
+
+     /* 拥有子菜单的菜单样式 - 蓝色主题 */
+     .navbar-nav .nav-item.dropdown .nav-link.menu-link {
+         background: linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.2) 100%);
+         border: 2px solid rgba(59,130,246,0.5);
+         position: relative;
+         box-shadow: 0 2px 8px rgba(59,130,246,0.15);
+     }
+
+     .navbar-nav .nav-item.dropdown .nav-link.menu-link::before {
+         background: linear-gradient(135deg, rgba(59,130,246,0.3) 0%, rgba(37,99,235,0.3) 100%);
+     }
+
+     .navbar-nav .nav-item.dropdown .nav-link.menu-link:hover {
+         background: linear-gradient(135deg, rgba(59,130,246,0.4) 0%, rgba(37,99,235,0.4) 100%);
+         border-color: rgba(59,130,246,0.9);
+         box-shadow: 0 8px 25px rgba(59,130,246,0.4);
+         transform: translateY(-3px);
+     }
+
+     /* 下拉菜单指示器 - 更明显的样式 */
+     .navbar-nav .nav-item.dropdown .nav-link.menu-link::after {
+         content: '▼';
+         position: absolute;
+         right: 10px;
+         top: 50%;
+         transform: translateY(-50%);
+         font-size: 10px;
+         color: rgba(255,255,255,0.9);
+         font-weight: bold;
+         transition: all 0.3s ease;
+         text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+     }
+
+     .navbar-nav .nav-item.dropdown .nav-link.menu-link:hover::after {
+         color: #fff;
+         transform: translateY(-50%) scale(1.3);
+         text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+     }
+
+     /* 菜单图标样式优化 */
+     .navbar-nav .nav-item:not(.dropdown) .nav-link.menu-link i {
+         color: rgba(34,197,94,0.9);
+         filter: drop-shadow(0 1px 2px rgba(34,197,94,0.3));
+     }
+
+     .navbar-nav .nav-item.dropdown .nav-link.menu-link i {
+         color: rgba(59,130,246,0.9);
+         filter: drop-shadow(0 1px 2px rgba(59,130,246,0.3));
+     }
+
+     .navbar-nav .nav-item:not(.dropdown) .nav-link.menu-link:hover i {
+         color: #22c55e;
+         filter: drop-shadow(0 2px 4px rgba(34,197,94,0.5));
+     }
+
+     .navbar-nav .nav-item.dropdown .nav-link.menu-link:hover i {
+         color: #3b82f6;
+         filter: drop-shadow(0 2px 4px rgba(59,130,246,0.5));
+     }
+
+     /* 菜单文本样式 */
+     .navbar-nav .nav-item:not(.dropdown) .nav-link.menu-link .menu-text {
+         color: rgba(255,255,255,0.95);
+         font-weight: 600;
+         text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+     }
+
+     .navbar-nav .nav-item.dropdown .nav-link.menu-link .menu-text {
+         color: rgba(255,255,255,0.95);
+         font-weight: 600;
+         text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+     }
+
+     /* 响应式优化 */
+     @media (max-width: 991.98px) {
+         .navbar-nav .nav-item:not(.dropdown) .nav-link.menu-link {
+             background: rgba(34,197,94,0.2);
+             border-color: rgba(34,197,94,0.5);
+         }
+
+         .navbar-nav .nav-item.dropdown .nav-link.menu-link {
+             background: rgba(59,130,246,0.25);
+             border-color: rgba(59,130,246,0.6);
+         }
+
+         .navbar-nav .nav-item.dropdown .nav-link.menu-link::after {
+             color: rgba(255,255,255,0.95);
+             font-size: 12px;
+         }
+     }
+
+     /* 菜单分隔效果 - 更明显的分割 */
+     .navbar-nav .nav-item {
+         position: relative;
+     }
+
+     .navbar-nav .nav-item:not(:last-child)::after {
+         content: '';
+         position: absolute;
+         right: -3px;
+         top: 50%;
+         transform: translateY(-50%);
+         width: 2px;
+         height: 70%;
+         background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.4), transparent);
+         border-radius: 1px;
+     }
+
+     /* 移除用户菜单后的分隔线 */
+     .navbar-nav .nav-item.dropdown:last-child::after {
+         display: none;
+     }
+
+     /* 菜单类型标识 */
+     .navbar-nav .nav-item:not(.dropdown) .nav-link.menu-link::before {
+         content: '';
+         position: absolute;
+         top: 4px;
+         left: 4px;
+         width: 6px;
+         height: 6px;
+         background: #22c55e;
+         border-radius: 50%;
+         box-shadow: 0 0 6px rgba(34,197,94,0.6);
+     }
+
+     .navbar-nav .nav-item.dropdown .nav-link.menu-link::before {
+         content: '';
+         position: absolute;
+         top: 4px;
+         left: 4px;
+         width: 6px;
+         height: 6px;
+         background: #3b82f6;
+         border-radius: 50%;
+         box-shadow: 0 0 6px rgba(59,130,246,0.6);
+     }
+
 </style>
 
 <!-- 主要内容区域 -->
