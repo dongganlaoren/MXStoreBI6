@@ -5,6 +5,8 @@ from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 from app.models.enums import ReimbursementPrimaryCategory, ReimbursementStatus
 from app.models.store import Store
+from flask import g, session
+from app.utils.lang_dict import lang_dict
 
 
 class ReimbursementCreateForm(FlaskForm):
@@ -78,6 +80,10 @@ class ReimbursementCreateForm(FlaskForm):
             ]
         }
         self.secondary_category.choices = secondary_map.get(primary, [])
+    # 本地化货币显示
+    lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
+    d = lang_dict.get(lang, lang_dict.get('zh', {}))
+    self.currency.choices = [('THB', d.get('currency_thb', 'THB')), ('CNY', d.get('currency_cny', 'CNY'))]
 
     def validate_store_id(self, field):
         # 如果一级分类为公摊成本，store_id必须为空

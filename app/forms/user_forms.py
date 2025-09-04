@@ -16,6 +16,8 @@ from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional
 
 # 正确导入模型
 from app.models import RoleType, Store, User
+from flask import g, session
+from app.utils.lang_dict import lang_dict
 
 
 class LoginForm(FlaskForm):
@@ -42,8 +44,8 @@ class RegistrationForm(FlaskForm):
     )
     role = SelectField(
         "角色",
-        # 从 RoleType 枚举动态生成选项
-        choices=[(role.value, role.name.replace('_', ' ').title()) for role in RoleType],
+    # 从 RoleType 枚举动态生成选项（显示使用本地化标签）
+    choices=[(role.value, role.name.replace('_', ' ').title()) for role in RoleType],
         validators=[DataRequired("请选择一个角色")]
     )
     # 新增：所属店铺字段。设为 Optional，因为管理组用户不需要选择店铺。
@@ -61,10 +63,14 @@ class RegistrationForm(FlaskForm):
         在表单初始化时，动态填充“所属店铺”的下拉选项。
         """
         super(RegistrationForm, self).__init__(*args, **kwargs)
-        # 从数据库中查询所有店铺，并将其设置为下拉菜单的选项
-        self.store_id.choices = [("", "--- (仅门店组人员需要选择) ---")] + \
-                                [(store.store_id, f"{store.store_id} - {store.store_name}")
-                                 for store in Store.query.order_by(Store.store_name).all()]
+    # 从数据库中查询所有店铺，并将其设置为下拉菜单的选项
+    self.store_id.choices = [("", "--- (仅门店组人员需要选择) ---")] + \
+                [(store.store_id, f"{store.store_id} - {store.store_name}")
+                 for store in Store.query.order_by(Store.store_name).all()]
+    # 本地化 role choices
+    lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
+    d = lang_dict.get(lang, lang_dict.get('zh', {}))
+    self.role.choices = [(role.value, d.get(f'role_{role.value.lower()}', role.name.replace('_', ' ').title())) for role in RoleType]
 
     def validate_username(self, field):
         """自定义验证器，确保用户名在注册时不重复"""
@@ -176,10 +182,12 @@ class EditProfileForm(FlaskForm):
 
     def __init__(self, *args, **kwargs):
         super(EditProfileForm, self).__init__(*args, **kwargs)
-        self.store_id.choices = [("", "--- (仅门店组人员需要选择) ---")] + \
-                                [(str(store.store_id), f"{store.store_id} - {store.store_name}")
-                                 for store in Store.query.order_by(Store.store_name).all()]
-        self.role.choices = [(role.value, role.name.replace('_', ' ').title()) for role in RoleType]
+    self.store_id.choices = [("", "--- (仅门店组人员需要选择) ---")] + \
+                [(str(store.store_id), f"{store.store_id} - {store.store_name}")
+                 for store in Store.query.order_by(Store.store_name).all()]
+    lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
+    d = lang_dict.get(lang, lang_dict.get('zh', {}))
+    self.role.choices = [(role.value, d.get(f'role_{role.value.lower()}', role.name.replace('_', ' ').title())) for role in RoleType]
 
     def validate_employee_number(self, field):
         # 只校验唯一性，不限制格式

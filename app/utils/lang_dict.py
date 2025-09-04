@@ -222,6 +222,11 @@ lang_dict = {
         'username': '用户名',
         'real_name': '真实姓名',
         'role': '角色',
+    'role_admin': '管理员',
+    'role_head_manager': '总店长',
+    'role_finance': '财务',
+    'role_branch_manager': '分店长',
+    'role_employee': '店员',
         'email': '邮箱',
         'add_time': '添加时间',
         'added_by': '添加人',
@@ -229,6 +234,9 @@ lang_dict = {
         'confirm_disable_default_cc': '确定要禁用此默认抄送人吗？',
         'disable': '禁用',
         'no_default_cc_config': '暂无默认抄送人配置',
+    # 货币
+    'currency_thb': '泰铢',
+    'currency_cny': '人民币',
     },
 
     'th': {
@@ -453,6 +461,11 @@ lang_dict = {
         'username': 'ชื่อผู้ใช้',
         'real_name': 'ชื่อจริง',
         'role': 'บทบาท',
+    'role_admin': 'ผู้ดูแลระบบ',
+    'role_head_manager': 'ผู้จัดการสาขาใหญ่',
+    'role_finance': 'การเงิน',
+    'role_branch_manager': 'ผู้จัดการสาขา',
+    'role_employee': 'พนักงาน',
         'email': 'อีเมล',
         'add_time': 'เวลาที่เพิ่ม',
         'added_by': 'ผู้เพิ่ม',
@@ -460,5 +473,8 @@ lang_dict = {
         'confirm_disable_default_cc': 'คุณแน่ใจหรือไม่ว่าต้องการปิดใช้งานผู้รับสำเนาเริ่มต้นนี้?',
         'disable': 'ปิดใช้งาน',
         'no_default_cc_config': 'ไม่มีผู้รับสำเนาเริ่มต้นที่กำหนดค่าไว้',
+    # สกุลเงิน
+    'currency_thb': 'บาทไทย',
+    'currency_cny': 'หยวนจีน',
     }
 }
