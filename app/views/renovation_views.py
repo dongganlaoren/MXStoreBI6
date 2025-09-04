@@ -19,6 +19,7 @@ from app.models.enums import (
 from app.models.renovation import RenovationTask, RenovationRecord, RenovationAttachment, RenovationCategory
 from app.models.store import Store
 from app.models.user import User
+import re
 
 renovation_bp = Blueprint('renovation', __name__, url_prefix='/renovation')
 
@@ -214,11 +215,46 @@ def create(_effective_user=None):
         db.session.commit()
         categories_db = RenovationCategory.query.filter_by(is_active=True).order_by(RenovationCategory.sort_order,
                                                                                     RenovationCategory.id).all()
-    form.category.choices = [(str(c.id), c.name) for c in categories_db]
+    # 本地化分类标签：优先使用 description 对应的翻译键 category_<description>
+    from app.utils.lang_dict import lang_dict as _lang_dict
+    # 尝试从 user 或请求中确定语言
+    lang = None
+    try:
+        lang = getattr(user, 'lang', None) or getattr(user, 'current_lang', None)
+    except Exception:
+        pass
+    if not lang:
+        from flask import session, g
+        lang = request.args.get('lang') or session.get('lang') or getattr(g, 'lang', 'zh')
+    lang_dict_obj = _lang_dict.get(lang, _lang_dict['zh'])
+
+    form.category.choices = []
+    for c in categories_db:
+        # 先尝试 description -> 翻译键（如 HYGIENE -> category_hygiene），
+        # 若未命中，再尝试基于 name 生成 key（normalize 后），以兼容 DB 中为英文/不同大小写的情况。
+        label = None
+        candidates = []
+        if c.description:
+            candidates.append(c.description)
+        if c.name:
+            candidates.append(c.name)
+        for token in candidates:
+            # 规范化为小写、非字母数字替换为下划线
+            norm = re.sub(r'[^a-z0-9]+', '_', str(token).lower())
+            key = f"category_{norm}"
+            label = lang_dict_obj.get(key)
+            if label:
+                break
+        if not label:
+            label = c.name
+        form.category.choices.append((str(c.id), label))
     # 兼容性：同时加入 description 值（如 'HYGIENE'），便于测试直接传入描述字符串
     for c in categories_db:
+        # 兼容测试代码中直接使用 description 字段作为选择值（例如 'HYGIENE'）
         if c.description and c.description not in [v for v, _ in form.category.choices]:
-            form.category.choices.append((c.description, c.description))
+            key = f"category_{c.description.lower()}"
+            label = lang_dict_obj.get(key) or c.description
+            form.category.choices.append((c.description, label))
 
     # 优先级下拉框多语言
     from app.utils.lang_dict import lang_dict

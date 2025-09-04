@@ -10,9 +10,8 @@
         <div>
             <a href="{{ url_for('renovation.index') }}" class="btn btn-secondary">{{ get_text('back_to_list') }}</a>
 
-            {% if current_user.id == task.assigned_to and task.status.value in ['PENDING', 'PROCESSING'] %}
-            <a href="{{ url_for('renovation.update', task_id=task.id) }}" class="btn btn-success">{{
-                get_text('upload_evidence') }}</a>
+            {% if current_user.user_id == task.assigned_to and task.status.value in ['PENDING', 'PROCESSING'] %}
+            <a href="{{ url_for('renovation.update', task_id=task.id) }}" class="btn btn-success">{{ get_text('upload_evidence') }}</a>
             {% endif %}
 
             {% if current_user.role.value in ['ADMIN', 'HEAD_MANAGER'] and task.status.value == 'AWAITING_VERIFICATION'
@@ -21,7 +20,7 @@
                 get_text('verify_task') }}</a>
             {% endif %}
 
-            {% if current_user.id == task.assigned_to and task.status.value == 'REJECTED' %}
+            {% if current_user.user_id == task.assigned_to and task.status.value == 'REJECTED' %}
             <button class="btn btn-primary" onclick="reopenTask({{ task.id }})">{{ get_text('reopen_task') }}</button>
             {% endif %}
 

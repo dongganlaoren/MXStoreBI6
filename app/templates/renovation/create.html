@@ -123,6 +123,10 @@
 
 {% block scripts %}
 <script>
+    // i18n strings for JS
+    const I18N = {
+        no_branch_manager: "{{ get_text('no_branch_manager') }}"
+    };
     // 设置默认截止时间为7天后
     document.addEventListener('DOMContentLoaded', function() {
         const dueDateInput = document.querySelector('input[name="due_date"]');
@@ -139,12 +143,12 @@
             function updateAssigneeOptions(storeId) {
                 fetch(`/renovation/get_store_manager?store_id=${storeId}`)
                     .then(response => response.json())
-                    .then(data => {
+                        .then(data => {
                         assigneeSelect.innerHTML = '';
                         if (data.length === 0) {
                             const opt = document.createElement('option');
                             opt.value = '';
-                            opt.textContent = '无分店长';
+                            opt.textContent = I18N.no_branch_manager || 'No manager';
                             assigneeSelect.appendChild(opt);
                         } else {
                             data.forEach(function(manager) {

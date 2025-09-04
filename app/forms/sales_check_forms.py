@@ -3,6 +3,8 @@ from flask_wtf import FlaskForm
 from wtforms import DecimalField, SelectField, TextAreaField, HiddenField, SubmitField
 from wtforms.validators import DataRequired, NumberRange, Optional
 from app.models import FinancialCheckStatus
+from flask import g, session
+from app.utils.lang_dict import lang_dict
 
 class SalesCheckForm(FlaskForm):
     report_id = HiddenField()
@@ -22,3 +24,12 @@ class SalesCheckForm(FlaskForm):
     )
     remark = TextAreaField("财务备注", validators=[Optional()])
     submit = SubmitField("保存")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
+        d = lang_dict.get(lang, lang_dict.get('zh', {}))
+        self.financial_check_status.choices = [
+            ('PENDING', d.get('reimbursement_pending', '待审核')),
+            ('APPROVED', d.get('reimbursement_approved', '已审核'))
+        ]
