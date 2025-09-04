@@ -38,6 +38,21 @@ class RenovationTaskCreateForm(FlaskForm):
         self.priority.choices = [
             (p.value, zh_dict.get(f'priority_{p.value.lower()}', p.value)) for p in RenovationTaskPriority
         ]
+        # 本地化字段标签/按钮文本
+        try:
+            self.title.label.text = zh_dict.get('task_title', self.title.label.text)
+            self.description.label.text = zh_dict.get('problem_description', self.description.label.text)
+            # category label 没有单独键则回退到中文短语
+            self.category.label.text = zh_dict.get('problem_category', zh_dict.get('task_category', self.category.label.text))
+            self.priority.label.text = zh_dict.get('task_priority', self.priority.label.text)
+            self.store_id.label.text = zh_dict.get('responsible_store', self.store_id.label.text)
+            self.due_date.label.text = zh_dict.get('due_date', self.due_date.label.text)
+            self.attachments.label.text = zh_dict.get('file_attachments', self.attachments.label.text)
+            self.assigned_to.label.text = zh_dict.get('responsible_person', self.assigned_to.label.text)
+            self.submit.label.text = zh_dict.get('renovation_create', self.submit.label.text)
+        except Exception:
+            # 安全回退：不要阻塞表单创建
+            pass
 
 
 class RenovationTaskUpdateForm(FlaskForm):
@@ -64,18 +79,35 @@ class RenovationTaskVerifyForm(FlaskForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # 本地化标签
+        try:
+            lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
+            zh_dict = lang_dict.get(lang, lang_dict.get('zh', {}))
+            self.evidence_description.label.text = zh_dict.get('verification_comments', self.evidence_description.label.text)
+            self.attachments.label.text = zh_dict.get('improvement_evidence', self.attachments.label.text)
+            self.submit.label.text = zh_dict.get('upload_evidence', self.submit.label.text)
+        except Exception:
+            pass
         lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
         zh_dict = lang_dict.get(lang, lang_dict.get('zh', {}))
         # 使用翻译键 verification_passed / verification_failed
         self.verification_result.choices = [
             (r.value, zh_dict.get(f'verification_{r.value.lower()}', r.value)) for r in VerificationResult
         ]
+        # 本地化标签
+        try:
+            self.verification_result.label.text = zh_dict.get('task_verification', self.verification_result.label.text)
+            self.verification_comments.label.text = zh_dict.get('verification_comments', self.verification_comments.label.text)
+            self.verification_attachments.label.text = zh_dict.get('reimbursement_attachments', self.verification_attachments.label.text)
+            self.submit.label.text = zh_dict.get('renovation_verify_submit', self.submit.label.text)
+        except Exception:
+            pass
 
 
 class RenovationTaskFilterForm(FlaskForm):
     """整改任务筛选表单"""
     status = SelectField('任务状态', choices=[('', '全部状态')], default='')
-    priority = SelectField('���先级', choices=[('', '全部优先级')], default='')
+    priority = SelectField('优先级', choices=[('', '全部优先级')], default='')
     category = SelectField('问题分类', choices=[('', '全部分类')], default='')
     store_id = SelectField('店铺', choices=[('', '全部店铺')], default='')
     date_range = SelectField('时间范围',
@@ -88,6 +120,31 @@ class RenovationTaskFilterForm(FlaskForm):
                              ], default='')
     search = StringField('搜索', validators=[Optional(), Length(max=100)])
     submit = SubmitField('筛选')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
+            zh_dict = lang_dict.get(lang, lang_dict.get('zh', {}))
+            self.status.label.text = zh_dict.get('task_status', self.status.label.text)
+            # 优先级与分类的标签
+            self.priority.label.text = zh_dict.get('task_priority', self.priority.label.text)
+            self.category.label.text = zh_dict.get('problem_category', self.category.label.text)
+            self.store_id.label.text = zh_dict.get('responsible_store', self.store_id.label.text)
+            self.date_range.label.text = zh_dict.get('time', self.date_range.label.text)
+            self.search.label.text = zh_dict.get('search_tasks', self.search.label.text)
+            self.submit.label.text = zh_dict.get('filter', self.submit.label.text)
+            # 本地化 date_range choices
+            choices_map = {
+                '': zh_dict.get('all_time', zh_dict.get('all_stores', '全部时间')),
+                'today': zh_dict.get('today', '今天'),
+                'week': zh_dict.get('this_week', '本周'),
+                'month': zh_dict.get('this_month', '本月'),
+                'overdue': zh_dict.get('overdue', '已逾期')
+            }
+            self.date_range.choices = [(k, v) for k, v in choices_map.items()]
+        except Exception:
+            pass
 
 
 class RenovationCategoryForm(FlaskForm):

@@ -88,6 +88,15 @@ lang_dict = {
     'verification_comments': '验收意见',
     'verifier': '验收人',
 
+    # 分类翻译（renovation 默认分类）
+    'category_hygiene': '卫生问题',
+    'category_equipment': '设备维护',
+    'category_service': '服务质量',
+    'category_safety': '安全隐患',
+    'category_other': '其他问题',
+    # JS 文本
+    'no_branch_manager': '无分店长',
+
         # 分页
         'prev_page': '上一页',
         'next_page': '下一页',
@@ -329,6 +338,15 @@ lang_dict = {
     'today': 'วันนี้',
     'verification_comments': 'ความคิดเห็นการตรวจรับ',
     'verifier': 'ผู้ตรวจรับ',
+
+    # 分类翻译（renovation 默认分类）
+    'category_hygiene': 'ปัญหาด้านความสะอาด',
+    'category_equipment': 'การบำรุงรักษาอุปกรณ์',
+    'category_service': 'คุณภาพการบริการ',
+    'category_safety': 'ความเสี่ยงด้านความปลอดภัย',
+    'category_other': 'ปัญหาอื่นๆ',
+    # JS 文本
+    'no_branch_manager': 'ไม่มีหัวหน้าสาขา',
 
         # Pagination
         'prev_page': 'หน้าก่อนหน้า',

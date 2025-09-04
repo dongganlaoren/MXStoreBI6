@@ -80,10 +80,14 @@ class ReimbursementCreateForm(FlaskForm):
             ]
         }
         self.secondary_category.choices = secondary_map.get(primary, [])
-    # 本地化货币显示
-    lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
-    d = lang_dict.get(lang, lang_dict.get('zh', {}))
-    self.currency.choices = [('THB', d.get('currency_thb', 'THB')), ('CNY', d.get('currency_cny', 'CNY'))]
+        # 本地化货币显示
+        try:
+            lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
+            d = lang_dict.get(lang, lang_dict.get('zh', {}))
+            self.currency.choices = [('THB', d.get('currency_thb', 'THB')), ('CNY', d.get('currency_cny', 'CNY'))]
+        except Exception:
+            # 在导入阶段或无 app context 时使用默认标签
+            self.currency.choices = [('THB', 'THB'), ('CNY', 'CNY')]
 
     def validate_store_id(self, field):
         # 如果一级分类为公摊成本，store_id必须为空
