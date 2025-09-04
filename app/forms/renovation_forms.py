@@ -5,6 +5,8 @@ from wtforms import StringField, TextAreaField, SelectField, DateTimeField, Subm
 from wtforms.validators import DataRequired, Length, Optional
 
 from app.models.enums import RenovationTaskPriority, VerificationResult
+from flask import g, session
+from app.utils.lang_dict import lang_dict
 
 
 class RenovationTaskCreateForm(FlaskForm):
@@ -26,6 +28,16 @@ class RenovationTaskCreateForm(FlaskForm):
                                                             '只支持图片、视频和PDF文件')])
     assigned_to = SelectField('责任人', coerce=int, validators=[DataRequired(message='请选择责任人')])
     submit = SubmitField('创建任务')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 确定语言（优先使用 g.lang，其次 session，最后回退到 'zh'）
+        lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
+        zh_dict = lang_dict.get(lang, lang_dict.get('zh', {}))
+        # 将枚举值映射到翻译后的标签（譬如 priority_urgent）
+        self.priority.choices = [
+            (p.value, zh_dict.get(f'priority_{p.value.lower()}', p.value)) for p in RenovationTaskPriority
+        ]
 
 
 class RenovationTaskUpdateForm(FlaskForm):
@@ -49,6 +61,15 @@ class RenovationTaskVerifyForm(FlaskForm):
                                                  validators=[FileAllowed(['jpg', 'jpeg', 'png', 'gif', 'pdf'],
                                                                          '只支持图片和PDF文件')])
     submit = SubmitField('提交验收结果')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
+        zh_dict = lang_dict.get(lang, lang_dict.get('zh', {}))
+        # 使用翻译键 verification_passed / verification_failed
+        self.verification_result.choices = [
+            (r.value, zh_dict.get(f'verification_{r.value.lower()}', r.value)) for r in VerificationResult
+        ]
 
 
 class RenovationTaskFilterForm(FlaskForm):
