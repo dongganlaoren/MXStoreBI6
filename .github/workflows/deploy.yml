@@ -48,34 +48,12 @@ jobs:
             mysqldump --no-tablespaces -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "$DB_BACKUP_FILE"
             echo "✅ 数据库备份完成: $DB_BACKUP_FILE"
 
-            echo "⏸️ [预备] 暂停应用以进行安全备份"
-            sudo -n /usr/bin/supervisorctl stop "$PROJECT_NAME" || {
-              echo "⚠️ [警告] 无法停止应用，可能应用未运行，继续备份过程"
-            }
-
             echo "📦 [备份] 代码目录: $DEPLOY_PATH"
             cd "$DEPLOY_PATH"
             sudo mkdir -p "$CODE_BACKUP_DIR"
             sudo chown $(whoami):$(whoami) "$CODE_BACKUP_DIR"
-            # 添加 --warning=no-file-changed 忽略文件变化警告，避免因应用运行时文件变化导致备份失败
-            if sudo tar czf "$CODE_BACKUP_FILE" --exclude='venv' --exclude='__pycache__' --exclude='*.log' --exclude='app.log*' --warning=no-file-changed .; then
-              echo "✅ 代码备份完成: $CODE_BACKUP_FILE"
-            else
-              # 如果备份失败，检查是否是因为文件变化导致的非致命错误
-              BACKUP_EXIT_CODE=$?
-              if [ $BACKUP_EXIT_CODE -eq 1 ]; then
-                echo "⚠️ [警告] 备份过程中部分文件发生变化，但备份文件已创建"
-                if [ -f "$CODE_BACKUP_FILE" ] && [ -s "$CODE_BACKUP_FILE" ]; then
-                  echo "✅ 代码备份完成: $CODE_BACKUP_FILE (有警告但文件完整)"
-                else
-                  echo "❌ [错误] 备份文件未正确创建"
-                  exit 1
-                fi
-              else
-                echo "❌ [错误] 备份失败，退出码: $BACKUP_EXIT_CODE"
-                exit 1
-              fi
-            fi
+            sudo tar czf "$CODE_BACKUP_FILE" --exclude='venv' --exclude='__pycache__' .
+            echo "✅ 代码备份完成: $CODE_BACKUP_FILE"
 
             echo "🧹 [清理] 保留最近 7 个备份"
             sudo ls -1t "$DB_BACKUP_DIR"/backup_*.sql | tail -n +8 | xargs -r sudo rm -f || true
