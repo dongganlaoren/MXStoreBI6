@@ -559,60 +559,76 @@ def list_all():
         except Exception:
             pass
     
-    # 获取筛选后的请求
-    requests = query.order_by(ReimbursementRequest.created_at.desc()).all()
+    # 获取筛选后的请求总数（用于分页）
+    total_count = query.count()
     
-    # 统计数据 - 基于筛选结果
+    # 分页参数
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 25, type=int)
+    if per_page not in [10, 25, 50, 100]:
+        per_page = 25
+    
+    # 应用分页
+    requests = query.order_by(ReimbursementRequest.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False).items
+    
+    # 统计数据 - 基于筛选结果（需要重新查询，因为分页后只有部分数据）
     from sqlalchemy import func
     
     # 基础统计查询（不包含JOIN，避免重复计算）
     stats_query = query
     
-    # 总数统计
-    total_count = len(requests)
-    total_amount = sum([float(req.amount) for req in requests])
+    # 总数统计（使用总数）
+    total_amount_query = stats_query.with_entities(func.sum(ReimbursementRequest.amount)).scalar()
+    total_amount = float(total_amount_query) if total_amount_query else 0.0
     
     # 状态分布统计
     status_stats = {}
     for status in ReimbursementStatus:
-        count = len([r for r in requests if r.status == status])
-        amount = sum([float(r.amount) for r in requests if r.status == status])
-        status_stats[status.value] = {'count': count, 'amount': amount}
+        count_query = stats_query.filter(ReimbursementRequest.status == status).count()
+        amount_query = stats_query.filter(ReimbursementRequest.status == status).with_entities(func.sum(ReimbursementRequest.amount)).scalar()
+        amount = float(amount_query) if amount_query else 0.0
+        status_stats[status.value] = {'count': count_query, 'amount': amount}
     
     # 分类统计
     primary_category_stats = {}
     for category in ReimbursementPrimaryCategory:
-        count = len([r for r in requests if r.primary_category == category])
-        amount = sum([float(r.amount) for r in requests if r.primary_category == category])
-        primary_category_stats[category.value] = {'count': count, 'amount': amount}
+        count_query = stats_query.filter(ReimbursementRequest.primary_category == category).count()
+        amount_query = stats_query.filter(ReimbursementRequest.primary_category == category).with_entities(func.sum(ReimbursementRequest.amount)).scalar()
+        amount = float(amount_query) if amount_query else 0.0
+        primary_category_stats[category.value] = {'count': count_query, 'amount': amount}
     
     secondary_category_stats = {}
     for category in ReimbursementSecondaryCategory:
-        count = len([r for r in requests if r.secondary_category == category])
-        amount = sum([float(r.amount) for r in requests if r.secondary_category == category])
-        if count > 0:  # 只显示有数据的分类
-            secondary_category_stats[category.value] = {'count': count, 'amount': amount}
+        count_query = stats_query.filter(ReimbursementRequest.secondary_category == category).count()
+        if count_query > 0:  # 只显示有数据的分类
+            amount_query = stats_query.filter(ReimbursementRequest.secondary_category == category).with_entities(func.sum(ReimbursementRequest.amount)).scalar()
+            amount = float(amount_query) if amount_query else 0.0
+            secondary_category_stats[category.value] = {'count': count_query, 'amount': amount}
     
     # 店铺统计
+    store_stats_query = stats_query.with_entities(
+        ReimbursementRequest.store_id,
+        func.count(ReimbursementRequest.request_id).label('count'),
+        func.sum(ReimbursementRequest.amount).label('amount')
+    ).filter(ReimbursementRequest.store_id.isnot(None)).group_by(ReimbursementRequest.store_id).all()
+    
     store_stats = {}
-    for req in requests:
-        if req.store_id:
-            if req.store_id not in store_stats:
-                store_stats[req.store_id] = {'count': 0, 'amount': 0}
-            store_stats[req.store_id]['count'] += 1
-            store_stats[req.store_id]['amount'] += float(req.amount)
+    for store_id, count, amount in store_stats_query:
+        store_stats[store_id] = {'count': count, 'amount': float(amount) if amount else 0.0}
     
     # 按金额排序并取前10
     store_stats_sorted = dict(sorted(store_stats.items(), key=lambda x: x[1]['amount'], reverse=True)[:10])
     
     # 按月统计
+    monthly_stats_query = stats_query.with_entities(
+        func.date_format(ReimbursementRequest.created_at, '%Y-%m').label('month'),
+        func.count(ReimbursementRequest.request_id).label('count'),
+        func.sum(ReimbursementRequest.amount).label('amount')
+    ).group_by(func.date_format(ReimbursementRequest.created_at, '%Y-%m')).all()
+    
     monthly_stats = {}
-    for req in requests:
-        month_key = req.created_at.strftime('%Y-%m')
-        if month_key not in monthly_stats:
-            monthly_stats[month_key] = {'count': 0, 'amount': 0}
-        monthly_stats[month_key]['count'] += 1
-        monthly_stats[month_key]['amount'] += float(req.amount)
+    for month, count, amount in monthly_stats_query:
+        monthly_stats[month] = {'count': count, 'amount': float(amount) if amount else 0.0}
     
     # 获取所有可用的选项（用于下拉框）
     from app.models.store import Store
@@ -630,7 +646,9 @@ def list_all():
                          all_stores=all_stores,
                          ReimbursementStatus=ReimbursementStatus,
                          ReimbursementPrimaryCategory=ReimbursementPrimaryCategory,
-                         ReimbursementSecondaryCategory=ReimbursementSecondaryCategory)
+                         ReimbursementSecondaryCategory=ReimbursementSecondaryCategory,
+                         page=page,
+                         per_page=per_page)
 
 
 @bp.route('/<int:request_id>/withdraw', methods=['POST'])
