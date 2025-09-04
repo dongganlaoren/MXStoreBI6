@@ -237,6 +237,8 @@ lang_dict = {
     # 货币
     'currency_thb': '泰铢',
     'currency_cny': '人民币',
+    'attendance_clock_in': '上班打卡',
+    'attendance_clock_out': '下班打卡',
     },
 
     'th': {
@@ -476,5 +478,7 @@ lang_dict = {
     # สกุลเงิน
     'currency_thb': 'บาทไทย',
     'currency_cny': 'หยวนจีน',
+    'attendance_clock_in': 'เข้างาน',
+    'attendance_clock_out': 'เลิกงาน',
     }
 }
