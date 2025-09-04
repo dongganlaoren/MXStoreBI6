@@ -94,3 +94,10 @@ class User(UserMixin, db.Model):
 
     def get_id(self):
         return str(self.user_id)
+
+    @property
+    def id(self):
+        """Compatibility alias for templates and code that expect `current_user.id`.
+        Returns the integer `user_id` used by this application.
+        """
+        return self.user_id

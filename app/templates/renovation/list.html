@@ -152,7 +152,7 @@
                                 <div class="btn-group btn-group-sm" role="group">
                                     <a href="{{ url_for('renovation.detail', task_id=task.id) }}" class="btn btn-outline-primary">{{ get_text('detail') }}</a>
 
-                                    {% if current_user.id == task.assigned_to and task.status.value in ['PENDING', 'PROCESSING'] %}
+                                    {% if current_user.user_id == task.assigned_to and task.status.value in ['PENDING', 'PROCESSING'] %}
                                     <a href="{{ url_for('renovation.update', task_id=task.id) }}" class="btn btn-outline-success">{{ get_text('upload_evidence') }}</a>
                                     {% endif %}
 
