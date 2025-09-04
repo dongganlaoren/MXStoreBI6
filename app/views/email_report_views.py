@@ -1048,10 +1048,16 @@ def cost_reports_center():
     current_app.logger.info(f"[成本统计] 查询时间范围: {start_date_sel} ~ {end_date_sel}")
     current_app.logger.info(f"[成本统计] 筛选店铺: {store_id_arg}")
 
-    # 按二级分类汇总
+    # 按二级分类汇总 - 显示所有分类，即使金额为0
     categories = []
-    # 如果前端按单个店铺筛选，则按该店铺的报销记录聚合，并把该店应分摊的公摊金额作为独立类别展示
+
+    # 获取所有可能的二级分类
+    from app.models.enums import ReimbursementSecondaryCategory
+    all_categories = [cat for cat in ReimbursementSecondaryCategory]
+
+    # 如果前端按单个店铺筛选
     if store_id_arg:
+        # 查询该店铺的所有分类金额
         cat_q = db.session.query(
             ReimbursementRequest.secondary_category,
             func.sum(ReimbursementRequest.amount).label('cat_amount')
@@ -1064,9 +1070,14 @@ def cost_reports_center():
             ReimbursementRequest.store_id == store_id_arg
         ).group_by(ReimbursementRequest.secondary_category).all()
 
-        for c in cat_q:
-            cat_name = getattr(c.secondary_category, 'value', str(c.secondary_category)) if c.secondary_category else '未分类'
-            categories.append({'category': cat_name, 'amount': float(c.cat_amount or 0)})
+        # 将查询结果转换为字典，便于查找
+        cat_dict = {c.secondary_category: float(c.cat_amount or 0) for c in cat_q}
+
+        # 为所有分类创建条目，即使金额为0
+        for cat in all_categories:
+            cat_name = cat.value
+            cat_amount = cat_dict.get(cat, 0.0)
+            categories.append({'category': cat_name, 'amount': cat_amount})
 
         # 把该店的公摊份额作为单独的类别显示（均等分摊到所有店铺）
         total_stores = Store.query.count() or 0
@@ -1086,9 +1097,14 @@ def cost_reports_center():
             ReimbursementRequest.approved_at <= datetime.combine(end_date_sel, datetime.max.time())
         ).group_by(ReimbursementRequest.secondary_category).all()
 
-        for c in cat_q:
-            cat_name = getattr(c.secondary_category, 'value', str(c.secondary_category)) if c.secondary_category else '未分类'
-            categories.append({'category': cat_name, 'amount': float(c.cat_amount or 0)})
+        # 将查询结果转换为字典，便于查找
+        cat_dict = {c.secondary_category: float(c.cat_amount or 0) for c in cat_q}
+
+        # 为所有分类创建条目，即使金额为0
+        for cat in all_categories:
+            cat_name = cat.value
+            cat_amount = cat_dict.get(cat, 0.0)
+            categories.append({'category': cat_name, 'amount': cat_amount})
 
     # 回显
     start_date_str = start_date_sel.strftime('%Y-%m-%d')
@@ -1152,7 +1168,8 @@ def cost_reports_center():
     # 取每店的理论营业额作为分摊权重（若无则为0）
     sales_q = db.session.query(
         DailySales.store_id,
-        func.sum(func.coalesce(DailySales.pos_total, 0) + func.coalesce(DailySales.takeaway_amount, 0)).label('theory')
+        func.sum(func.coalesce(DailySales.pos_total, 0) + func.coalesce(DailySales.takeaway_amount, 0)).label('theory'),
+        func.sum(func.coalesce(DailySales.electronic_actual_arrival, 0) + func.coalesce(DailySales.bank_deposit, 0)).label('actual_arrival')
     ).filter(
         DailySales.report_date >= start_date_sel,
         DailySales.report_date <= end_date_sel,
@@ -1162,6 +1179,7 @@ def cost_reports_center():
         sales_q = sales_q.filter(DailySales.store_id == store_id_arg)
     sales_q = sales_q.group_by(DailySales.store_id).all()
     store_theory = {r.store_id: float(r.theory or 0.0) for r in sales_q}
+    store_actual_arrival = {r.store_id: float(r.actual_arrival or 0.0) for r in sales_q}
 
     # 分摊到所有店铺（均等分摊）——始终以系统中全部店铺为分母
     store_ids = [r['store_id'] for r in rows]
@@ -1181,14 +1199,21 @@ def cost_reports_center():
     current_app.logger.info(f"[成本统计] 每店分摊金额: {per if target_stores and shared_total > 0 else 0}")
     current_app.logger.info(f"[成本统计] 分摊映射: {allocation_map}")
 
-    # 将分摊结果合并回 rows，计算含分摊的成本
+    # 将分摊结果合并回 rows，计算含分摊的成本和利润
     total_after_allocation = 0.0
+    total_actual_arrival = 0.0
+    total_profit = 0.0
     for row in rows:
         sid = row['store_id']
         alloc = float(allocation_map.get(sid, 0.0))
         row['allocated_shared'] = alloc
         row['cost_after_allocation'] = row['total_amount'] + alloc
+        row['actual_arrival'] = store_actual_arrival.get(sid, 0.0)
+        # 计算利润：实际到账 - 分摊后成本
+        row['profit'] = row['actual_arrival'] - row['cost_after_allocation']
         total_after_allocation += row['cost_after_allocation']
+        total_actual_arrival += row['actual_arrival']
+        total_profit += row['profit']
 
     # 传递共享总额给模板
     shared_info = {
@@ -1197,9 +1222,11 @@ def cost_reports_center():
     }
 
     return render_template('email_report/cost_report.html',
-                           page_title='成本统计',
+                           page_title='营业信息统计',
                            period_str=period_str,
                            total_amount=total_amount,
+                           total_actual_arrival=total_actual_arrival,
+                           total_profit=total_profit,
                            rows=rows,
                            categories=categories,
                            stores=stores,
@@ -1326,7 +1353,10 @@ def profit_loss_reports_center():
     # 总体利润率
     overall_profit_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0.0
 
-    # 4. 按成本分类统计（用于饼图展示）
+    # 4. 按成本分类统计（用于饼图展示）- 显示所有分类，即使金额为0
+    from app.models.enums import ReimbursementSecondaryCategory
+    all_categories = [cat for cat in ReimbursementSecondaryCategory]
+
     category_query = db.session.query(
         ReimbursementRequest.secondary_category,
         func.sum(ReimbursementRequest.amount).label('cat_amount')
@@ -1343,10 +1373,15 @@ def profit_loss_reports_center():
         category_query = category_query.filter(ReimbursementRequest.store_id == store_id_arg)
     category_data = category_query.group_by(ReimbursementRequest.secondary_category).all()
 
+    # 将查询结果转换为字典，便于查找
+    cat_dict = {c.secondary_category: float(c.cat_amount or 0) for c in category_data}
+
     categories = []
-    for c in category_data:
-        cat_name = getattr(c.secondary_category, 'value', str(c.secondary_category)) if c.secondary_category else '未分类'
-        categories.append({'category': cat_name, 'amount': float(c.cat_amount or 0)})
+    # 为所有分类创建条目，即使金额为0
+    for cat in all_categories:
+        cat_name = cat.value
+        cat_amount = cat_dict.get(cat, 0.0)
+        categories.append({'category': cat_name, 'amount': cat_amount})
 
     # 回显参数
     start_date_str = start_date_sel.strftime('%Y-%m-%d')

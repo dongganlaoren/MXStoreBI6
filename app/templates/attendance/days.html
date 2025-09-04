@@ -12,7 +12,7 @@
             <label class="form-label">结束日期</label>
             <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
         </div>
-        {% if current_user.role and current_user.role.name in ['ADMIN','FINANCE','HEAD_MANAGER'] %}
+        {% if current_user and current_user.is_authenticated and current_user.role and (current_user.role.name == 'ADMIN' or current_user.role.name == 'FINANCE' or current_user.role.name == 'HEAD_MANAGER') %}
         <div class="col-md-3">
             <label class="form-label">用户ID（可选）</label>
             <input type="number" name="user_id" value="{{ user_id }}" class="form-control" placeholder="默认当前用户">

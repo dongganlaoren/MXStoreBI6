@@ -25,7 +25,7 @@ lang_dict = {
         'sales_daily': '销售日报',
         'sales_weekly': '销售周报',
         'sales_monthly': '销售月报',
-        'cost_reports': '成本统计',
+        'cost_reports': '营业信息统计',
         'profit_loss': '损益报表',
         'sales_summary': '销售额统计',
 

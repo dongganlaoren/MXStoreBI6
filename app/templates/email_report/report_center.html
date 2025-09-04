@@ -45,7 +45,7 @@
             <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-search me-1"></i>查询</button>
             <a class="btn btn-secondary"
                href="{{ url_for('email_report.sales_reports_center', period=('daily' if period=='day' else ('weekly' if period=='week' else 'monthly'))) }}">重置</a>
-            {% if current_user.role and current_user.role.name in ['ADMIN','FINANCE'] %}
+            {% if current_user and current_user.is_authenticated and current_user.role and (current_user.role.name == 'ADMIN' or current_user.role.name == 'FINANCE') %}
             <button type="button" id="btnPreview" class="btn btn-outline-info"><i class="bi bi-eye-fill me-1"></i>预览
             </button>
             {% endif %}

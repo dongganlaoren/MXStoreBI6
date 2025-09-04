@@ -146,6 +146,40 @@ def create_app(config: object) -> Flask:
         """
         return {'now': datetime.now(timezone.utc)}
 
+    @app.context_processor
+    def inject_safe_user_role():
+        """
+        向所有模板注入安全的用户角色检查函数
+        """
+        def safe_user_has_role(*roles):
+            """
+            安全地检查当前用户是否具有指定角色
+            避免SQLAlchemy ObjectDeletedError
+            """
+            try:
+                from flask_login import current_user
+                if not current_user or not current_user.is_authenticated:
+                    return False
+                if not hasattr(current_user, 'role') or not current_user.role:
+                    return False
+                return current_user.role.name in roles
+            except Exception:
+                return False
+        
+        def safe_user_name():
+            """
+            安全地获取当前用户名
+            """
+            try:
+                from flask_login import current_user
+                if not current_user or not current_user.is_authenticated:
+                    return '游客'
+                return current_user.username or '用户'
+            except Exception:
+                return '用户'
+        
+        return {'safe_user_has_role': safe_user_has_role, 'safe_user_name': safe_user_name}
+
     def inject_lang_dict():
         lang = request.args.get('lang')
         if lang:

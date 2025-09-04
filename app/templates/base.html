@@ -86,7 +86,7 @@
                 </li>
 
                 <!-- 报表中心菜单（仅管理员与财务可见） -->
-                {% if current_user and current_user.role and current_user.role.name in ['ADMIN','FINANCE'] %}
+                {% if safe_user_has_role('ADMIN', 'FINANCE') %}
                 <li class="nav-item dropdown">
                     <a class="nav-link menu-link dropdown-toggle d-flex align-items-center gap-2 px-3 py-2" href="#"
                        id="reportCenterDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -113,7 +113,7 @@
                         <li><a class="dropdown-item py-2"
                                href="{{ url_for('email_report.cost_reports_center') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
                             <i class="bi bi-calculator-fill me-2 text-warning"></i>{{ lang_dict['cost_reports'] if
-                            lang_dict.get('cost_reports') else '成本统计' }}
+                            lang_dict.get('cost_reports') else '营业信息统计' }}
                         </a></li>
                         <li><a class="dropdown-item py-2"
                                href="{{ url_for('email_report.profit_loss_reports_center') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
@@ -130,7 +130,7 @@
                 {% endif %}
 
                 <!-- 管理功能菜单 -->
-                {% if current_user and current_user.role and current_user.role.name in ['ADMIN', 'HEAD_MANAGER', 'FINANCE'] %}
+                {% if safe_user_has_role('ADMIN', 'HEAD_MANAGER', 'FINANCE') %}
                 <li class="nav-item dropdown">
                     <a class="nav-link menu-link dropdown-toggle d-flex align-items-center gap-2 px-3 py-2" href="#"
                        id="manageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -178,7 +178,7 @@
                     <a class="nav-link menu-link dropdown-toggle d-flex align-items-center gap-2 px-3 py-2" href="#"
                        id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-person-circle"></i>
-                        <span class="menu-text">{{ current_user.username }}</span>
+                        <span class="menu-text">{{ safe_user_name() }}</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
                         style="background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 15px; margin-top: 8px;">

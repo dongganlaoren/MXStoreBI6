@@ -114,11 +114,11 @@ def test_report_center_pages_access_and_render(client, db_session, admin_user, l
     assert r3.status_code == 200
     assert "销售月报" in r3.get_data(as_text=True)
 
-    # 成本统计页面（准备上月报销数据）
+    # 营业信息统计页面（准备上月报销数据）
     _mk_reim("S1", 80.0)
     r4 = client.get("/reports/costs")
     assert r4.status_code == 200
-    assert "成本统计" in r4.get_data(as_text=True)
+    assert "营业信息统计" in r4.get_data(as_text=True)
 
 
 def test_report_center_preview_and_send(client, db_session, admin_user, login, monkeypatch):
