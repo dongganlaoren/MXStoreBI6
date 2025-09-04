@@ -1,79 +1,594 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>全部报销申请（调试专用）</title>
-</head>
-<body>
 {% extends 'base.html' %}
-{% block title %}全部报销申请（调试专用）{% endblock %}
+{% block title %}报销数据统计分析{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-  <div class="d-flex align-items-center mb-3">
-    <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">全部报销申请（调试专用）</h2>
-    <span class="badge bg-danger bg-opacity-75 fs-6">仅admin可见</span>
+<div class="container-fluid mt-4">
+  <!-- 页面标题 -->
+  <div class="d-flex align-items-center mb-4">
+    <h2 class="me-3" style="font-weight:bold;color:#0d6efd;text-shadow:0 2px 8px #e3eaff;">
+      <i class="bi bi-graph-up-arrow me-2"></i>报销数据统计分析
+    </h2>
+    <span class="badge bg-info bg-opacity-75 fs-6">管理员&财务专用</span>
   </div>
-  <form class="row g-3 mb-3 p-3 border rounded bg-light shadow-sm" method="get">
-    <div class="col-auto">
-      <label class="form-label">申请人</label>
-      <input type="text" class="form-control" name="submitter" value="{{ request.args.get('submitter', '') }}" placeholder="用户名/姓名/工号">
+
+  <!-- 高级筛选表单 -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>高级筛选条件</h5>
     </div>
-    <div class="col-auto">
-      <label class="form-label">审批人</label>
-      <input type="text" class="form-control" name="approver" value="{{ request.args.get('approver', '') }}" placeholder="用户名/姓名/工号">
+    <div class="card-body">
+      <form class="row g-3" method="get">
+        <!-- 第一行 -->
+        <div class="col-md-3">
+          <label class="form-label">申请人</label>
+          <div class="position-relative">
+            <input type="text" class="form-control user-autocomplete" 
+                   id="submitter-input"
+                   name="submitter" 
+                   value="{{ request.args.get('submitter', '') }}" 
+                   placeholder="输入姓名/用户名/工号"
+                   autocomplete="off">
+            <div class="autocomplete-dropdown" id="submitter-dropdown"></div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">审批人</label>
+          <div class="position-relative">
+            <input type="text" class="form-control user-autocomplete" 
+                   id="approver-input"
+                   name="approver" 
+                   value="{{ request.args.get('approver', '') }}" 
+                   placeholder="输入姓名/用户名/工号"
+                   autocomplete="off">
+            <div class="autocomplete-dropdown" id="approver-dropdown"></div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">状态</label>
+          <select class="form-select" name="status">
+            <option value="">全部状态</option>
+            {% for status in ReimbursementStatus %}
+            <option value="{{ status.value }}" 
+                    {% if request.args.get('status') == status.value %}selected{% endif %}>
+              {% if status.value == 'PENDING' %}待审批
+              {% elif status.value == 'APPROVED' %}审批通过
+              {% elif status.value == 'REJECTED' %}已拒绝
+              {% elif status.value == 'DRAFT' %}草稿
+              {% else %}{{ status.value }}{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">店铺</label>
+          <select class="form-select" name="store">
+            <option value="">全部店铺</option>
+            {% for store in all_stores %}
+            <option value="{{ store.store_id }}" 
+                    {% if request.args.get('store') == store.store_id %}selected{% endif %}>
+              {{ store.store_id }} - {{ store.store_name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <!-- 第二行 -->
+        <div class="col-md-3">
+          <label class="form-label">一级分类</label>
+          <select class="form-select" name="primary_category">
+            <option value="">全部分类</option>
+            {% for category in ReimbursementPrimaryCategory %}
+            <option value="{{ category.value }}" 
+                    {% if request.args.get('primary_category') == category.value %}selected{% endif %}>
+              {{ category.value }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">二级分类</label>
+          <select class="form-select" name="secondary_category">
+            <option value="">全部分类</option>
+            {% for category in ReimbursementSecondaryCategory %}
+            <option value="{{ category.value }}" 
+                    {% if request.args.get('secondary_category') == category.value %}selected{% endif %}>
+              {{ category.value }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">开始日期</label>
+          <input type="date" class="form-control" name="start_date" 
+                 value="{{ request.args.get('start_date', '') }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">结束日期</label>
+          <input type="date" class="form-control" name="end_date" 
+                 value="{{ request.args.get('end_date', '') }}">
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="col-12">
+          <button type="submit" class="btn btn-primary me-2">
+            <i class="bi bi-search me-1"></i>查询
+          </button>
+          <a href="{{ url_for('reimbursement.list_all') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-clockwise me-1"></i>重置
+          </a>
+        </div>
+      </form>
     </div>
-    <div class="col-auto">
-      <label class="form-label">时间</label>
-      <input type="date" class="form-control" name="start_date" value="{{ request.args.get('start_date', '') }}">
+  </div>
+
+  <!-- 统计概览卡片 -->
+  <div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-primary text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ total_count }}</h4>
+              <p class="card-text">总申请数</p>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-file-text fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="col-auto">
-      <label class="form-label">至</label>
-      <input type="date" class="form-control" name="end_date" value="{{ request.args.get('end_date', '') }}">
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-success text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ "%.2f"|format(total_amount) }}</h4>
+              <p class="card-text">总金额 (THB)</p>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-currency-dollar fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="col-auto align-self-end">
-      <button type="submit" class="btn btn-primary">筛选</button>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-info text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ status_stats.get('APPROVED', {}).get('count', 0) }}</h4>
+              <p class="card-text">已通过申请</p>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-check-circle fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </form>
-  <div class="table-responsive rounded shadow-sm">
-    <table class="table table-bordered table-hover align-middle mb-0" style="background:#fff;">
-      <thead class="table-primary text-center align-middle">
-        <tr style="font-size:1.02rem;">
-          <th>ID</th>
-          <th>一级分类</th>
-          <th>二级分类</th>
-          <th>金额</th>
-          <th>状态</th>
-          <th>申请人</th>
-          <th>审批人</th>
-          <th>申请日期</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody class="text-center">
-        {% for req in requests %}
-        <tr>
-          <td>{{ req.request_id }}</td>
-          <td>{{ req.primary_category.value }}</td>
-          <td>{{ req.secondary_category.value }}</td>
-          <td>{{ req.amount }}</td>
-          <td>
-            {% if req.status.value == 'PENDING' %}待审批
-            {% elif req.status.value == 'APPROVED' %}审批通过
-            {% elif req.status.value == 'REJECTED' %}已拒绝
-            {% else %}{{ req.status.value }}{% endif %}
-          </td>
-          <td>{{ req.submitter.real_name or req.submitter.username }}</td>
-          <td>{{ req.approver.real_name if req.approver else '' }}</td>
-          <td>{{ req.submission_date }}</td>
-          <td><a href="{{ url_for('reimbursement.detail', request_id=req.request_id, category='all', time_range='all', start_date=request.args.get('start_date'), end_date=request.args.get('end_date')) }}" class="btn btn-sm btn-outline-primary">详情</a></td>
-        </tr>
-        {% else %}
-        <tr><td colspan="9" class="text-center">暂无数据</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card bg-warning text-white h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <div>
+              <h4 class="card-title">{{ status_stats.get('PENDING', {}).get('count', 0) }}</h4>
+              <p class="card-text">待审批申请</p>
+            </div>
+            <div class="align-self-center">
+              <i class="bi bi-clock fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 统计图表区域 -->
+  <div class="row mb-4">
+    <!-- 一级分类统计图 -->
+    <div class="col-lg-12 mb-3">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>一级分类分布</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="categoryChart" width="800" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 详细统计表格 -->
+  <div class="row mb-4">
+    <!-- 二级分类统计 -->
+    <div class="col-lg-6 mb-3">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-table me-2"></i>二级分类统计</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive" style="max-height: 300px;">
+            <table class="table table-sm table-striped">
+              <thead class="table-dark">
+                <tr>
+                  <th>分类</th>
+                  <th>数量</th>
+                  <th>金额</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for category, stats in secondary_category_stats.items() %}
+                <tr>
+                  <td>{{ category }}</td>
+                  <td>{{ stats.count }}</td>
+                  <td>{{ "%.2f"|format(stats.amount) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 店铺统计 -->
+    <div class="col-lg-6 mb-3">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-shop me-2"></i>店铺统计 (Top 10)</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive" style="max-height: 300px;">
+            <table class="table table-sm table-striped">
+              <thead class="table-dark">
+                <tr>
+                  <th>店铺ID</th>
+                  <th>数量</th>
+                  <th>金额</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for store_id, stats in store_stats.items() %}
+                <tr>
+                  <td>{{ store_id }}</td>
+                  <td>{{ stats.count }}</td>
+                  <td>{{ "%.2f"|format(stats.amount) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 月度趋势图 -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>月度申请趋势</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="monthlyChart" width="800" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 详细列表 -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>详细列表 (共 {{ total_count }} 条记录)</h5>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle mb-0">
+          <thead class="table-primary text-center align-middle">
+            <tr style="font-size:1.02rem;">
+              <th>ID</th>
+              <th>一级分类</th>
+              <th>二级分类</th>
+              <th>金额</th>
+              <th>状态</th>
+              <th>申请人</th>
+              <th>审批人</th>
+              <th>申请日期</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody class="text-center">
+            {% for req in requests %}
+            <tr>
+              <td>{{ req.request_id }}</td>
+              <td>{{ req.primary_category.value }}</td>
+              <td>{{ req.secondary_category.value }}</td>
+              <td>{{ req.amount }}</td>
+              <td>
+                {% if req.status.value == 'PENDING' %}
+                  <span class="badge bg-warning">待审批</span>
+                {% elif req.status.value == 'APPROVED' %}
+                  <span class="badge bg-success">审批通过</span>
+                {% elif req.status.value == 'REJECTED' %}
+                  <span class="badge bg-danger">已拒绝</span>
+                {% elif req.status.value == 'DRAFT' %}
+                  <span class="badge bg-secondary">草稿</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ req.status.value }}</span>
+                {% endif %}
+              </td>
+              <td>{{ req.submitter.real_name or req.submitter.username }}</td>
+              <td>{{ req.approver.real_name if req.approver else '' }}</td>
+              <td>{{ req.submission_date }}</td>
+              <td>
+                <a href="{{ url_for('reimbursement.detail', request_id=req.request_id, 
+                                  **request.args.to_dict()) }}" 
+                   class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye me-1"></i>详情
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="9" class="text-center text-muted">暂无数据</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- 自定义样式 -->
+<style>
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1050;
+  display: none;
+}
+
+.autocomplete-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+  background-color: #f8f9fa;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+</style>
+
+<script>
+// 用户自动完成功能
+class UserAutocomplete {
+  constructor(inputId, dropdownId) {
+    this.input = document.getElementById(inputId);
+    this.dropdown = document.getElementById(dropdownId);
+    this.currentIndex = -1;
+    this.items = [];
+    
+    this.input.addEventListener('input', this.handleInput.bind(this));
+    this.input.addEventListener('keydown', this.handleKeydown.bind(this));
+    this.input.addEventListener('blur', this.handleBlur.bind(this));
+    this.input.addEventListener('focus', this.handleFocus.bind(this));
+  }
+  
+  async handleInput(e) {
+    const query = e.target.value.trim();
+    if (query.length < 1) {
+      this.hideDropdown();
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/reimbursement/search_users?q=${encodeURIComponent(query)}`);
+      const users = await response.json();
+      this.showDropdown(users);
+    } catch (error) {
+      console.error('搜索用户失败:', error);
+    }
+  }
+  
+  showDropdown(users) {
+    this.items = users;
+    this.dropdown.innerHTML = '';
+    
+    if (users.length === 0) {
+      this.hideDropdown();
+      return;
+    }
+    
+    users.forEach((user, index) => {
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item';
+      item.textContent = user.display_text;
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // 防止失去焦点
+        this.selectUser(user);
+      });
+      this.dropdown.appendChild(item);
+    });
+    
+    this.dropdown.style.display = 'block';
+    this.currentIndex = -1;
+  }
+  
+  hideDropdown() {
+    this.dropdown.style.display = 'none';
+    this.currentIndex = -1;
+  }
+  
+  selectUser(user) {
+    this.input.value = user.display_text;
+    this.hideDropdown();
+  }
+  
+  handleKeydown(e) {
+    if (!this.dropdown.style.display || this.dropdown.style.display === 'none') {
+      return;
+    }
+    
+    const items = this.dropdown.querySelectorAll('.autocomplete-item');
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        this.currentIndex = Math.min(this.currentIndex + 1, items.length - 1);
+        this.updateSelection(items);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        this.currentIndex = Math.max(this.currentIndex - 1, -1);
+        this.updateSelection(items);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (this.currentIndex >= 0 && this.items[this.currentIndex]) {
+          this.selectUser(this.items[this.currentIndex]);
+        }
+        break;
+      case 'Escape':
+        this.hideDropdown();
+        break;
+    }
+  }
+  
+  updateSelection(items) {
+    items.forEach((item, index) => {
+      item.classList.toggle('active', index === this.currentIndex);
+    });
+  }
+  
+  handleBlur(e) {
+    // 延迟隐藏，给点击事件时间执行
+    setTimeout(() => {
+      this.hideDropdown();
+    }, 150);
+  }
+  
+  handleFocus(e) {
+    if (e.target.value.trim().length >= 1 && this.items.length > 0) {
+      this.dropdown.style.display = 'block';
+    }
+  }
+}
+
+// 初始化自动完成功能
+document.addEventListener('DOMContentLoaded', function() {
+  new UserAutocomplete('submitter-input', 'submitter-dropdown');
+  new UserAutocomplete('approver-input', 'approver-dropdown');
+});
+
+// 一级分类柱状图
+const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+const categoryData = {
+  labels: [
+    {% for category, stats in primary_category_stats.items() %}
+    {% if stats.count > 0 %}'{{ category }}',{% endif %}
+    {% endfor %}
+  ],
+  datasets: [{
+    label: '申请数量',
+    data: [
+      {% for category, stats in primary_category_stats.items() %}
+      {% if stats.count > 0 %}{{ stats.count }},{% endif %}
+      {% endfor %}
+    ],
+    backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1', '#20c997']
+  }]
+};
+
+new Chart(categoryCtx, {
+  type: 'bar',
+  data: categoryData,
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  }
+});
+
+// 月度趋势线图
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+const monthlyLabels = [
+  {% for month in monthly_stats.keys()|sort %}
+  '{{ month }}',
+  {% endfor %}
+];
+const monthlyData = {
+  labels: monthlyLabels,
+  datasets: [{
+    label: '申请数量',
+    data: [
+      {% for month in monthly_stats.keys()|sort %}
+      {{ monthly_stats[month].count }},
+      {% endfor %}
+    ],
+    borderColor: '#007bff',
+    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+    tension: 0.4
+  }, {
+    label: '申请金额',
+    data: [
+      {% for month in monthly_stats.keys()|sort %}
+      {{ monthly_stats[month].amount }},
+      {% endfor %}
+    ],
+    borderColor: '#28a745',
+    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+    tension: 0.4,
+    yAxisID: 'y1'
+  }]
+};
+
+new Chart(monthlyCtx, {
+  type: 'line',
+  data: monthlyData,
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        type: 'linear',
+        display: true,
+        position: 'left',
+        beginAtZero: true
+      },
+      y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        beginAtZero: true,
+        grid: {
+          drawOnChartArea: false,
+        },
+      }
+    }
+  }
+});
+</script>
 {% endblock %}
-</body>
-</html>

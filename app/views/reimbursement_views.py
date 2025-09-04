@@ -8,6 +8,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask import current_app
 from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
+from sqlalchemy.orm import aliased
 from sqlalchemy import or_, exists
 from sqlalchemy.orm import aliased
 from werkzeug.utils import secure_filename
@@ -15,7 +16,7 @@ from werkzeug.utils import secure_filename
 from app.extensions import db
 from app.forms.reimbursement_forms import ReimbursementCreateForm, ReimbursementApproveForm
 from app.models.enums import ReimbursementAttachmentType
-from app.models.enums import ReimbursementStatus
+from app.models.enums import ReimbursementStatus, ReimbursementPrimaryCategory, ReimbursementSecondaryCategory
 from app.models.reimbursement import ReimbursementRequest, ReimbursementAttachment, ReimbursementCCRecipient, \
     ReimbursementDefaultCCRecipient
 from app.models.user import User
@@ -453,23 +454,67 @@ def cc_recipients_search():
     return jsonify(result)
 
 
+@bp.route('/search_users')
+@login_required
+def search_users():
+    """用户搜索API - 用于Ajax智能感知"""
+    # 只允许admin/ADMIN和FINANCE访问
+    if not (current_user.is_authenticated and 
+            ((current_user.username == 'admin' and getattr(current_user.role, 'name', None) == 'ADMIN') or
+             (getattr(current_user.role, 'name', None) == 'FINANCE'))):
+        return jsonify({'error': '无权限访问'}), 403
+        
+    query = request.args.get('q', '').strip()
+    if len(query) < 1:
+        return jsonify([])
+    
+    # 搜索用户（用户名、真实姓名、工号）
+    users = User.query.filter(
+        (User.username.like(f"%{query}%")) |
+        (User.real_name.like(f"%{query}%")) |
+        (User.employee_number.like(f"%{query}%"))
+    ).limit(10).all()
+    
+    result = [
+        {
+            'id': u.user_id,
+            'username': u.username,
+            'real_name': u.real_name or '',
+            'employee_number': u.employee_number or '',
+            'display_text': f"{u.real_name or u.username} ({u.employee_number or u.username})"
+        }
+        for u in users
+    ]
+    return jsonify(result)
+
+
 @bp.route('/all')
 @login_required
 def list_all():
-    # 只允许admin/ADMIN访问
-    if not (current_user.is_authenticated and current_user.username == 'admin' and getattr(current_user.role, 'name',
-                                                                                           None) == 'ADMIN'):
+    # 只允许admin/ADMIN和FINANCE访问
+    if not (current_user.is_authenticated and 
+            ((current_user.username == 'admin' and getattr(current_user.role, 'name', None) == 'ADMIN') or
+             (getattr(current_user.role, 'name', None) == 'FINANCE'))):
         flash('无权限访问', 'danger')
         return redirect(url_for('main.index'))
+    
     submitter = request.args.get('submitter', '').strip()
     approver = request.args.get('approver', '').strip()
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
+    status_filter = request.args.get('status', '')
+    primary_category_filter = request.args.get('primary_category', '')
+    secondary_category_filter = request.args.get('secondary_category', '')
+    store_filter = request.args.get('store', '')
+    
+    # 基础查询
     query = ReimbursementRequest.query
 
     # 使用别名，避免双 JOIN users 产生歧义
     Submitter = aliased(User)
     Approver = aliased(User)
+    
+    # 筛选条件
     if submitter:
         query = query.join(Submitter, ReimbursementRequest.submitter_id == Submitter.user_id)
         query = query.filter(
@@ -484,6 +529,22 @@ def list_all():
             (Approver.real_name.like(f"%{approver}%")) |
             (Approver.employee_number.like(f"%{approver}%"))
         )
+    
+    # 状态筛选
+    if status_filter:
+        query = query.filter(ReimbursementRequest.status == ReimbursementStatus(status_filter))
+    
+    # 分类筛选
+    if primary_category_filter:
+        query = query.filter(ReimbursementRequest.primary_category == ReimbursementPrimaryCategory(primary_category_filter))
+    if secondary_category_filter:
+        query = query.filter(ReimbursementRequest.secondary_category == ReimbursementSecondaryCategory(secondary_category_filter))
+    
+    # 店铺筛选
+    if store_filter:
+        query = query.filter(ReimbursementRequest.store_id.like(f"%{store_filter}%"))
+    
+    # 时间筛选
     from datetime import datetime, timedelta
     if start_date:
         try:
@@ -497,8 +558,79 @@ def list_all():
             query = query.filter(ReimbursementRequest.created_at < end)
         except Exception:
             pass
+    
+    # 获取筛选后的请求
     requests = query.order_by(ReimbursementRequest.created_at.desc()).all()
-    return render_template('reimbursement/list_all.html', requests=requests)
+    
+    # 统计数据 - 基于筛选结果
+    from sqlalchemy import func
+    
+    # 基础统计查询（不包含JOIN，避免重复计算）
+    stats_query = query
+    
+    # 总数统计
+    total_count = len(requests)
+    total_amount = sum([float(req.amount) for req in requests])
+    
+    # 状态分布统计
+    status_stats = {}
+    for status in ReimbursementStatus:
+        count = len([r for r in requests if r.status == status])
+        amount = sum([float(r.amount) for r in requests if r.status == status])
+        status_stats[status.value] = {'count': count, 'amount': amount}
+    
+    # 分类统计
+    primary_category_stats = {}
+    for category in ReimbursementPrimaryCategory:
+        count = len([r for r in requests if r.primary_category == category])
+        amount = sum([float(r.amount) for r in requests if r.primary_category == category])
+        primary_category_stats[category.value] = {'count': count, 'amount': amount}
+    
+    secondary_category_stats = {}
+    for category in ReimbursementSecondaryCategory:
+        count = len([r for r in requests if r.secondary_category == category])
+        amount = sum([float(r.amount) for r in requests if r.secondary_category == category])
+        if count > 0:  # 只显示有数据的分类
+            secondary_category_stats[category.value] = {'count': count, 'amount': amount}
+    
+    # 店铺统计
+    store_stats = {}
+    for req in requests:
+        if req.store_id:
+            if req.store_id not in store_stats:
+                store_stats[req.store_id] = {'count': 0, 'amount': 0}
+            store_stats[req.store_id]['count'] += 1
+            store_stats[req.store_id]['amount'] += float(req.amount)
+    
+    # 按金额排序并取前10
+    store_stats_sorted = dict(sorted(store_stats.items(), key=lambda x: x[1]['amount'], reverse=True)[:10])
+    
+    # 按月统计
+    monthly_stats = {}
+    for req in requests:
+        month_key = req.created_at.strftime('%Y-%m')
+        if month_key not in monthly_stats:
+            monthly_stats[month_key] = {'count': 0, 'amount': 0}
+        monthly_stats[month_key]['count'] += 1
+        monthly_stats[month_key]['amount'] += float(req.amount)
+    
+    # 获取所有可用的选项（用于下拉框）
+    from app.models.store import Store
+    all_stores = Store.query.all()
+    
+    return render_template('reimbursement/list_all.html', 
+                         requests=requests,
+                         total_count=total_count,
+                         total_amount=total_amount,
+                         status_stats=status_stats,
+                         primary_category_stats=primary_category_stats,
+                         secondary_category_stats=secondary_category_stats,
+                         store_stats=store_stats_sorted,
+                         monthly_stats=monthly_stats,
+                         all_stores=all_stores,
+                         ReimbursementStatus=ReimbursementStatus,
+                         ReimbursementPrimaryCategory=ReimbursementPrimaryCategory,
+                         ReimbursementSecondaryCategory=ReimbursementSecondaryCategory)
 
 
 @bp.route('/<int:request_id>/withdraw', methods=['POST'])
