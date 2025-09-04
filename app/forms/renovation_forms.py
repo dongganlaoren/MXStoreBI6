@@ -58,11 +58,22 @@ class RenovationTaskCreateForm(FlaskForm):
 class RenovationTaskUpdateForm(FlaskForm):
     """更新整改任务表单"""
     task_id = HiddenField()
-    evidence_description = TextAreaField('整改说明', validators=[Optional(), Length(max=500)])
-    attachments = MultipleFileField('整改证据',
+    evidence_description = TextAreaField('evidence_description', validators=[Optional(), Length(max=500)])
+    attachments = MultipleFileField('improvement_evidence',
                                     validators=[FileAllowed(['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov', 'pdf'],
                                                             '只支持图片、视频和PDF文件')])
-    submit = SubmitField('上传证据并完成任务')
+    submit = SubmitField('upload_evidence')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
+            zh_dict = lang_dict.get(lang, lang_dict.get('zh', {}))
+            self.evidence_description.label.text = zh_dict.get('evidence_description', self.evidence_description.label.text)
+            self.attachments.label.text = zh_dict.get('improvement_evidence', self.attachments.label.text)
+            self.submit.label.text = zh_dict.get('upload_evidence', self.submit.label.text)
+        except Exception:
+            pass
 
 
 class RenovationTaskVerifyForm(FlaskForm):
@@ -79,15 +90,6 @@ class RenovationTaskVerifyForm(FlaskForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # 本地化标签
-        try:
-            lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
-            zh_dict = lang_dict.get(lang, lang_dict.get('zh', {}))
-            self.evidence_description.label.text = zh_dict.get('verification_comments', self.evidence_description.label.text)
-            self.attachments.label.text = zh_dict.get('improvement_evidence', self.attachments.label.text)
-            self.submit.label.text = zh_dict.get('upload_evidence', self.submit.label.text)
-        except Exception:
-            pass
         lang = getattr(g, 'lang', None) or session.get('lang', 'zh')
         zh_dict = lang_dict.get(lang, lang_dict.get('zh', {}))
         # 使用翻译键 verification_passed / verification_failed

@@ -87,6 +87,8 @@ lang_dict = {
     'today': '今日',
     'verification_comments': '验收意见',
     'verifier': '验收人',
+    'evidence_submitted_awaiting_verification': '整改证据已提交，等待验收',
+    'submit_failed_try_again': '提交失败，请重试',
 
     # 分类翻译（renovation 默认分类）
     'category_hygiene': '卫生问题',
@@ -313,6 +315,8 @@ lang_dict = {
         'days_remaining': 'วันที่เหลือ',
         'upload_evidence': 'อัปโหลดหลักฐาน',
         'verify_task': 'ตรวจรับงาน',
+    'evidence_description': 'คำอธิบายหลักฐาน',
+    'evidence_description_placeholder': 'โปรดอธิบายมาตรการและผลลัพธ์การปรับปรุงของคุณ...',
 
     # เพิ่มเติม (renovation 模块)
     'action': 'การดำเนินการ',
@@ -338,6 +342,8 @@ lang_dict = {
     'today': 'วันนี้',
     'verification_comments': 'ความคิดเห็นการตรวจรับ',
     'verifier': 'ผู้ตรวจรับ',
+    'evidence_submitted_awaiting_verification': 'ส่งหลักฐานการปรับปรุงแล้ว รอการตรวจรับ',
+    'submit_failed_try_again': 'ส่งล้มเหลว โปรดลองอีกครั้ง',
 
     # 分类翻译（renovation 默认分类）
     'category_hygiene': 'ปัญหาด้านความสะอาด',

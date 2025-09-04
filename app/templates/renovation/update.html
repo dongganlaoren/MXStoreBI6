@@ -22,7 +22,7 @@
 
                         <div class="mb-3">
                             {{ form.evidence_description.label(class="form-label") }}
-                            {{ form.evidence_description(class="form-control", rows="4", placeholder="请描述您的整改措施和结果...")
+                            {{ form.evidence_description(class="form-control", rows="4", placeholder=get_text('evidence_description_placeholder'))
                             }}
                             {% if form.evidence_description.errors %}
                             <div class="text-danger small">

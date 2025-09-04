@@ -505,7 +505,7 @@ def update(task_id, _effective_user=None):
                             file_path=file_path,
                             file_type=filename.split('.')[-1].lower(),
                             file_size=os.path.getsize(file_path),
-                            description=form.evidence_description.data or "整改证据",
+                            description=form.evidence_description.data or (current_app.jinja_env.globals.get('get_text')('improvement_evidence') if current_app.jinja_env.globals.get('get_text') else 'improvement_evidence'),
                             uploaded_by=user.user_id if user else None
                         )
                         db.session.add(attachment)
@@ -516,19 +516,19 @@ def update(task_id, _effective_user=None):
             record = RenovationRecord(
                 task_id=task.id,
                 action=RenovationRecordAction.SUBMIT_FOR_VERIFICATION,
-                content=form.evidence_description.data or "提交整改证据，等待验收",
+                content=form.evidence_description.data or (current_app.jinja_env.globals.get('get_text')('improvement_evidence') if current_app.jinja_env.globals.get('get_text') else 'improvement_evidence'),
                 operator_id=user.user_id if user else None
             )
             db.session.add(record)
 
             db.session.commit()
-            flash('整改证据已提交，等待验收', 'success')
+            flash(current_app.jinja_env.globals.get('get_text')('upload_evidence') + current_app.jinja_env.globals.get('get_text')('completed_date', '') if current_app.jinja_env.globals.get('get_text') else 'Evidence submitted, awaiting verification', 'success')
             return redirect(url_for('renovation.detail', task_id=task_id))
 
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"更新整改任务失败: {str(e)}")
-            flash('提交失败，请重试', 'error')
+            flash(current_app.jinja_env.globals.get('get_text')('submit_failed_try_again') if current_app.jinja_env.globals.get('get_text') else 'Submit failed, please try again', 'error')
 
     return render_template('renovation/update.html', form=form, task=task)
 
