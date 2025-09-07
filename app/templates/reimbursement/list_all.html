@@ -382,7 +382,10 @@
           {% endif %}
           
           <!-- 页码 -->
-          {% set start_page = max(1, current_page - 2) %}
+          {% set start_page = current_page - 2 %}
+          {% if start_page < 1 %}
+            {% set start_page = 1 %}
+          {% endif %}
           {% set end_page = min(total_pages, current_page + 2) %}
           
           {% if start_page > 1 %}
