@@ -180,7 +180,7 @@
                     lang_dict['reimbursement_approve_btn'] }}</a>
                 {% endif %}
                 {% if 'submitter' in request.args or 'approver' in request.args or 'status' in request.args or 'primary_category' in request.args or 'secondary_category' in request.args or 'store' in request.args %}
-                <a class="btn btn-secondary px-4" href="{{ url_for('reimbursement.list_all', **request.args.to_dict()) }}">{{ lang_dict['reimbursement_back_to_list'] }}</a>
+                <a class="btn btn-secondary px-4" href="{{ url_for('reimbursement.list_all') }}">{{ lang_dict['reimbursement_back_to_list'] }}</a>
                 {% else %}
                 <a class="btn btn-secondary px-4" href="{{ url_for('reimbursement.list_requests', category=category, time_range=time_range, start_date=start_date, end_date=end_date) }}">{{ lang_dict['reimbursement_back_to_list'] }}</a>
                 {% endif %}

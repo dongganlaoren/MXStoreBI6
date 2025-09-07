@@ -371,7 +371,7 @@
           <!-- 上一页 -->
           {% if current_page > 1 %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('reimbursement.list_all', page=current_page-1, **request.args.to_dict()) }}">
+            <a class="page-link" href="{{ url_for('reimbursement.list_all', page=current_page-1) }}">
               <i class="bi bi-chevron-left"></i>
             </a>
           </li>
@@ -393,7 +393,7 @@
           
           {% if start_page > 1 %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('reimbursement.list_all', page=1, **request.args.to_dict()) }}">1</a>
+            <a class="page-link" href="{{ url_for('reimbursement.list_all', page=1) }}">1</a>
           </li>
           {% if start_page > 2 %}
           <li class="page-item disabled">
@@ -404,7 +404,7 @@
           
           {% for page_num in range(start_page, end_page + 1) %}
           <li class="page-item {% if page_num == current_page %}active{% endif %}">
-            <a class="page-link" href="{{ url_for('reimbursement.list_all', page=page_num, **request.args.to_dict()) }}">{{ page_num }}</a>
+            <a class="page-link" href="{{ url_for('reimbursement.list_all', page=page_num) }}">{{ page_num }}</a>
           </li>
           {% endfor %}
           
@@ -415,14 +415,14 @@
           </li>
           {% endif %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('reimbursement.list_all', page=total_pages, **request.args.to_dict()) }}">{{ total_pages }}</a>
+            <a class="page-link" href="{{ url_for('reimbursement.list_all', page=total_pages) }}">{{ total_pages }}</a>
           </li>
           {% endif %}
           
           <!-- 下一页 -->
           {% if current_page < total_pages %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('reimbursement.list_all', page=current_page+1, **request.args.to_dict()) }}">
+            <a class="page-link" href="{{ url_for('reimbursement.list_all', page=current_page+1) }}">
               <i class="bi bi-chevron-right"></i>
             </a>
           </li>
