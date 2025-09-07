@@ -366,7 +366,7 @@
       <nav aria-label="分页导航" class="mt-4">
         <ul class="pagination justify-content-center">
           {% set total_pages = (total_count + per_page - 1) // per_page %}
-          {% set current_page = (request.args.get('page', 1, type=int) or 1) %}
+          {% set current_page = page %}
           
           <!-- 上一页 -->
           {% if current_page > 1 %}

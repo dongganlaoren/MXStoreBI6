@@ -563,7 +563,12 @@ def list_all():
     total_count = query.count()
     
     # 分页参数
-    page = request.args.get('page', 1, type=int)
+    try:
+        page = int(request.args.get('page', 1))
+        if page < 1:
+            page = 1
+    except (ValueError, TypeError):
+        page = 1
     per_page = request.args.get('per_page', 25, type=int)
     if per_page not in [10, 25, 50, 100]:
         per_page = 25
