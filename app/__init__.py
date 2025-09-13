@@ -10,7 +10,6 @@ from flask import Flask, render_template, g, request, session, redirect, url_for
 from flask_wtf.csrf import generate_csrf
 from markupsafe import Markup, escape
 
-from app import commands
 from app.extensions import csrf, db, login_manager, migrate, mail
 from app.views.email_report_views import register_email_report_tasks
 
@@ -90,6 +89,8 @@ def create_app(config: object) -> Flask:
             pass
         return None
 
+    # 惰性导入命令注册，避免模块级循环依赖
+    from app import commands
     commands.init_app(app)
     mail.init_app(app)  # 初始化邮件扩展
     login_manager.login_view = "user.login"

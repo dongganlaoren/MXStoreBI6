@@ -10,9 +10,9 @@ if PROJECT_ROOT not in sys.path:
 
 from app import create_app, db
 from config import TestingConfig
-from app.models import User, Store, DailySales, ReimbursementRequest
+from app.models import Store, DailySales, ReimbursementRequest
 from app.models.enums import (
-    RoleType, FinancialCheckStatus, ReimbursementStatus, ReimbursementPrimaryCategory, ReimbursementSecondaryCategory
+    FinancialCheckStatus, ReimbursementStatus, ReimbursementPrimaryCategory, ReimbursementSecondaryCategory
 )
 
 app = create_app(TestingConfig)

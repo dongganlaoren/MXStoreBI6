@@ -10,13 +10,12 @@ from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
 from sqlalchemy.orm import aliased
 from sqlalchemy import or_, exists
-from sqlalchemy.orm import aliased
 from werkzeug.utils import secure_filename
 
 from app.extensions import db
 from app.forms.reimbursement_forms import ReimbursementCreateForm, ReimbursementApproveForm
-from app.models.enums import ReimbursementAttachmentType
-from app.models.enums import ReimbursementStatus, ReimbursementPrimaryCategory, ReimbursementSecondaryCategory
+from app.models.enums import (ReimbursementAttachmentType, ReimbursementStatus, 
+                              ReimbursementPrimaryCategory, ReimbursementSecondaryCategory)
 from app.models.reimbursement import ReimbursementRequest, ReimbursementAttachment, ReimbursementCCRecipient, \
     ReimbursementDefaultCCRecipient
 from app.models.user import User
@@ -258,7 +257,9 @@ def create():
                     save_name = f"{req.request_id}_{int(datetime.now().timestamp())}_{filename}"
                     file_path = os.path.join(upload_folder, save_name)
                     file.save(file_path)
-                    rel_path = os.path.relpath(file_path, start=current_app.root_path)
+                    # 计算相对于static目录的路径，用于web访问
+                    static_folder = os.path.join(current_app.root_path, 'app', 'static')
+                    rel_path = os.path.relpath(file_path, start=static_folder)
                     att = ReimbursementAttachment(
                         request_id=req.request_id,
                         attachment_type=ReimbursementAttachmentType.SUBMISSION,
@@ -345,7 +346,9 @@ def approve(request_id):
                 save_name = f"{req.request_id}_{int(datetime.now().timestamp())}_{filename}"
                 file_path = os.path.join(upload_folder, save_name)
                 file.save(file_path)
-                rel_path = os.path.relpath(file_path, start=current_app.root_path)
+                # 计算相对于static目录的路径，用于web访问
+                static_folder = os.path.join(current_app.root_path, 'app', 'static')
+                rel_path = os.path.relpath(file_path, start=static_folder)
                 att = ReimbursementAttachment(
                     request_id=req.request_id,
                     attachment_type=ReimbursementAttachmentType.APPROVAL,
@@ -625,11 +628,24 @@ def list_all():
     store_stats_sorted = dict(sorted(store_stats.items(), key=lambda x: x[1]['amount'], reverse=True)[:10])
     
     # 按月统计
+    # 在不同数据库上使用不同的日期格式函数：MySQL 使用 date_format，SQLite 使用 strftime
+    try:
+        dialect_name = db.engine.dialect.name
+    except Exception:
+        dialect_name = None
+
+    def month_format(field):
+        if dialect_name == 'sqlite':
+            return func.strftime('%Y-%m', field)
+        else:
+            # 默认使用 MySQL 风格的 date_format（也适用于其他支持 date_format 的后端）
+            return func.date_format(field, '%Y-%m')
+
     monthly_stats_query = stats_query.with_entities(
-        func.date_format(ReimbursementRequest.created_at, '%Y-%m').label('month'),
+        month_format(ReimbursementRequest.created_at).label('month'),
         func.count(ReimbursementRequest.request_id).label('count'),
         func.sum(ReimbursementRequest.amount).label('amount')
-    ).group_by(func.date_format(ReimbursementRequest.created_at, '%Y-%m')).all()
+    ).group_by(month_format(ReimbursementRequest.created_at)).all()
     
     monthly_stats = {}
     for month, count, amount in monthly_stats_query:

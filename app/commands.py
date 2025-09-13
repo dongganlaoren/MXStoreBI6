@@ -3,8 +3,6 @@
 import click
 from flask.cli import with_appcontext
 
-from app.utils.fake_data import generate_fake_data
-
 
 @click.command("fake-data")
 @with_appcontext
@@ -12,6 +10,8 @@ def fake_data_command():
     """
     生成测试数据，并清理重复归档日报。
     """
+    # 惰性导入以避免在应用初始化时引入测试数据模块，防止循环依赖
+    from app.utils.fake_data import generate_fake_data
     click.echo("开始生成测试数据...")
     generate_fake_data()
     click.echo("测试数据生成完毕！")

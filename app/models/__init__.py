@@ -1,25 +1,110 @@
 # MXStoreBI/app/models/__init__.py
+"""
+集中导出应用内常用的模型与枚举，便于通过
+	from app.models import Foo, Bar
+的方式统一引用。
 
-# 从 enums.py 中导出所有的枚举类，方便其他地方统一调用
-from .attachment import DailySalesAttachments
-# 新增：考勤模型导出
-from .attendance import AttendanceRecord
-from .bank_deposit_history import BankDepositHistory
-from .daily_sales import DailySales
-from .email_task_log import EmailTaskLog, EmailTaskType, EmailTaskStatus
-from .enums import AttachmentType, FinancialCheckStatus, RoleType
-from .reimbursement import ReimbursementRequest
+注意：仅导出业务相关模型与当前项目使用到的枚举。
+"""
+
+# 核心业务模型
 from .store import Store
-# TestAaa 模型已删除，移除此处导入以避免导入错误
-# from .testaaa import TestAaa
-# 监控相关模型已移除
-# from .system_monitor import (
-#     SystemLog, SystemMetric, SystemAlert, HealthCheck,
-#     LogLevel, AlertLevel, AlertStatus
-# )
-# 从各个模型文件中导出核心的模型类
 from .user import User
+from .daily_sales import DailySales
+from .attachment import DailySalesAttachments
+from .bank_deposit_history import BankDepositHistory
+from .attendance import AttendanceRecord
+from .email_report_config import EmailReportConfig
 
-# 清理说明：
-# 1. 监控相关模型和枚举已彻底移除。
-# 2. 仅保留与业务相关的模型导出。
+# 报销相关模型
+from .reimbursement import (
+	ReimbursementRequest,
+	ReimbursementAttachment,
+	ReimbursementCCRecipient,
+	ReimbursementDefaultCCRecipient,
+)
+
+# 整改与通知相关模型（如后续使用，可直接从此处导出）
+from .renovation import (
+	RenovationCategory,
+	RenovationTask,
+	RenovationRecord,
+	RenovationAttachment as RenovationAttachmentModel,  # 避免与报销附件名冲突
+)
+from .notification import (
+	NotificationConfig,
+	NotificationTask,
+	NotificationTemplate,
+)
+
+# 邮件任务日志
+from .email_task_log import EmailTaskLog, EmailTaskType, EmailTaskStatus
+
+# 统一导出所有在项目中使用到的枚举
+from .enums import (
+	RoleType,
+	AttachmentType,
+	FinancialCheckStatus,
+	BankDepositHistoryAction,
+	ReimbursementPrimaryCategory,
+	ReimbursementSecondaryCategory,
+	ReimbursementAttachmentType,
+	ReimbursementStatus,
+	ReimbursementCheckStatus,
+	AttendanceAction,
+	AttendanceSource,
+	RenovationTaskStatus,
+	RenovationTaskPriority,
+	RenovationRecordAction,
+	VerificationResult,
+	NotificationType,
+	NotificationChannel,
+	NotificationStatus,
+)
+
+__all__ = [
+	# 模型
+	"Store",
+	"User",
+	"DailySales",
+	"DailySalesAttachments",
+	"BankDepositHistory",
+	"AttendanceRecord",
+	"EmailReportConfig",
+	# 报销
+	"ReimbursementRequest",
+	"ReimbursementAttachment",
+	"ReimbursementCCRecipient",
+	"ReimbursementDefaultCCRecipient",
+	# 整改与通知
+	"RenovationCategory",
+	"RenovationTask",
+	"RenovationRecord",
+	"RenovationAttachmentModel",
+	"NotificationConfig",
+	"NotificationTask",
+	"NotificationTemplate",
+	# 邮件任务日志
+	"EmailTaskLog",
+	"EmailTaskType",
+	"EmailTaskStatus",
+	# 枚举
+	"RoleType",
+	"AttachmentType",
+	"FinancialCheckStatus",
+	"BankDepositHistoryAction",
+	"ReimbursementPrimaryCategory",
+	"ReimbursementSecondaryCategory",
+	"ReimbursementAttachmentType",
+	"ReimbursementStatus",
+	"ReimbursementCheckStatus",
+	"AttendanceAction",
+	"AttendanceSource",
+	"RenovationTaskStatus",
+	"RenovationTaskPriority",
+	"RenovationRecordAction",
+	"VerificationResult",
+	"NotificationType",
+	"NotificationChannel",
+	"NotificationStatus",
+]
