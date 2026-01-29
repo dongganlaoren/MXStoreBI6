@@ -55,3 +55,14 @@ reset_db.sh
 app.log.*
 config_templates/
 logs/migrations/
+
+# Flask instance folder (local runtime/config artifacts)
+instance/
+
+# Local SQLite database files used for dev/test
+local_dev.sqlite
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
