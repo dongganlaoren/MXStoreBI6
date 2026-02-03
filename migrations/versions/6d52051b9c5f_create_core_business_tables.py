@@ -184,47 +184,55 @@ def upgrade():
             batch_op.create_index(batch_op.f('ix_daily_sales_store_id'), ['store_id'], unique=False)
             batch_op.create_index(batch_op.f('ix_daily_sales_user_id'), ['user_id'], unique=False)
 
-    op.create_table('reimbursement_default_cc_recipients',
-                    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False, comment='配置记录ID'),
-                    sa.Column('user_id', sa.Integer(), nullable=False, comment='默认抄送人用户ID'),
-                    sa.Column('is_active', sa.Boolean(), nullable=False, comment='是否启用'),
-                    sa.Column('created_at', sa.DateTime(), nullable=False, comment='创建时间'),
-                    sa.Column('created_by', sa.Integer(), nullable=False, comment='创建人ID'),
-                    sa.ForeignKeyConstraint(['created_by'], ['users.user_id'], ),
-                    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
-                    sa.PrimaryKeyConstraint('id'),
-                    sa.UniqueConstraint('user_id', name='uk_default_cc_user')
-                    )
-    op.create_table('reimbursement_requests',
-                    sa.Column('request_id', sa.Integer(), autoincrement=True, nullable=False, comment='报销申请ID'),
-                    sa.Column('submitter_id', sa.Integer(), nullable=False, comment='申请人ID'),
-                    sa.Column('store_id', sa.String(length=32), nullable=True, comment='关联店铺ID'),
-                    sa.Column('primary_category',
-                              sa.Enum('SHARED_COST', 'STORE_COST', name='reimbursementprimarycategory'), nullable=False,
-                              comment='一级分类'),
-                    sa.Column('secondary_category',
-                              sa.Enum('SHARED_REIMBURSEMENT', 'AGENCY_ACCOUNTING', 'TAXES', 'EMPLOYEE_SOCIAL_SECURITY',
-                                      'STORE_MANAGEMENT', 'OTHER_SHARED_COST', 'MIXTURE_MATERIAL', 'MATERIAL_TRANSPORT',
-                                      'FIXED_SALARY', 'TEMPORARY_SALARY', 'EXTERNAL_LEMON', 'STORE_PETTY_CASH',
-                                      'RENTAL_TAX', 'UTILITIES', 'STORE_RENT', 'WAREHOUSE_RENT', 'OTHER_COST',
-                                      name='reimbursementsecondarycategory'), nullable=False, comment='二级分类'),
-                    sa.Column('amount', sa.Numeric(precision=12, scale=2), nullable=False, comment='报销金额'),
-                    sa.Column('currency', sa.String(length=8), nullable=False, comment='货币单位'),
-                    sa.Column('description', sa.Text(), nullable=True, comment='报销说明'),
-                    sa.Column('status', sa.Enum('PENDING', 'APPROVED', 'REJECTED', 'DRAFT', name='reimbursementstatus'),
-                              nullable=False, comment='审批状态'),
-                    sa.Column('check_status', sa.Enum('CHECKED', 'UNCHECKED', name='reimbursementcheckstatus'),
-                              nullable=False, comment='核对状态'),
-                    sa.Column('approval_comments', sa.Text(), nullable=True, comment='审批意见'),
-                    sa.Column('created_at', sa.DateTime(), nullable=False, comment='创建时间'),
-                    sa.Column('updated_at', sa.DateTime(), nullable=False, comment='更新时间'),
-                    sa.Column('approved_at', sa.DateTime(), nullable=True, comment='审批通过时间'),
-                    sa.Column('approver_id', sa.Integer(), nullable=False, comment='审批人ID'),
-                    sa.ForeignKeyConstraint(['approver_id'], ['users.user_id'], ),
-                    sa.ForeignKeyConstraint(['store_id'], ['stores.store_id'], ),
-                    sa.ForeignKeyConstraint(['submitter_id'], ['users.user_id'], ),
-                    sa.PrimaryKeyConstraint('request_id')
-                    )
+    if not _table_exists('reimbursement_default_cc_recipients'):
+        op.create_table('reimbursement_default_cc_recipients',
+                        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False, comment='配置记录ID'),
+                        sa.Column('user_id', sa.Integer(), nullable=False, comment='默认抄送人用户ID'),
+                        sa.Column('is_active', sa.Boolean(), nullable=False, comment='是否启用'),
+                        sa.Column('created_at', sa.DateTime(), nullable=False, comment='创建时间'),
+                        sa.Column('created_by', sa.Integer(), nullable=False, comment='创建人ID'),
+                        sa.ForeignKeyConstraint(['created_by'], ['users.user_id'], ),
+                        sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
+                        sa.PrimaryKeyConstraint('id'),
+                        sa.UniqueConstraint('user_id', name='uk_default_cc_user')
+                        )
+
+    if not _table_exists('reimbursement_requests'):
+        op.create_table('reimbursement_requests',
+                        sa.Column('request_id', sa.Integer(), autoincrement=True, nullable=False, comment='报销申请ID'),
+                        sa.Column('submitter_id', sa.Integer(), nullable=False, comment='申请人ID'),
+                        sa.Column('store_id', sa.String(length=32), nullable=True, comment='关联店铺ID'),
+                        sa.Column('primary_category',
+                                  sa.Enum('SHARED_COST', 'STORE_COST', name='reimbursementprimarycategory'),
+                                  nullable=False,
+                                  comment='一级分类'),
+                        sa.Column('secondary_category',
+                                  sa.Enum('SHARED_REIMBURSEMENT', 'AGENCY_ACCOUNTING', 'TAXES',
+                                          'EMPLOYEE_SOCIAL_SECURITY',
+                                          'STORE_MANAGEMENT', 'OTHER_SHARED_COST', 'MIXTURE_MATERIAL',
+                                          'MATERIAL_TRANSPORT',
+                                          'FIXED_SALARY', 'TEMPORARY_SALARY', 'EXTERNAL_LEMON', 'STORE_PETTY_CASH',
+                                          'RENTAL_TAX', 'UTILITIES', 'STORE_RENT', 'WAREHOUSE_RENT', 'OTHER_COST',
+                                          name='reimbursementsecondarycategory'), nullable=False, comment='二级分类'),
+                        sa.Column('amount', sa.Numeric(precision=12, scale=2), nullable=False, comment='报销金额'),
+                        sa.Column('currency', sa.String(length=8), nullable=False, comment='货币单位'),
+                        sa.Column('description', sa.Text(), nullable=True, comment='报销说明'),
+                        sa.Column('status',
+                                  sa.Enum('PENDING', 'APPROVED', 'REJECTED', 'DRAFT', name='reimbursementstatus'),
+                                  nullable=False, comment='审批状态'),
+                        sa.Column('check_status', sa.Enum('CHECKED', 'UNCHECKED', name='reimbursementcheckstatus'),
+                                  nullable=False, comment='核对状态'),
+                        sa.Column('approval_comments', sa.Text(), nullable=True, comment='审批意见'),
+                        sa.Column('created_at', sa.DateTime(), nullable=False, comment='创建时间'),
+                        sa.Column('updated_at', sa.DateTime(), nullable=False, comment='更新时间'),
+                        sa.Column('approved_at', sa.DateTime(), nullable=True, comment='审批通过时间'),
+                        sa.Column('approver_id', sa.Integer(), nullable=False, comment='审批人ID'),
+                        sa.ForeignKeyConstraint(['approver_id'], ['users.user_id'], ),
+                        sa.ForeignKeyConstraint(['store_id'], ['stores.store_id'], ),
+                        sa.ForeignKeyConstraint(['submitter_id'], ['users.user_id'], ),
+                        sa.PrimaryKeyConstraint('request_id')
+                        )
+
     if not _table_exists('bank_deposit_history'):
         op.create_table('bank_deposit_history',
                         sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -243,44 +251,50 @@ def upgrade():
         with op.batch_alter_table('bank_deposit_history', schema=None) as batch_op:
             batch_op.create_index(batch_op.f('ix_bank_deposit_history_report_id'), ['report_id'], unique=False)
 
-    op.create_table('daily_sales_attachments',
-                    sa.Column('attachment_id', sa.Integer(), autoincrement=True, nullable=False, comment='凭证ID'),
-                    sa.Column('report_id', sa.Integer(), nullable=False, comment='日报ID'),
-                    sa.Column('file_path', sa.String(length=255), nullable=True,
-                              comment='文件路径（本地磁盘，含user_id/store_id/report_date）'),
-                    sa.Column('attachment_type', sa.Enum('sales_slip', 'bank_receipt', 'takeaway_screenshot',
-                                                         'electronic_actual_arrival_receipt', 'image', 'pdf',
-                                                         name='attachmenttype'), nullable=False,
-                              comment='附件类型（小票/银行/外卖/图片/PDF等）'),
-                    sa.Column('created_at', sa.DateTime(), nullable=True, comment='创建时间'),
-                    sa.ForeignKeyConstraint(['report_id'], ['daily_sales.report_id'], ondelete='CASCADE'),
-                    sa.PrimaryKeyConstraint('attachment_id')
-                    )
-    op.create_table('reimbursement_attachments',
-                    sa.Column('attachment_id', sa.Integer(), autoincrement=True, nullable=False, comment='附件ID'),
-                    sa.Column('request_id', sa.Integer(), nullable=False, comment='所属报销申请ID'),
-                    sa.Column('attachment_type', sa.Enum('SUBMISSION', 'APPROVAL', name='reimbursementattachmenttype'),
-                              nullable=False, comment='附件类型（提交/审批）'),
-                    sa.Column('uploader_id', sa.Integer(), nullable=False, comment='上传人ID'),
-                    sa.Column('original_filename', sa.String(length=255), nullable=False, comment='原始文件名'),
-                    sa.Column('file_path', sa.String(length=255), nullable=False, comment='文件存储路径'),
-                    sa.Column('file_size', sa.Integer(), nullable=False, comment='文件大小（字节）'),
-                    sa.Column('mime_type', sa.String(length=100), nullable=False, comment='文件MIME类型'),
-                    sa.Column('uploaded_at', sa.DateTime(), nullable=False, comment='上传时间'),
-                    sa.ForeignKeyConstraint(['request_id'], ['reimbursement_requests.request_id'], ),
-                    sa.ForeignKeyConstraint(['uploader_id'], ['users.user_id'], ),
-                    sa.PrimaryKeyConstraint('attachment_id')
-                    )
-    op.create_table('reimbursement_cc_recipients',
-                    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False, comment='抄送记录ID'),
-                    sa.Column('request_id', sa.Integer(), nullable=False, comment='报销申请ID'),
-                    sa.Column('user_id', sa.Integer(), nullable=False, comment='抄送人用户ID'),
-                    sa.Column('created_at', sa.DateTime(), nullable=False, comment='创建时间'),
-                    sa.ForeignKeyConstraint(['request_id'], ['reimbursement_requests.request_id'], ),
-                    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
-                    sa.PrimaryKeyConstraint('id'),
-                    sa.UniqueConstraint('request_id', 'user_id', name='uk_request_user_cc')
-                    )
+    if not _table_exists('daily_sales_attachments'):
+        op.create_table('daily_sales_attachments',
+                        sa.Column('attachment_id', sa.Integer(), autoincrement=True, nullable=False, comment='凭证ID'),
+                        sa.Column('report_id', sa.Integer(), nullable=False, comment='日报ID'),
+                        sa.Column('file_path', sa.String(length=255), nullable=True,
+                                  comment='文件路径（本地磁盘，含user_id/store_id/report_date）'),
+                        sa.Column('attachment_type', sa.Enum('sales_slip', 'bank_receipt', 'takeaway_screenshot',
+                                                             'electronic_actual_arrival_receipt', 'image', 'pdf',
+                                                             name='attachmenttype'), nullable=False,
+                                  comment='附件类型（小票/银行/外卖/图片/PDF等）'),
+                        sa.Column('created_at', sa.DateTime(), nullable=True, comment='创建时间'),
+                        sa.ForeignKeyConstraint(['report_id'], ['daily_sales.report_id'], ondelete='CASCADE'),
+                        sa.PrimaryKeyConstraint('attachment_id')
+                        )
+
+    if not _table_exists('reimbursement_attachments'):
+        op.create_table('reimbursement_attachments',
+                        sa.Column('attachment_id', sa.Integer(), autoincrement=True, nullable=False, comment='附件ID'),
+                        sa.Column('request_id', sa.Integer(), nullable=False, comment='所属报销申请ID'),
+                        sa.Column('attachment_type',
+                                  sa.Enum('SUBMISSION', 'APPROVAL', name='reimbursementattachmenttype'),
+                                  nullable=False, comment='附件类型（提交/审批）'),
+                        sa.Column('uploader_id', sa.Integer(), nullable=False, comment='上传人ID'),
+                        sa.Column('original_filename', sa.String(length=255), nullable=False, comment='原始文件名'),
+                        sa.Column('file_path', sa.String(length=255), nullable=False, comment='文件存储路径'),
+                        sa.Column('file_size', sa.Integer(), nullable=False, comment='文件大小（字节）'),
+                        sa.Column('mime_type', sa.String(length=100), nullable=False, comment='文件MIME类型'),
+                        sa.Column('uploaded_at', sa.DateTime(), nullable=False, comment='上传时间'),
+                        sa.ForeignKeyConstraint(['request_id'], ['reimbursement_requests.request_id'], ),
+                        sa.ForeignKeyConstraint(['uploader_id'], ['users.user_id'], ),
+                        sa.PrimaryKeyConstraint('attachment_id')
+                        )
+
+    if not _table_exists('reimbursement_cc_recipients'):
+        op.create_table('reimbursement_cc_recipients',
+                        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False, comment='抄送记录ID'),
+                        sa.Column('request_id', sa.Integer(), nullable=False, comment='报销申请ID'),
+                        sa.Column('user_id', sa.Integer(), nullable=False, comment='抄送人用户ID'),
+                        sa.Column('created_at', sa.DateTime(), nullable=False, comment='创建时间'),
+                        sa.ForeignKeyConstraint(['request_id'], ['reimbursement_requests.request_id'], ),
+                        sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
+                        sa.PrimaryKeyConstraint('id'),
+                        sa.UniqueConstraint('request_id', 'user_id', name='uk_request_user_cc')
+                        )
     # ### end Alembic commands ###
 
 
