@@ -52,7 +52,15 @@ jobs:
             cd "$DEPLOY_PATH"
             sudo mkdir -p "$CODE_BACKUP_DIR"
             sudo chown $(whoami):$(whoami) "$CODE_BACKUP_DIR"
-            sudo tar czf "$CODE_BACKUP_FILE" --exclude='venv' --exclude='__pycache__' .
+            # 备份时排除上传目录等高频变动的路径，避免 tar 因 "file changed as we read it" 退出失败
+            # 并忽略此类变化导致的非致命告警（tar 返回码 1）。
+            sudo tar czf "$CODE_BACKUP_FILE" \
+              --warning=no-file-changed \
+              --exclude='venv' \
+              --exclude='__pycache__' \
+              --exclude='./app/static/uploads' \
+              --exclude='./instance' \
+              . || true
             echo "✅ 代码备份完成: $CODE_BACKUP_FILE"
 
             echo "🧹 [清理] 保留最近 7 个备份"
