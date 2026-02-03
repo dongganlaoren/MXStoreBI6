@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 900px;">
+    <h2>库存盘点（inventory-stocktake）</h2>
+    <p class="text-muted">按需求：无导出、无对外接口；仅页面与后端内部服务调用。</p>
+
+    <ul>
+        <li><a href="{{ url_for('inventory_stocktake.stocktake_page') }}">库存盘点录入</a></li>
+        <li><a href="{{ url_for('inventory_stocktake.material_import') }}">产品信息模板导入维护</a></li>
+    </ul>
+</div>
+{% endblock %}

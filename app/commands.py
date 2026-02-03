@@ -99,3 +99,14 @@ def register_commands(app):
 
 # 兼容旧用法，提供init_app别名
 init_app = register_commands
+
+
+def init_app(app):
+    """Register commands."""
+    register_commands(app)
+    try:
+        from app.inventory_stocktake.commands import register_inventory_stocktake_commands
+        register_inventory_stocktake_commands(app)
+    except Exception:
+        # 避免命令注册影响主应用启动
+        pass

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 900px;">
+    <h2>产品信息模板导入</h2>
+
+    <form method="post" enctype="multipart/form-data">
+        {{ csrf_token() }}
+        <div class="mb-3">
+            <input class="form-control" type="file" name="file" accept=".xlsx" required>
+            <div class="form-text">仅支持标准模板 inventory_stocktake_template.xlsx（工作表：产品信息）</div>
+        </div>
+        <button class="btn btn-primary" type="submit">上传并导入</button>
+    </form>
+
+    {% if summary %}
+    <hr>
+    <h5>导入结果</h5>
+    <p>成功：{{ summary.success_count }} 条；失败：{{ summary.fail_count }} 条</p>
+
+    {% if summary.results %}
+    <div class="table-responsive">
+        <table class="table table-sm table-striped">
+            <thead>
+            <tr>
+                <th>行号</th>
+                <th>结果</th>
+                <th>说明</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for r in summary.results %}
+            <tr>
+                <td>{{ r.row_number }}</td>
+                <td>{% if r.success %}成功{% else %}失败{% endif %}</td>
+                <td style="max-width: 520px; word-break: break-all;">{{ r.message }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

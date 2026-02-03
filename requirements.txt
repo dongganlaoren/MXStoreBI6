@@ -24,3 +24,8 @@ pandas
 psutil
 pytest
 pytest-cov
+
+# inventory-stocktake（库存盘点）子系统依赖
+openpyxl>=3.1.2
+python-dateutil>=2.8.2
+flask-cors>=4.0.0

@@ -152,6 +152,7 @@ def create_app(config: object) -> Flask:
         """
         向所有模板注入安全的用户角色检查函数
         """
+
         def safe_user_has_role(*roles):
             """
             安全地检查当前用户是否具有指定角色
@@ -166,7 +167,7 @@ def create_app(config: object) -> Flask:
                 return current_user.role.name in roles
             except Exception:
                 return False
-        
+
         def safe_user_name():
             """
             安全地获取当前用户名
@@ -178,7 +179,7 @@ def create_app(config: object) -> Flask:
                 return current_user.username or '用户'
             except Exception:
                 return '用户'
-        
+
         return {'safe_user_has_role': safe_user_has_role, 'safe_user_name': safe_user_name}
 
     def inject_lang_dict():
@@ -259,6 +260,7 @@ def register_blueprints(app: Flask) -> None:
     from app.views.email_report_views import email_report_bp
     from app.views.attendance_views import attendance_bp
     from app.views.renovation_views import renovation_bp  # 新增：店铺整改模块
+    from app.inventory_stocktake import inventory_stocktake_bp  # 新增：库存盘点模块
     # from app.views.root_views import root_bp  # 已合并到 __init__，不再注册蓝图
 
     # 注册蓝图
@@ -270,6 +272,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(email_report_bp)
     app.register_blueprint(attendance_bp)
     app.register_blueprint(renovation_bp)  # 新增：注册店铺整改模块蓝图
+    app.register_blueprint(inventory_stocktake_bp)  # 新增：注册库存盘点模块蓝图
     # app.register_blueprint(root_bp)
 
 

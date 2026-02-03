@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 1100px;">
+    <h2>库存盘点录入</h2>
+    <p class="text-muted">
+        盘点一般在每月最后一天闭店后进行，次日录入系统；默认盘点日期为上个月最后一天（可手动修改）。
+        有效期为<strong>行级</strong>字段，跟随具体物料填写（非必填）。
+    </p>
+
+    <form class="row g-3" method="get">
+        <div class="col-12 col-md-6">
+            <label class="form-label">店铺</label>
+            {{ form.store_id(class_='form-select') }}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label">盘点日期</label>
+            {{ form.check_date(class_='form-control') }}
+        </div>
+        <div class="col-12 col-md-3 d-grid">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary" type="submit">进入盘点</button>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label class="form-label">搜索物料（编码/名称/类别）</label>
+            <input class="form-control" id="mx-q" placeholder="例如：M001 / 糖 / 原料"/>
+        </div>
+        <div class="col-12 col-md-3 d-grid">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-outline-primary" type="button" id="mx-search">搜索</button>
+        </div>
+        <div class="col-12 col-md-3 d-grid">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-outline-danger" type="button" id="mx-reset">重置本次盘点</button>
+        </div>
+    </form>
+
+    <hr>
+
+    <div class="alert alert-info">
+        下方为盘点明细录入表（分页加载）。每行可填写：剩余整件数、剩余散件数、有效期至（可选），然后保存。
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle" id="mx-table">
+            <thead>
+            <tr>
+                <th>类别</th>
+                <th>物料编码</th>
+                <th>物料名称</th>
+                <th>规格</th>
+                <th style="width:120px;">整件</th>
+                <th style="width:120px;">散件</th>
+                <th style="width:180px;">有效期至</th>
+                <th style="width:120px;">操作</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <button class="btn btn-outline-secondary" type="button" id="mx-load-more">加载更多</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('inventory_stocktake.index') }}">返回</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function() {
+      const storeId = {{ (store_id or '')|tojson }};
+      const checkDate = {{ (check_date|string)|tojson }};
+
+      let page = 1;
+      const pageSize = 30;
+
+      function el(html) {
+        const t = document.createElement('template');
+        t.innerHTML = html.trim();
+        return t.content.firstChild;
+      }
+
+      async function fetchMaterials(resetPage=false) {
+        const q = document.getElementById('mx-q').value || '';
+        if (resetPage) {
+          page = 1;
+          document.querySelector('#mx-table tbody').innerHTML = '';
+        }
+        const url = new URL(window.location.origin + '{{ url_for('inventory_stocktake.api_materials') }}');
+        url.searchParams.set('q', q);
+        url.searchParams.set('page', String(page));
+        url.searchParams.set('page_size', String(pageSize));
+
+        const resp = await fetch(url, {credentials: 'same-origin'});
+        const data = await resp.json();
+        if (!data.ok) {
+          alert(data.message || '加载失败');
+          return;
+        }
+
+        const tbody = document.querySelector('#mx-table tbody');
+        for (const r of data.data.items) {
+          const row = el(`\
+            <tr data-code="${r.material_code}">
+              <td>${r.category || ''}</td>
+              <td>${r.material_code}</td>
+              <td>${r.cn_name || ''}</td>
+              <td>${r.spec_model || ''}</td>
+              <td><input class="form-control form-control-sm" type="number" min="0" step="1" value="0" data-field="case"></td>
+              <td><input class="form-control form-control-sm" type="number" min="0" step="1" value="0" data-field="group"></td>
+              <td><input class="form-control form-control-sm" type="date" data-field="valid_until"></td>
+              <td><button class="btn btn-sm btn-primary" type="button" data-action="save">保存</button></td>
+            </tr>`);
+          tbody.appendChild(row);
+        }
+
+        page += 1;
+      }
+
+      async function saveRow(tr) {
+        const code = tr.getAttribute('data-code');
+        const caseQty = tr.querySelector('[data-field="case"]').value;
+        const groupQty = tr.querySelector('[data-field="group"]').value;
+        const validUntil = tr.querySelector('[data-field="valid_until"]').value;
+
+        const payload = {
+          store_id: storeId,
+          check_date: checkDate,
+          material_code: code,
+          material_name: tr.children[2].innerText,
+          spec_model: tr.children[3].innerText,
+          remaining_case_qty: caseQty,
+          remaining_group_qty: groupQty,
+          valid_until: validUntil || null,
+        };
+
+        const resp = await fetch('{{ url_for('inventory_stocktake.api_stocktake_save_one') }}', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        if (!data.ok) {
+          alert(data.message || '保存失败');
+          return;
+        }
+        // 简单提示：后续可换成 toast
+        tr.querySelector('[data-action="save"]').innerText = '已保存';
+        setTimeout(() => tr.querySelector('[data-action="save"]').innerText = '保存', 800);
+      }
+
+      async function resetStocktake() {
+        if (!confirm('确定要清空该店铺该日期下已录入的盘点数据吗？')) return;
+        const resp = await fetch('{{ url_for('inventory_stocktake.api_stocktake_reset') }}', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({store_id: storeId, check_date: checkDate}),
+        });
+        const data = await resp.json();
+        alert(data.message || '完成');
+      }
+
+      document.getElementById('mx-load-more').addEventListener('click', () => fetchMaterials(false));
+      document.getElementById('mx-search').addEventListener('click', () => fetchMaterials(true));
+      document.getElementById('mx-reset').addEventListener('click', () => resetStocktake());
+
+      document.querySelector('#mx-table tbody').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-action="save"]');
+        if (!btn) return;
+        const tr = btn.closest('tr');
+        saveRow(tr);
+      });
+
+      // 初次加载
+      fetchMaterials(true);
+    })();
+</script>
+{% endblock %}
