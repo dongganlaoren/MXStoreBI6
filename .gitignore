@@ -66,3 +66,5 @@ local_dev.sqlite
 *.sqlite-wal
 *.sqlite-shm
 
+ # Coverage / test artifacts
+coverage.json
