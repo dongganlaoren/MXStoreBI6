@@ -114,27 +114,28 @@ def upgrade():
                         sa.PrimaryKeyConstraint('user_id'),
                         sa.UniqueConstraint('username')
                         )
-    op.create_table('attendance_records',
-                    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-                    sa.Column('user_id', sa.Integer(), nullable=False),
-                    sa.Column('store_id', sa.String(length=32), nullable=True),
-                    sa.Column('action', sa.Enum('CLOCK_IN', 'CLOCK_OUT', name='attendanceaction'), nullable=False),
-                    sa.Column('source', sa.Enum('WEB', 'LINE', 'API', name='attendancesource'), nullable=False),
-                    sa.Column('timestamp', sa.DateTime(), nullable=False),
-                    sa.Column('latitude', sa.Float(), nullable=True),
-                    sa.Column('longitude', sa.Float(), nullable=True),
-                    sa.Column('location_name', sa.String(length=255), nullable=True),
-                    sa.Column('photo_path', sa.String(length=255), nullable=True),
-                    sa.Column('notes', sa.String(length=500), nullable=True),
-                    sa.Column('created_at', sa.DateTime(), nullable=True),
-                    sa.ForeignKeyConstraint(['store_id'], ['stores.store_id'], ),
-                    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
-                    sa.PrimaryKeyConstraint('id')
-                    )
-    with op.batch_alter_table('attendance_records', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_attendance_records_store_id'), ['store_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_attendance_records_timestamp'), ['timestamp'], unique=False)
-        batch_op.create_index(batch_op.f('ix_attendance_records_user_id'), ['user_id'], unique=False)
+    if not _table_exists('attendance_records'):
+        op.create_table('attendance_records',
+                        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+                        sa.Column('user_id', sa.Integer(), nullable=False),
+                        sa.Column('store_id', sa.String(length=32), nullable=True),
+                        sa.Column('action', sa.Enum('CLOCK_IN', 'CLOCK_OUT', name='attendanceaction'), nullable=False),
+                        sa.Column('source', sa.Enum('WEB', 'LINE', 'API', name='attendancesource'), nullable=False),
+                        sa.Column('timestamp', sa.DateTime(), nullable=False),
+                        sa.Column('latitude', sa.Float(), nullable=True),
+                        sa.Column('longitude', sa.Float(), nullable=True),
+                        sa.Column('location_name', sa.String(length=255), nullable=True),
+                        sa.Column('photo_path', sa.String(length=255), nullable=True),
+                        sa.Column('notes', sa.String(length=500), nullable=True),
+                        sa.Column('created_at', sa.DateTime(), nullable=True),
+                        sa.ForeignKeyConstraint(['store_id'], ['stores.store_id'], ),
+                        sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
+                        sa.PrimaryKeyConstraint('id')
+                        )
+        with op.batch_alter_table('attendance_records', schema=None) as batch_op:
+            batch_op.create_index(batch_op.f('ix_attendance_records_store_id'), ['store_id'], unique=False)
+            batch_op.create_index(batch_op.f('ix_attendance_records_timestamp'), ['timestamp'], unique=False)
+            batch_op.create_index(batch_op.f('ix_attendance_records_user_id'), ['user_id'], unique=False)
 
     if not _table_exists('daily_sales'):
         op.create_table('daily_sales',
