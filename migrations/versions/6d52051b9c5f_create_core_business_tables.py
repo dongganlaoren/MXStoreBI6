@@ -179,10 +179,10 @@ def upgrade():
                         sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ),
                         sa.PrimaryKeyConstraint('report_id')
                         )
-    with op.batch_alter_table('daily_sales', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_daily_sales_report_date'), ['report_date'], unique=False)
-        batch_op.create_index(batch_op.f('ix_daily_sales_store_id'), ['store_id'], unique=False)
-        batch_op.create_index(batch_op.f('ix_daily_sales_user_id'), ['user_id'], unique=False)
+        with op.batch_alter_table('daily_sales', schema=None) as batch_op:
+            batch_op.create_index(batch_op.f('ix_daily_sales_report_date'), ['report_date'], unique=False)
+            batch_op.create_index(batch_op.f('ix_daily_sales_store_id'), ['store_id'], unique=False)
+            batch_op.create_index(batch_op.f('ix_daily_sales_user_id'), ['user_id'], unique=False)
 
     op.create_table('reimbursement_default_cc_recipients',
                     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False, comment='配置记录ID'),
@@ -225,22 +225,23 @@ def upgrade():
                     sa.ForeignKeyConstraint(['submitter_id'], ['users.user_id'], ),
                     sa.PrimaryKeyConstraint('request_id')
                     )
-    op.create_table('bank_deposit_history',
-                    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-                    sa.Column('report_id', sa.Integer(), nullable=False, comment='日报ID'),
-                    sa.Column('field_name', sa.String(length=64), nullable=False, comment='字段名'),
-                    sa.Column('old_value', sa.Float(), nullable=True, comment='原值'),
-                    sa.Column('new_value', sa.Float(), nullable=False, comment='新值'),
-                    sa.Column('operator_id', sa.Integer(), nullable=False, comment='操作人ID'),
-                    sa.Column('operator_role', sa.String(length=32), nullable=True, comment='操作人角色'),
-                    sa.Column('remark', sa.String(length=255), nullable=False, comment='变更理由'),
-                    sa.Column('created_at', sa.DateTime(), nullable=True, comment='操作时间'),
-                    sa.ForeignKeyConstraint(['operator_id'], ['users.user_id'], ),
-                    sa.ForeignKeyConstraint(['report_id'], ['daily_sales.report_id'], ondelete='CASCADE'),
-                    sa.PrimaryKeyConstraint('id')
-                    )
-    with op.batch_alter_table('bank_deposit_history', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_bank_deposit_history_report_id'), ['report_id'], unique=False)
+    if not _table_exists('bank_deposit_history'):
+        op.create_table('bank_deposit_history',
+                        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+                        sa.Column('report_id', sa.Integer(), nullable=False, comment='日报ID'),
+                        sa.Column('field_name', sa.String(length=64), nullable=False, comment='字段名'),
+                        sa.Column('old_value', sa.Float(), nullable=True, comment='原值'),
+                        sa.Column('new_value', sa.Float(), nullable=False, comment='新值'),
+                        sa.Column('operator_id', sa.Integer(), nullable=False, comment='操作人ID'),
+                        sa.Column('operator_role', sa.String(length=32), nullable=True, comment='操作人角色'),
+                        sa.Column('remark', sa.String(length=255), nullable=False, comment='变更理由'),
+                        sa.Column('created_at', sa.DateTime(), nullable=True, comment='操作时间'),
+                        sa.ForeignKeyConstraint(['operator_id'], ['users.user_id'], ),
+                        sa.ForeignKeyConstraint(['report_id'], ['daily_sales.report_id'], ondelete='CASCADE'),
+                        sa.PrimaryKeyConstraint('id')
+                        )
+        with op.batch_alter_table('bank_deposit_history', schema=None) as batch_op:
+            batch_op.create_index(batch_op.f('ix_bank_deposit_history_report_id'), ['report_id'], unique=False)
 
     op.create_table('daily_sales_attachments',
                     sa.Column('attachment_id', sa.Integer(), autoincrement=True, nullable=False, comment='凭证ID'),
