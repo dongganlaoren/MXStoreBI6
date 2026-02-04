@@ -75,6 +75,13 @@
                                 lang_dict.get('store_renovation') else '店铺整改' }}
                             </a>
                         </li>
+                        <li>
+                            <a class="dropdown-item py-2"
+                               href="{{ url_for('inventory_stocktake.index') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                                <i class="bi bi-box-seam me-2 text-success"></i>{{ lang_dict['inventory_stocktake'] if
+                                lang_dict.get('inventory_stocktake') else '物料盘点' }}
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 <li class="nav-item">
@@ -192,7 +199,8 @@
                         </a></li>
                         <li><a class="dropdown-item py-2"
                                href="{{ url_for('attendance.punch') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                            <i class="bi bi-alarm me-2 text-primary"></i>{{ lang_dict['attendance_punch'] if lang_dict.get('attendance_punch') else '考勤打卡' }}
+                            <i class="bi bi-alarm me-2 text-primary"></i>{{ lang_dict['attendance_punch'] if
+                            lang_dict.get('attendance_punch') else '考勤打卡' }}
                         </a></li>
                         <li>
                             <hr class="dropdown-divider">
