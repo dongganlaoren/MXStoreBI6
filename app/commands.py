@@ -6,14 +6,32 @@ from flask.cli import with_appcontext
 
 @click.command("fake-data")
 @with_appcontext
-def fake_data_command():
+@click.option("--wipe/--no-wipe", default=True, show_default=True, help="是否先清空业务数据（危险）")
+@click.option("--confirm", default="", help="当 --wipe 时必须输入 WIPE")
+@click.option("--stores/--no-stores", default=True, show_default=True, help="是否生成门店")
+@click.option("--users/--no-users", default=True, show_default=True, help="是否生成用户")
+@click.option("--daily-sales/--no-daily-sales", default=False, show_default=True, help="是否生成日报数据")
+@click.option("--reimbursement/--no-reimbursement", default=False, show_default=True, help="是否生成报销数据")
+def fake_data_command(wipe, confirm, stores, users, daily_sales, reimbursement):
     """
-    生成测试数据，并清理重复归档日报。
+    生成测试数据。
+
+    默认会执行 wipe（清空业务数据），为了安全需显式确认：--confirm WIPE。
     """
-    # 惰性导入以避免在应用初始化时引入测试数据模块，防止循环依赖
+
     from app.utils.fake_data import generate_fake_data
+
+    if wipe and confirm != "WIPE":
+        raise click.UsageError("启用 --wipe 时必须同时传入 --confirm WIPE 以防误清库")
+
     click.echo("开始生成测试数据...")
-    generate_fake_data()
+    generate_fake_data(
+        wipe=wipe,
+        include_stores=stores,
+        include_users=users,
+        include_daily_sales=daily_sales,
+        include_reimbursement=reimbursement,
+    )
     click.echo("测试数据生成完毕！")
 
 
@@ -96,17 +114,14 @@ def register_commands(app):
     app.cli.add_command(restart_services)
     app.cli.add_command(logs_tail)
 
-
-# 兼容旧用法，提供init_app别名
-init_app = register_commands
-
-
-def init_app(app):
-    """Register commands."""
-    register_commands(app)
+    # 盘点模块命令（可选，不应影响主应用启动）
     try:
         from app.inventory_stocktake.commands import register_inventory_stocktake_commands
+
         register_inventory_stocktake_commands(app)
     except Exception:
-        # 避免命令注册影响主应用启动
         pass
+
+
+# 兼容旧用法：init_app == register_commands
+init_app = register_commands
