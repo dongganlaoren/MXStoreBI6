@@ -1,45 +1,127 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container" style="max-width: 900px;">
-    <h2>产品信息模板导入</h2>
-
-    <form method="post" enctype="multipart/form-data">
-        {{ csrf_token() }}
-        <div class="mb-3">
-            <input class="form-control" type="file" name="file" accept=".xlsx" required>
-            <div class="form-text">仅支持标准模板 inventory_stocktake_template.xlsx（工作表：产品信息）</div>
-        </div>
-        <button class="btn btn-primary" type="submit">上传并导入</button>
-    </form>
-
-    {% if summary %}
-    <hr>
-    <h5>导入结果</h5>
-    <p>成功：{{ summary.success_count }} 条；失败：{{ summary.fail_count }} 条</p>
-
-    {% if summary.results %}
-    <div class="table-responsive">
-        <table class="table table-sm table-striped">
-            <thead>
-            <tr>
-                <th>行号</th>
-                <th>结果</th>
-                <th>说明</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for r in summary.results %}
-            <tr>
-                <td>{{ r.row_number }}</td>
-                <td>{% if r.success %}成功{% else %}失败{% endif %}</td>
-                <td style="max-width: 520px; word-break: break-all;">{{ r.message }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+<div class="container" style="max-width: 1100px;">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>产品信息维护</h2>
+        <a class="btn btn-outline-success" href="{{ url_for('inventory_stocktake.material_template_download') }}">下载模板 inventory_stocktake_template.xlsx</a>
     </div>
-    {% endif %}
-    {% endif %}
+
+    <p class="text-muted mt-2">
+        你可以通过 <strong>Excel模板导入</strong> 批量新增/更新产品信息；也可以在下方表格对已有产品做基本维护（单价字段可留空）。
+        模板工作表名称必须为：<code>产品信息</code>，表头必须完全一致。
+    </p>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Excel模板导入</h5>
+            <form method="post" enctype="multipart/form-data">
+                {{ csrf_token() }}
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-md-8">
+                        <input class="form-control" type="file" name="file" accept=".xlsx" required>
+                        <div class="form-text">仅支持标准模板 inventory_stocktake_template.xlsx（工作表：产品信息）</div>
+                    </div>
+                    <div class="col-12 col-md-4 d-grid">
+                        <button class="btn btn-primary" type="submit">上传并导入</button>
+                    </div>
+                </div>
+            </form>
+
+            {% if summary %}
+            <hr>
+            <h6>导入结果</h6>
+            <p>成功：{{ summary.success_count }} 条；失败：{{ summary.fail_count }} 条</p>
+
+            {% if summary.results %}
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                    <tr>
+                        <th>行号</th>
+                        <th>结果</th>
+                        <th>说明</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for r in summary.results %}
+                    <tr>
+                        <td>{{ r.row_number }}</td>
+                        <td>{% if r.success %}成功{% else %}失败{% endif %}</td>
+                        <td style="max-width: 520px; word-break: break-all;">{{ r.message }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">已有产品信息（最多显示300条）</h5>
+                <form method="get" class="d-flex" style="gap:8px;">
+                    <input class="form-control" name="q" value="{{ q }}" placeholder="搜索：编码/中文名/类别" style="width: 280px;" />
+                    <button class="btn btn-outline-primary" type="submit">搜索</button>
+                </form>
+            </div>
+
+            <div class="table-responsive mt-3">
+                <table class="table table-sm table-striped align-middle">
+                    <thead>
+                    <tr>
+                        <th>物料编码</th>
+                        <th>中文名称</th>
+                        <th>泰文名称</th>
+                        <th>规格型号</th>
+                        <th>物料类别</th>
+                        <th style="width:120px;">每件单价</th>
+                        <th style="width:120px;">每组单价</th>
+                        <th style="width:90px;">安全库存</th>
+                        <th style="width:90px;">状态</th>
+                        <th>备注</th>
+                        <th style="width:90px;">操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for m in materials %}
+                    <tr>
+                        <form method="post">
+                            {{ csrf_token() }}
+                            <input type="hidden" name="action" value="update_one" />
+                            <input type="hidden" name="material_code" value="{{ m.material_code }}" />
+                            <td><code>{{ m.material_code }}</code></td>
+                            <td><input class="form-control form-control-sm" name="cn_name" value="{{ m.cn_name }}" required></td>
+                            <td><input class="form-control form-control-sm" name="th_name" value="{{ m.th_name or '' }}"></td>
+                            <td><input class="form-control form-control-sm" name="spec_model" value="{{ m.spec_model }}" required></td>
+                            <td><input class="form-control form-control-sm" name="category" value="{{ m.category }}" required></td>
+                            <td><input class="form-control form-control-sm" name="price_per_case" value="{{ m.price_per_case or '' }}" placeholder="可空"></td>
+                            <td><input class="form-control form-control-sm" name="price_per_group" value="{{ m.price_per_group or '' }}" placeholder="可空"></td>
+                            <td><input class="form-control form-control-sm" type="number" min="0" step="1" name="safety_stock" value="{{ m.safety_stock if m.safety_stock is not none else '' }}" placeholder="可空"></td>
+                            <td>
+                                <select class="form-select form-select-sm" name="status">
+                                    <option value="启用" {% if m.status == '启用' %}selected{% endif %}>启用</option>
+                                    <option value="禁用" {% if m.status == '禁用' %}selected{% endif %}>禁用</option>
+                                </select>
+                            </td>
+                            <td><input class="form-control form-control-sm" name="remark" value="{{ m.remark or '' }}"></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" type="submit">保存</button>
+                            </td>
+                        </form>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="11" class="text-muted">暂无数据</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
