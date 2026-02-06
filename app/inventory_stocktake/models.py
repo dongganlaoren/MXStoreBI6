@@ -41,6 +41,30 @@ class MXMaterialInfo(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 
+class MXStocktakeHeader(db.Model):
+    """盘点单头：用于支持草稿/提交、统一保存、记录查询。"""
+
+    __tablename__ = "mx_stocktake_header"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    store_id = db.Column(db.String(32), nullable=False, index=True, comment="店铺ID")
+    check_date = db.Column(db.Date, nullable=False, index=True, comment="盘点日期")
+
+    status = db.Column(db.String(16), nullable=False, default="DRAFT", comment="状态：DRAFT/COMMITTED")
+
+    created_by = db.Column(db.String(64), nullable=True, comment="创建人(username)")
+    committed_by = db.Column(db.String(64), nullable=True, comment="提交人(username)")
+    committed_at = db.Column(db.DateTime, nullable=True, comment="提交时间")
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint("store_id", "check_date", name="uq_stocktake_header_store_date"),
+    )
+
+
 class MXInventoryCheck(db.Model):
     """盘点明细：按“店铺 + 日期 + 物料编码”保存一行库存。"""
 
@@ -63,6 +87,42 @@ class MXInventoryCheck(db.Model):
     operator = db.Column(db.String(64), nullable=True, comment="操作员（username）")
     operated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, comment="操作时间")
 
+    header_id = db.Column(db.Integer, db.ForeignKey("mx_stocktake_header.id"), nullable=True, index=True,
+                          comment="关联盘点单头")
+
     __table_args__ = (
         db.UniqueConstraint("store_id", "check_date", "material_code", name="uq_check_store_date_material"),
+    )
+
+
+class MXInventoryDraft(db.Model):
+    """盘点草稿明细：用于临时存放某店铺某一天的录入内容。
+
+    正式提交后会被清空；正式盘点数据写入 MXInventoryCheck 并被锁定。
+    """
+
+    __tablename__ = "mx_inventory_draft"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    store_id = db.Column(db.String(32), nullable=False, index=True, comment="店铺ID")
+    check_date = db.Column(db.Date, nullable=False, index=True, comment="盘点日期")
+
+    material_code = db.Column(db.String(64), nullable=False, index=True, comment="物料编码")
+    material_name = db.Column(db.String(255), nullable=False, comment="物料名称（冗余，便于展示）")
+    spec_model = db.Column(db.String(255), nullable=True, comment="规格（冗余，便于展示）")
+
+    remaining_case_qty = db.Column(db.Integer, nullable=False, default=0, comment="剩余整件数")
+    remaining_group_qty = db.Column(db.Integer, nullable=False, default=0, comment="剩余散件数")
+
+    valid_until = db.Column(db.Date, nullable=True, index=True, comment="有效期至")
+
+    operator = db.Column(db.String(64), nullable=True, comment="操作员(username)")
+    operated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, comment="操作时间")
+
+    header_id = db.Column(db.Integer, db.ForeignKey("mx_stocktake_header.id"), nullable=True, index=True,
+                          comment="关联盘点单头")
+
+    __table_args__ = (
+        db.UniqueConstraint("store_id", "check_date", "material_code", name="uq_draft_store_date_material"),
     )

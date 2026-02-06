@@ -53,7 +53,8 @@ def parse_material_template(file_path: str) -> List[ParsedMaterialRow]:
         ValidationError: 模板格式或字段校验失败。
     """
 
-    wb = load_workbook(file_path)
+    # data_only=True: 若单元格是公式，优先读取 Excel 保存的计算结果（如果有缓存结果）
+    wb = load_workbook(file_path, data_only=True)
     if SHEET_NAME not in wb.sheetnames:
         raise ValidationError(f"模板工作表名称必须为：{SHEET_NAME}")
 

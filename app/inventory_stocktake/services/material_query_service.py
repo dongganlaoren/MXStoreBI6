@@ -33,7 +33,7 @@ def search_materials(*, q: str | None, page: int = 1, page_size: int = 50) -> Tu
 
     total = query.count()
     rows = (
-        query.order_by(MXMaterialInfo.category.asc(), MXMaterialInfo.material_code.asc())
+        query.order_by(MXMaterialInfo.material_code.asc())
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()
@@ -44,6 +44,7 @@ def search_materials(*, q: str | None, page: int = 1, page_size: int = 50) -> Tu
             {
                 "material_code": r.material_code,
                 "cn_name": r.cn_name,
+                "th_name": r.th_name,
                 "spec_model": r.spec_model,
                 "category": r.category,
             }

@@ -2,12 +2,22 @@
 
 {% block content %}
 <div class="container" style="max-width: 900px;">
-    <h2>库存盘点（inventory-stocktake）</h2>
-    <p class="text-muted">按需求：无导出、无对外接口；仅页面与后端内部服务调用。</p>
+    <h2>{{ lang_dict['inventory_stocktake'] if lang_dict.get('inventory_stocktake') else '物料盘点' }}</h2>
+    <p class="text-muted">
+        该模块已拆分为两个入口：<strong>物料盘点</strong> 与 <strong>产品信息管理</strong>。
+        建议从顶部「店铺管理」菜单直接进入。
+    </p>
 
-    <ul>
-        <li><a href="{{ url_for('inventory_stocktake.stocktake_page') }}">库存盘点录入</a></li>
-        <li><a href="{{ url_for('inventory_stocktake.material_import') }}">产品信息模板导入维护</a></li>
-    </ul>
+    <div class="list-group">
+        <a class="list-group-item list-group-item-action"
+           href="{{ url_for('inventory_stocktake.stocktake_page') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+            {{ lang_dict['inventory_stocktake'] if lang_dict.get('inventory_stocktake') else '物料盘点' }}
+        </a>
+        <a class="list-group-item list-group-item-action"
+           href="{{ url_for('inventory_stocktake.material_import') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+            {{ lang_dict['inventory_stocktake_materials'] if lang_dict.get('inventory_stocktake_materials') else
+            '产品信息管理' }}
+        </a>
+    </div>
 </div>
 {% endblock %}

@@ -16,7 +16,7 @@
         <div class="card-body">
             <h5 class="card-title">Excel模板导入</h5>
             <form method="post" enctype="multipart/form-data">
-                {{ csrf_token() }}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="row g-2 align-items-center">
                     <div class="col-12 col-md-8">
                         <input class="form-control" type="file" name="file" accept=".xlsx" required>
@@ -90,7 +90,7 @@
                     {% for m in materials %}
                     <tr>
                         <form method="post">
-                            {{ csrf_token() }}
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="action" value="update_one" />
                             <input type="hidden" name="material_code" value="{{ m.material_code }}" />
                             <td><code>{{ m.material_code }}</code></td>

@@ -16,6 +16,11 @@ from flask_login import current_user, login_required
 
 from app.inventory_stocktake import inventory_stocktake_bp
 from app.inventory_stocktake.services.material_query_service import search_materials
+from app.inventory_stocktake.services.stocktake_header_service import (
+    save_draft_batch,
+    commit_stocktake,
+    list_stocktake_headers,
+)
 from app.inventory_stocktake.services.stocktake_service import reset, save_one
 from app.inventory_stocktake.services.value_calc_service import UnitPriceMissingError, calc_values
 
@@ -158,5 +163,193 @@ def api_stocktake_reset():
     except Exception:
         return jsonify({"ok": False, "message": "check_date 格式必须为 YYYY-MM-DD"}), 400
 
+    # 提交后禁止清空（锁定）
+    from app.inventory_stocktake.services.stocktake_header_service import get_header_status
+
+    try:
+        status = get_header_status(store_id=store_id, check_date=d)
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 400
+
+    if status == "COMMITTED":
+        return jsonify({"ok": False, "message": "该盘点已正式提交，禁止清空草稿/重置"}), 400
+
     n = reset(store_id, d)
     return jsonify({"ok": True, "message": f"已清空 {n} 条"})
+
+
+@inventory_stocktake_bp.route("/api/stocktake/save-batch", methods=["POST"])
+@login_required
+def api_stocktake_save_batch():
+    """统一保存（草稿）：一次提交多行盘点明细。"""
+
+    payload = request.get_json(silent=True) or {}
+    items = payload.get("items") or []
+    store_id = payload.get("store_id")
+    check_date_str = payload.get("check_date")
+
+    if not store_id or not check_date_str:
+        return jsonify({"ok": False, "message": "store_id 和 check_date 必填"}), 400
+
+    try:
+        d = date.fromisoformat(check_date_str)
+    except Exception:
+        return jsonify({"ok": False, "message": "check_date 格式必须为 YYYY-MM-DD"}), 400
+
+    try:
+        res = save_draft_batch(store_id=store_id, check_date=d, operator=getattr(current_user, "username", None),
+                               items=items)
+        return jsonify({"ok": True, "data": {"saved": res.saved, "failed": res.failed}, "message": res.message})
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 400
+
+
+@inventory_stocktake_bp.route("/api/stocktake/commit", methods=["POST"])
+@login_required
+def api_stocktake_commit():
+    """正式提交：
+
+    兼容两种提交方式：
+    1) 传统方式：不传 items，仅将盘点单从 DRAFT -> COMMITTED（从草稿表读取明细）
+    2) 直提方式：传入 items，直接写入正式表并提交（不写草稿表）
+    """
+
+    payload = request.get_json(silent=True) or {}
+    store_id = payload.get("store_id")
+    check_date_str = payload.get("check_date")
+    items = payload.get("items")
+
+    if not store_id or not check_date_str:
+        return jsonify({"ok": False, "message": "store_id 和 check_date 必填"}), 400
+
+    try:
+        d = date.fromisoformat(check_date_str)
+    except Exception:
+        return jsonify({"ok": False, "message": "check_date 格式必须为 YYYY-MM-DD"}), 400
+
+    try:
+        if isinstance(items, list):
+            from app.inventory_stocktake.services.stocktake_header_service import commit_stocktake_with_items
+
+            res = commit_stocktake_with_items(
+                store_id=store_id, check_date=d, operator=getattr(current_user, "username", None), items=items
+            )
+            return jsonify(
+                {
+                    "ok": True,
+                    "message": res.message,
+                    "data": {"header_id": res.header_id, "status": "COMMITTED", "committed": res.committed},
+                }
+            )
+
+        res = commit_stocktake(store_id=store_id, check_date=d, operator=getattr(current_user, "username", None))
+        return jsonify(
+            {
+                "ok": True,
+                "message": res.message,
+                "data": {"header_id": res.header_id, "status": "COMMITTED"},
+            }
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 400
+
+
+@inventory_stocktake_bp.route("/api/stocktake/headers", methods=["GET"])
+@login_required
+def api_stocktake_headers():
+    """盘点记录列表（盘点单头，含状态/时间）。"""
+
+    store_id = request.args.get("store_id")
+    status = request.args.get("status")
+    page = int(request.args.get("page", 1))
+    page_size = int(request.args.get("page_size", 50))
+
+    items, total = list_stocktake_headers(store_id=store_id, status=status, page=page, page_size=page_size)
+    return jsonify({"ok": True, "data": {"items": items, "total": total, "page": page, "page_size": page_size}})
+
+
+@inventory_stocktake_bp.route("/api/stocktake/draft", methods=["GET"])
+@login_required
+def api_stocktake_draft():
+    """加载草稿明细：返回指定店铺+盘点日期的已保存明细（用于回填页面）。"""
+
+    store_id = request.args.get("store_id")
+    check_date_str = request.args.get("check_date")
+    if not store_id or not check_date_str:
+        return jsonify({"ok": False, "message": "store_id 和 check_date 必填"}), 400
+
+    try:
+        d = date.fromisoformat(check_date_str)
+    except Exception:
+        return jsonify({"ok": False, "message": "check_date 格式必须为 YYYY-MM-DD"}), 400
+
+    from app.inventory_stocktake.services.stocktake_header_service import load_draft_details
+
+    try:
+        items = load_draft_details(store_id=store_id, check_date=d)
+        return jsonify({"ok": True, "data": {"items": items}})
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 400
+
+
+@inventory_stocktake_bp.route("/api/stocktake/status", methods=["GET"])
+@login_required
+def api_stocktake_status():
+    """查询指定店铺+日期的盘点状态。
+
+    返回：NONE(未创建)/DRAFT(草稿)/COMMITTED(已提交)
+
+    Query:
+      - store_id
+      - check_date (YYYY-MM-DD)
+    """
+
+    store_id = request.args.get("store_id")
+    check_date_str = request.args.get("check_date")
+    if not store_id or not check_date_str:
+        return jsonify({"ok": False, "message": "store_id 和 check_date 必填"}), 400
+
+    try:
+        d = date.fromisoformat(check_date_str)
+    except Exception:
+        return jsonify({"ok": False, "message": "check_date 格式必须为 YYYY-MM-DD"}), 400
+
+    from app.inventory_stocktake.services.stocktake_header_service import get_header_status
+
+    try:
+        status = get_header_status(store_id=store_id, check_date=d)
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 400
+
+    return jsonify({"ok": True, "data": {"status": status or "NONE"}})
+
+
+@inventory_stocktake_bp.route("/api/stocktake/details", methods=["GET"])
+@login_required
+def api_stocktake_details():
+    """Load saved stocktake details for a store/date.
+
+    This works for both DRAFT and COMMITTED stocktakes.
+
+    Query:
+      - store_id
+      - check_date (YYYY-MM-DD)
+    """
+
+    store_id = request.args.get("store_id")
+    check_date_str = request.args.get("check_date")
+    if not store_id or not check_date_str:
+        return jsonify({"ok": False, "message": "store_id 和 check_date 必填"}), 400
+
+    try:
+        d = date.fromisoformat(check_date_str)
+    except Exception:
+        return jsonify({"ok": False, "message": "check_date 格式必须为 YYYY-MM-DD"}), 400
+
+    from app.inventory_stocktake.services.stocktake_header_service import load_stocktake_details
+
+    try:
+        items = load_stocktake_details(store_id=store_id, check_date=d)
+        return jsonify({"ok": True, "data": {"items": items}})
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 400

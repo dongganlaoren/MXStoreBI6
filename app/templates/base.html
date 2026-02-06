@@ -77,9 +77,26 @@
                         </li>
                         <li>
                             <a class="dropdown-item py-2"
-                               href="{{ url_for('inventory_stocktake.index') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
-                                <i class="bi bi-box-seam me-2 text-success"></i>{{ lang_dict['inventory_stocktake'] if
+                               href="{{ url_for('inventory_stocktake.stocktake_page') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                                <i class="bi bi-clipboard-check me-2 text-success"></i>{{
+                                lang_dict['inventory_stocktake'] if
                                 lang_dict.get('inventory_stocktake') else '物料盘点' }}
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2"
+                               href="{{ url_for('inventory_stocktake.stocktake_records_page') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                                <i class="bi bi-clock-history me-2 text-success"></i>{{
+                                lang_dict['inventory_stocktake_records'] if
+                                lang_dict.get('inventory_stocktake_records') else '盘点记录' }}
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2"
+                               href="{{ url_for('inventory_stocktake.material_import') }}{% if current_lang %}?lang={{ current_lang }}{% endif %}">
+                                <i class="bi bi-box2-heart me-2 text-success"></i>{{
+                                lang_dict['inventory_stocktake_materials'] if
+                                lang_dict.get('inventory_stocktake_materials') else '产品信息管理' }}
                             </a>
                         </li>
                     </ul>

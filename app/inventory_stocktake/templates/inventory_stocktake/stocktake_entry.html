@@ -1,0 +1,996 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 1100px;">
+    {# removed title to save vertical space #}
+    <p class="text-muted">
+        本页面用于录入盘点明细，并支持 <strong>保存草稿</strong> 与 <strong>正式提交</strong>。
+        保存草稿可多次覆盖；正式提交后将锁定该日期盘点数据（需管理员重置才可修改）。
+    </p>
+
+    <form class="row g-3" method="get" id="mx-context-form">
+        <div class="col-12 col-md-6">
+            <label class="form-label">店铺</label>
+            {{ form.store_id(class_='form-select', disabled=store_locked) }}
+            {% if store_locked %}
+            <div class="form-text">已绑定当前登录账号所属店铺</div>
+            {% endif %}
+        </div>
+        <div class="col-12 col-md-3">
+            <label class="form-label">盘点日期</label>
+            {{ form.check_date(class_='form-control') }}
+        </div>
+        <div class="col-12 col-md-3 d-none d-md-block">
+            <label class="form-label">提示</label>
+            <div class="form-text">切换店铺/日期会自动加载</div>
+        </div>
+    </form>
+
+    <hr>
+
+    <div class="alert alert-info d-none d-md-block">
+        说明：本页取消搜索与单行保存。
+        你可以逐行录入数量与有效期，然后点击「保存草稿」统一保存；确认无误后点击「正式提交」。
+    </div>
+
+    <div id="mx-toast" class="alert alert-secondary" style="display:none;"></div>
+
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <div class="text-muted">
+            待保存变更：<span class="badge text-bg-primary" id="mx-dirty-count">0</span>
+        </div>
+        <div class="form-text d-none d-md-block">
+            提示：修改任一行后，该行会高亮显示；点击“保存草稿”会一次性保存所有高亮行。
+        </div>
+    </div>
+
+    <style>
+        /* 轻量高亮：标记已修改但未保存的行 */
+        tr.mx-dirty-row {
+            background-color: #fff3cd !important; /* bootstrap warning bg */
+        }
+        tr.mx-dirty-row td {
+            background-color: #fff3cd !important;
+        }
+
+        /* 名称列避免占满：桌面保持正常，移动端做截断 */
+        td.mx-name-cell {
+            max-width: 420px;
+        }
+        .mx-name {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 移动端卡片布局 */
+        @media (max-width: 576px) {
+            /* 表格变卡片：隐藏表头，每行变成块 */
+            #mx-table thead {
+                display: none;
+            }
+            #mx-table,
+            #mx-table tbody,
+            #mx-table tr,
+            #mx-table td {
+                display: block;
+                width: 100%;
+            }
+
+            #mx-table tbody tr {
+                background: #fff;
+                border: 1px solid #e9ecef;
+                border-radius: 10px;
+                padding: 0.6rem 0.6rem;
+                margin-bottom: 0.6rem;
+                box-shadow: 0 1px 1px rgba(0,0,0,0.03);
+            }
+
+            /* 隐藏桌面用的非关键列 */
+            td.mx-col-category,
+            td.mx-col-code,
+            td.mx-col-spec {
+                display: none !important;
+            }
+
+            /* 名称区 */
+            td.mx-name-cell {
+                max-width: none;
+                padding: 0 0 0.35rem 0;
+            }
+            td.mx-name-cell .mx-name {
+                font-weight: 600;
+                white-space: normal;
+                overflow: visible;
+                text-overflow: clip;
+                line-height: 1.15;
+            }
+
+            /* 输入区：整件/散件/有效期三行 */
+            td.mx-input-cell {
+                padding: 0;
+                margin-top: 0.35rem;
+            }
+            .mx-field {
+                display: grid;
+                grid-template-columns: 68px 1fr;
+                gap: 0.4rem;
+                align-items: center;
+                padding: 0.25rem 0;
+                border-top: 1px dashed #f0f0f0;
+            }
+            .mx-field:first-child {
+                border-top: none;
+                padding-top: 0;
+            }
+            .mx-field-label {
+                font-size: 12px;
+                color: #6c757d;
+            }
+
+            /* 让输入控件更适合手机点按 */
+            #mx-table input.form-control {
+                font-size: 16px;
+            }
+
+            /* 底部操作栏：按钮更紧凑 */
+            .mx-actions .btn {
+                padding: 0.35rem 0.6rem;
+                font-size: 14px;
+            }
+
+            /* 小屏里减少底部栏占高 */
+            .mx-actions {
+                padding: 0.35rem 0;
+            }
+
+            /* 移动端默认不显示 0：用 placeholder 代替 */
+            #mx-table input[ data-field="case" ],
+            #mx-table input[ data-field="group" ] {
+                /* placeholder 可见时更像提示 */
+            }
+            #mx-table input[type="number"]::placeholder {
+                color: #adb5bd;
+            }
+        }
+
+        /* 产品名：泰语优先（加粗黑色），中文次要（灰色小字） */
+        .mx-name-primary {
+            font-weight: 700;
+            color: #000;
+        }
+        .mx-name-secondary {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+    </style>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle" id="mx-table">
+            <thead>
+            <tr>
+                <th class="d-none d-md-table-cell mx-col-category">类别</th>
+                <th class="d-none d-md-table-cell mx-col-code">物料编码</th>
+                <th>物料名称（中/泰）</th>
+                <th class="d-none d-md-table-cell mx-col-spec">规格</th>
+                <th style="width:150px;">整件</th>
+                <th style="width:150px;">散件</th>
+                <th style="width:160px;">有效期至</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 操作按钮移到页面底部，减少头部拥挤；移动端将粘底显示 -->
+    <div class="mx-actions">
+        <div class="d-flex gap-2 flex-wrap justify-content-center justify-content-md-start">
+            <button class="btn btn-success" type="button" id="mx-save-draft">存草稿</button>
+            {# 已全局隐藏：加载按钮 #}
+            {#
+            <button class="btn btn-outline-secondary" type="button" id="mx-load-draft">加载</button>
+            #}
+            <button class="btn btn-warning" type="button" id="mx-commit">提交</button>
+            <button class="btn btn-outline-secondary" type="button" id="mx-reset-ui">重置</button>
+            {# 已全局隐藏：清空草稿按钮 #}
+            {#
+            <button class="btn btn-outline-danger" type="button" id="mx-clear-draft">清空</button>
+            #}
+        </div>
+        <div class="form-text mt-2 d-md-none text-center">
+            提示：修改任一行后会高亮；点击“存草稿”统一保存。
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (() => {
+      const storeId = {{ (store_id or '')|tojson }};
+      const checkDate = {{ (check_date|string)|tojson }};
+      const csrfToken = {{ csrf_token()|tojson }};
+
+      // normalize string keys (material_code, data-code)
+      function normCode(v) {
+        return (v === null || v === undefined) ? '' : String(v).trim();
+      }
+      // 兜底：避免浏览器缓存/局部刷新导致脚本顺序异常
+      window.normCode = window.normCode || normCode;
+
+      let page = 1;
+      const pageSize = 50;
+
+      const touched = new Map();
+      const draftCountCache = new Map(); // key -> count
+
+      let lastContextKey = null; // `${store}|${date}`
+      let isReadonly = false;
+
+      // context token: every store/date switch bumps this; async loaders must verify
+      let contextToken = 0;
+
+      function nextContextToken() {
+        contextToken += 1;
+        return contextToken;
+      }
+
+      // ---------------- utils ----------------
+      function el(html) {
+        const t = document.createElement('template');
+        t.innerHTML = html.trim();
+        return t.content.firstChild;
+      }
+
+      function showMsg(text, level = 'secondary', timeoutMs = 3500) {
+        const box = document.getElementById('mx-toast');
+        if (!box) return;
+        box.className = 'alert alert-' + level;
+        box.innerText = text;
+        box.style.display = '';
+        clearTimeout(window.__mx_toast_timer);
+        window.__mx_toast_timer = setTimeout(() => {
+          box.style.display = 'none';
+        }, timeoutMs);
+      }
+
+      function setBtnLoading(btn, loading) {
+        if (!btn) return;
+        btn.disabled = !!loading;
+        btn.style.opacity = loading ? '0.65' : '1';
+        btn.style.pointerEvents = loading ? 'none' : 'auto';
+      }
+
+      async function safeJson(resp) {
+        const ct = (resp.headers.get('content-type') || '').toLowerCase();
+        if (ct.includes('application/json')) return await resp.json();
+        const text = await resp.text();
+        throw new Error('后端返回非JSON：' + text.slice(0, 200));
+      }
+
+      function getCurrentStoreId() {
+        const sel = document.querySelector('select[name="store_id"]');
+        return sel ? (sel.value || '') : (storeId || '');
+      }
+
+      function getCurrentCheckDate() {
+        const el = document.querySelector('input[name="check_date"]');
+        return el ? (el.value || '') : (checkDate || '');
+      }
+
+      function requireStoreAndDate() {
+        const sid = getCurrentStoreId();
+        const cd = getCurrentCheckDate();
+        if (!sid || !cd) {
+          showMsg('请先选择店铺与盘点日期，再执行该操作', 'warning', 4500);
+          return null;
+        }
+        return {sid, cd};
+      }
+
+      function contextKey(cur) {
+        return `${cur.sid}|${cur.cd}`;
+      }
+
+      function formatOwner(cur) {
+        return `店铺 ${cur.sid} / 日期 ${cur.cd}`;
+      }
+
+      function updateDirtyCount() {
+        const el = document.getElementById('mx-dirty-count');
+        if (!el) return;
+        el.innerText = String(touched.size);
+      }
+
+      function getPayloadFromRow(tr) {
+        const code = tr.getAttribute('data-code');
+        const vCase = tr.querySelector('[data-field="case"]').value;
+        const vGroup = tr.querySelector('[data-field="group"]').value;
+        const normNum = (v) => {
+          if (v === null || v === undefined) return 0;
+          const s = String(v).trim();
+          if (s === '') return 0;
+          const n = Number(s);
+          return Number.isFinite(n) ? n : 0;
+        };
+        return {
+          material_code: code,
+          remaining_case_qty: normNum(vCase),
+          remaining_group_qty: normNum(vGroup),
+          valid_until: tr.querySelector('[data-field="valid_until"]').value || null,
+        };
+      }
+
+      function markTouched(tr) {
+        const p = getPayloadFromRow(tr);
+        touched.set(p.material_code, p);
+        tr.classList.add('mx-dirty-row');
+        updateDirtyCount();
+      }
+
+      function setReadonlyMode(on, reasonText) {
+        isReadonly = !!on;
+
+        document.querySelectorAll('#mx-table tbody input').forEach(inp => {
+          inp.disabled = isReadonly;
+        });
+
+        ['mx-save-draft', 'mx-commit', 'mx-reset-ui', 'mx-clear-draft'].forEach(id => {
+          const b = document.getElementById(id);
+          if (b) b.disabled = isReadonly;
+        });
+
+        // 店铺/日期下拉仍允许切换
+        const storeSel = document.querySelector('select[name="store_id"]');
+        const dateInput = document.querySelector('input[name="check_date"]');
+        if (storeSel) storeSel.disabled = false;
+        if (dateInput) dateInput.disabled = false;
+
+        if (isReadonly) {
+          showMsg(reasonText || '该盘点已正式提交，当前页面为只读模式', 'secondary', 8000);
+        }
+      }
+
+      function clearInputsOnly() {
+        // 仅清理页面输入，不删除服务端草稿
+        if (isReadonly) {
+          showMsg('该盘点已正式提交，当前为只读模式', 'secondary', 3500);
+          return;
+        }
+
+        const isMobile = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
+
+        document.querySelectorAll('#mx-table tbody tr').forEach(tr => {
+          const caseEl = tr.querySelector('[data-field="case"]');
+          const groupEl = tr.querySelector('[data-field="group"]');
+          const dateEl = tr.querySelector('[data-field="valid_until"]');
+
+          if (caseEl) caseEl.value = isMobile ? '' : '0';
+          if (groupEl) groupEl.value = isMobile ? '' : '0';
+          if (dateEl) dateEl.value = '';
+
+          tr.classList.remove('mx-dirty-row');
+        });
+
+        touched.clear();
+        updateDirtyCount();
+      }
+
+      function attachZeroInputHandlers(root) {
+        // 只针对移动端：聚焦如果是 0 则清空；失焦为空则保持为空（提交时会按 0 处理）
+        const isMobile = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
+        if (!isMobile) return;
+
+        const scope = root || document;
+        const inputs = scope.querySelectorAll('input[type="number"][data-field]');
+        inputs.forEach(inp => {
+          if (inp.__mxBound) return;
+          inp.__mxBound = true;
+
+          inp.addEventListener('focus', () => {
+            if (String(inp.value || '').trim() === '0') inp.value = '';
+          });
+
+          inp.addEventListener('blur', () => {
+            if (String(inp.value || '').trim() === '') inp.value = '';
+          });
+        });
+      }
+
+      function setQtyValueForMode(inputEl, qty) {
+        if (!inputEl) return;
+        const isMobile = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
+        const v = (qty === null || qty === undefined) ? 0 : Number(qty);
+        const isZero = !Number.isFinite(v) || v === 0;
+        inputEl.value = (isMobile && isZero) ? '' : String(isZero ? 0 : v);
+      }
+
+      async function fetchMaterials(resetPage = false) {
+        if (resetPage) {
+          page = 1;
+          document.querySelector('#mx-table tbody').innerHTML = '';
+          touched.clear();
+          updateDirtyCount();
+        }
+
+        const url = new URL(window.location.origin + '{{ url_for('inventory_stocktake.api_materials') }}');
+        url.searchParams.set('q', '');
+        url.searchParams.set('page', String(page));
+        url.searchParams.set('page_size', String(pageSize));
+
+        const resp = await fetch(url, {credentials: 'same-origin'});
+        const data = await resp.json();
+        if (!data.ok) {
+          alert(data.message || '加载失败');
+          return;
+        }
+
+        const tbody = document.querySelector('#mx-table tbody');
+        for (const r of data.data.items) {
+          // 名称展示：泰语优先；中文次要
+          const th = (r.th_name || '').trim();
+          const cn = (r.cn_name || '').trim();
+          const primary = th || cn;
+          const secondary = th && cn ? cn : '';
+
+          const nameDisplay = secondary
+            ? `<div class="mx-name-primary">${primary}</div><div class="mx-name-secondary">${secondary}</div>`
+            : `<div class="mx-name-primary">${primary}</div>`;
+
+          const row = el(`\
+              <tr data-code="${r.material_code}">
+                <td class="d-none d-md-table-cell mx-col-category">${r.category || ''}</td>
+                <td class="d-none d-md-table-cell mx-col-code">${r.material_code}</td>
+                <td class="mx-name-cell">${nameDisplay}</td>
+                <td class="d-none d-md-table-cell mx-col-spec">${r.spec_model || ''}</td>
+                <td class="mx-input-cell" colspan="3">
+                  <div class="row g-2 d-none d-md-flex">
+                    <div class="col-md-4">
+                      <div class="input-group input-group-sm">
+                        <input class="form-control" type="number" min="0" step="1" value="0" data-field="case" inputmode="numeric" autocomplete="off">
+                        <span class="input-group-text">件</span>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="input-group input-group-sm">
+                        <input class="form-control" type="number" min="0" step="1" value="0" data-field="group" inputmode="numeric" autocomplete="off">
+                        <span class="input-group-text">组</span>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <input class="form-control form-control-sm" type="date" data-field="valid_until" autocomplete="off">
+                    </div>
+                  </div>
+
+                  <div class="d-md-none">
+                    <div class="mx-field">
+                      <div class="mx-field-label">整件</div>
+                      <div>
+                        <div class="input-group input-group-sm">
+                          <input class="form-control" type="number" min="0" step="1" value="" placeholder="0" data-field="case" inputmode="numeric" autocomplete="off">
+                          <span class="input-group-text">件</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mx-field">
+                      <div class="mx-field-label">散件</div>
+                      <div>
+                        <div class="input-group input-group-sm">
+                          <input class="form-control" type="number" min="0" step="1" value="" placeholder="0" data-field="group" inputmode="numeric" autocomplete="off">
+                          <span class="input-group-text">组</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mx-field">
+                      <div class="mx-field-label">有效期</div>
+                      <div>
+                        <input class="form-control form-control-sm" type="date" data-field="valid_until" autocomplete="off">
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>`);
+
+          row.addEventListener('change', () => markTouched(row));
+          tbody.appendChild(row);
+          attachZeroInputHandlers(row);
+        }
+
+        page += 1;
+      }
+
+      async function fetchStatus(cur) {
+        const url = new URL(window.location.origin + '{{ url_for('inventory_stocktake.api_stocktake_status') }}');
+        url.searchParams.set('store_id', cur.sid);
+        url.searchParams.set('check_date', cur.cd);
+        const resp = await fetch(url, {credentials: 'same-origin'});
+        const data = await safeJson(resp);
+        if (!resp.ok || !data.ok) throw new Error(data.message || `状态查询失败(HTTP ${resp.status})`);
+        return (data.data && data.data.status) ? String(data.data.status) : 'NONE';
+      }
+
+      async function refreshReadonly(cur, silent = false) {
+        const st = await fetchStatus(cur);
+        if (st === 'COMMITTED') {
+          setReadonlyMode(true, `该盘点已正式提交：${formatOwner(cur)}（只读模式）`);
+        } else {
+          setReadonlyMode(false);
+          if (!silent) showMsg(`已切换到：${formatOwner(cur)}（可编辑）`, 'secondary', 2500);
+        }
+        return st;
+      }
+
+      async function getDraftCount(cur) {
+        const key = contextKey(cur);
+        if (draftCountCache.has(key)) return draftCountCache.get(key);
+
+        const url = new URL(window.location.origin + '{{ url_for('inventory_stocktake.api_stocktake_draft') }}');
+        url.searchParams.set('store_id', cur.sid);
+        url.searchParams.set('check_date', cur.cd);
+
+        const resp = await fetch(url, {credentials: 'same-origin'});
+        const data = await safeJson(resp);
+        if (!resp.ok || !data.ok) throw new Error(data.message || `草稿探测失败(HTTP ${resp.status})`);
+
+        const n = Array.isArray(data.data && data.data.items) ? data.data.items.length : 0;
+        draftCountCache.set(key, n);
+        return n;
+      }
+
+      async function loadDetails(cur, showToast = true, token = null) {
+        const btn = document.getElementById('mx-load-draft');
+        const url = new URL(window.location.origin + '{{ url_for('inventory_stocktake.api_stocktake_details') }}');
+        url.searchParams.set('store_id', cur.sid);
+        url.searchParams.set('check_date', cur.cd);
+
+        if (showToast) {
+          setBtnLoading(btn, true);
+          showMsg('正在加载盘点内容…', 'info', 1200);
+        }
+
+        try {
+          const resp = await fetch(url, {credentials: 'same-origin'});
+          const data = await safeJson(resp);
+          if (token !== null && token !== contextToken) return; // stale
+          if (!resp.ok || !data.ok) throw new Error(data.message || `加载失败(HTTP ${resp.status})`);
+
+          const map = new Map();
+          for (const it of (data.data.items || [])) map.set(it.material_code, it);
+
+          let filled = 0;
+          document.querySelectorAll('#mx-table tbody tr').forEach(tr => {
+            const it = map.get(tr.getAttribute('data-code'));
+            if (!it) return;
+            setQtyValueForMode(tr.querySelector('[data-field="case"]'), it.remaining_case_qty);
+            setQtyValueForMode(tr.querySelector('[data-field="group"]'), it.remaining_group_qty);
+            tr.querySelector('[data-field="valid_until"]').value = it.valid_until || '';
+            filled += 1;
+          });
+
+          touched.clear();
+          updateDirtyCount();
+          document.querySelectorAll('#mx-table tbody tr.mx-dirty-row').forEach(tr => tr.classList.remove('mx-dirty-row'));
+
+          // 加载后再刷新一次状态（只读/可编辑）
+          const st = await refreshReadonly(cur, true);
+
+          if (showToast) {
+            const tip = st === 'COMMITTED' ? '（已提交，只读）' : '（草稿/可编辑）';
+            showMsg(`盘点内容已加载：${formatOwner(cur)} ${tip}（回填 ${filled} 行）`, filled > 0 ? 'secondary' : 'warning', 5000);
+          }
+        } finally {
+          if (showToast) setBtnLoading(btn, false);
+        }
+      }
+
+      // Keep old name for compatibility with existing button text;
+      // now it loads details for both DRAFT and COMMITTED.
+      async function loadDraft(cur, showToast = true, token = null) {
+        const btn = document.getElementById('mx-load-draft');
+        const url = new URL(window.location.origin + '{{ url_for('inventory_stocktake.api_stocktake_draft') }}');
+        url.searchParams.set('store_id', cur.sid);
+        url.searchParams.set('check_date', cur.cd);
+
+        if (showToast) {
+          setBtnLoading(btn, true);
+          showMsg('正在加载草稿…', 'info', 1200);
+        }
+
+        try {
+          const resp = await fetch(url, {credentials: 'same-origin'});
+          const data = await safeJson(resp);
+          if (token !== null && token !== contextToken) return; // stale
+          if (!resp.ok || !data.ok) throw new Error(data.message || `加载失败(HTTP ${resp.status})`);
+
+          const items = (data.data && Array.isArray(data.data.items)) ? data.data.items : [];
+          draftCountCache.set(contextKey(cur), items.length);
+
+          const map = new Map();
+          for (const it of items) {
+            const code = normCode(it.material_code);
+            if (!code) continue;
+            map.set(code, it);
+          }
+
+          // 补齐草稿中存在但物料分页列表中缺失的行
+          ensureDraftRowsExist(map);
+
+          let filled = 0;
+          document.querySelectorAll('#mx-table tbody tr').forEach(tr => {
+            const it = map.get(normCode(tr.getAttribute('data-code')));
+            if (!it) return;
+            setQtyValueForMode(tr.querySelector('[data-field="case"]'), it.remaining_case_qty);
+            setQtyValueForMode(tr.querySelector('[data-field="group"]'), it.remaining_group_qty);
+            tr.querySelector('[data-field="valid_until"]').value = it.valid_until || '';
+            filled += 1;
+          });
+
+          touched.clear();
+          updateDirtyCount();
+          document.querySelectorAll('#mx-table tbody tr.mx-dirty-row').forEach(tr => tr.classList.remove('mx-dirty-row'));
+
+          // 草稿加载后，状态仍以 header 为准
+          await refreshReadonly(cur, true);
+
+          if (showToast) {
+            const miss = items.length - filled;
+            const extra = miss > 0 ? `（有 ${miss} 行草稿未能匹配到当前物料列表）` : '';
+            showMsg(`草稿已加载：${formatOwner(cur)}（回填 ${filled} 行）${extra}`, filled > 0 ? 'secondary' : 'warning', 6000);
+          }
+        } finally {
+          if (showToast) setBtnLoading(btn, false);
+        }
+      }
+
+      function ensureDraftRowsExist(map) {
+        // 若草稿物料不在当前物料分页列表中：为其补一行（放到表格顶部），确保能回填
+        const tbody = document.querySelector('#mx-table tbody');
+        if (!tbody) return;
+
+        const existing = new Set();
+        tbody.querySelectorAll('tr[data-code]').forEach(tr => existing.add(normCode(tr.getAttribute('data-code'))));
+
+        for (const [code0, it] of map.entries()) {
+          const code = normCode(code0);
+          if (!code) continue;
+          if (existing.has(code)) continue;
+
+          const row = el(`\
+              <tr data-code="${code}">
+                <td class="d-none d-md-table-cell mx-col-category"></td>
+                <td class="d-none d-md-table-cell mx-col-code">${code}</td>
+                <td class="mx-name-cell">
+                  <div class="mx-name-primary">${code}</div>
+                  <div class="mx-name-secondary">（草稿物料，未在物料清单中）</div>
+                </td>
+                <td class="d-none d-md-table-cell mx-col-spec"></td>
+                <td class="mx-input-cell" colspan="3">
+                  <div class="row g-2 d-none d-md-flex">
+                    <div class="col-md-4">
+                      <div class="input-group input-group-sm">
+                        <input class="form-control" type="number" min="0" step="1" value="0" data-field="case" inputmode="numeric" autocomplete="off">
+                        <span class="input-group-text">件</span>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="input-group input-group-sm">
+                        <input class="form-control" type="number" min="0" step="1" value="0" data-field="group" inputmode="numeric" autocomplete="off">
+                        <span class="input-group-text">组</span>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <input class="form-control form-control-sm" type="date" data-field="valid_until" autocomplete="off">
+                    </div>
+                  </div>
+
+                  <div class="d-md-none">
+                    <div class="mx-field">
+                      <div class="mx-field-label">整件</div>
+                      <div>
+                        <div class="input-group input-group-sm">
+                          <input class="form-control" type="number" min="0" step="1" value="" placeholder="0" data-field="case" inputmode="numeric" autocomplete="off">
+                          <span class="input-group-text">件</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mx-field">
+                      <div class="mx-field-label">散件</div>
+                      <div>
+                        <div class="input-group input-group-sm">
+                          <input class="form-control" type="number" min="0" step="1" value="" placeholder="0" data-field="group" inputmode="numeric" autocomplete="off">
+                          <span class="input-group-text">组</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mx-field">
+                      <div class="mx-field-label">有效期</div>
+                      <div>
+                        <input class="form-control form-control-sm" type="date" data-field="valid_until" autocomplete="off">
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>`);
+
+          row.addEventListener('change', () => markTouched(row));
+          tbody.prepend(row);
+          attachZeroInputHandlers(row);
+          existing.add(code);
+        }
+      }
+
+      async function saveDraft() {
+        const btn = document.getElementById('mx-save-draft');
+        const items = Array.from(touched.values());
+        if (items.length === 0) {
+          showMsg('没有变更，无需保存', 'secondary');
+          return;
+        }
+
+        const cur = requireStoreAndDate();
+        if (!cur) return;
+
+        if (isReadonly) {
+          showMsg('该盘点已正式提交，禁止再保存草稿', 'warning', 4500);
+          return;
+        }
+
+        setBtnLoading(btn, true);
+        showMsg('正在保存草稿…', 'info', 1500);
+
+        try {
+          const resp = await fetch('{{ url_for('inventory_stocktake.api_stocktake_save_batch') }}', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify({store_id: cur.sid, check_date: cur.cd, items}),
+          });
+
+          const data = await safeJson(resp);
+          if (!resp.ok || !data.ok) throw new Error(data.message || `保存失败(HTTP ${resp.status})`);
+
+          document.querySelectorAll('#mx-table tbody tr.mx-dirty-row').forEach(tr => tr.classList.remove('mx-dirty-row'));
+          touched.clear();
+          updateDirtyCount();
+
+          lastContextKey = contextKey(cur);
+
+          // 保存后用“重新读取草稿”来刷新行数缓存，避免提示行数越来越大
+          try {
+            draftCountCache.delete(lastContextKey);
+            const n2 = await getDraftCount(cur);
+            draftCountCache.set(lastContextKey, n2);
+          } catch (e) {
+            console.warn('refresh draft count after save failed:', e);
+            draftCountCache.delete(lastContextKey);
+          }
+
+          const saved = data.data && typeof data.data.saved === 'number' ? data.data.saved : null;
+          const failed = data.data && typeof data.data.failed === 'number' ? data.data.failed : null;
+          const summary = (saved === null) ? '' : `（成功${saved}条${failed !== null ? '，失败' + failed + '条' : ''}）`;
+          showMsg(`草稿已保存：${formatOwner(cur)} ${summary}`, 'success', 5000);
+        } catch (e) {
+          console.error('saveDraft error:', e);
+          showMsg('保存草稿失败：' + (e && e.message ? e.message : String(e)), 'danger', 8000);
+        } finally {
+          setBtnLoading(btn, false);
+        }
+      }
+
+      async function commit() {
+        const btn = document.getElementById('mx-commit');
+        const cur = requireStoreAndDate();
+        if (!cur) return;
+
+        if (isReadonly) {
+          showMsg('该盘点已正式提交，当前为只读模式', 'secondary', 3500);
+          return;
+        }
+
+        // 提交流程：优先使用“直提模式”提交当前页面已录入项目（不写草稿表）。
+        // - 若 touched 有数据：以 touched 为准提交
+        // - 若 touched 为空：允许提交已存在的服务端草稿（例如用户之前保存过草稿或加载了草稿）
+
+        if (!confirm('确认正式提交？提交后将锁定该盘点数据，页面将进入只读。')) return;
+
+        setBtnLoading(btn, true);
+        showMsg('正在提交…', 'info', 1500);
+        try {
+          const payload = {store_id: cur.sid, check_date: cur.cd};
+          if (touched.size > 0) {
+            payload.items = Array.from(touched.values());
+          }
+
+          const resp = await fetch('{{ url_for('inventory_stocktake.api_stocktake_commit') }}', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify(payload),
+          });
+
+          const data = await safeJson(resp);
+          if (!resp.ok || !data.ok) throw new Error(data.message || `提交失败(HTTP ${resp.status})`);
+
+          // 1) 清空“未保存变更”的前端状态
+          touched.clear();
+          updateDirtyCount();
+          document.querySelectorAll('#mx-table tbody tr.mx-dirty-row').forEach(tr => tr.classList.remove('mx-dirty-row'));
+
+          // 2) 提交成功后：草稿已在后端清空（传统提交流程会清空）；直提不一定涉及草稿，这里统一刷新 cache
+          draftCountCache.set(contextKey(cur), 0);
+
+          // 3) 立即切换只读模式 + 从正式表回显（保证展示的是“锁定后的正式数据”）
+          setReadonlyMode(true, `盘点已正式提交：${formatOwner(cur)}（只读模式）`);
+          await loadDetails(cur, false);
+
+          showMsg(`提交成功：${formatOwner(cur)}（已锁定，只读）`, 'success', 5000);
+          lastContextKey = contextKey(cur);
+        } catch (e) {
+          console.error('commit error:', e);
+          showMsg('提交失败：' + (e && e.message ? e.message : String(e)), 'danger', 8000);
+        } finally {
+          setBtnLoading(btn, false);
+        }
+      }
+
+      async function clearDraftOnServer() {
+        const btn = document.getElementById('mx-clear-draft');
+        const cur = requireStoreAndDate();
+        if (!btn || !cur) return;
+
+        if (isReadonly) {
+          showMsg('该盘点已正式提交，禁止清空草稿/重置', 'warning', 4500);
+          return;
+        }
+
+        if (!confirm('该操作会删除当前店铺+日期 下已保存的草稿数据，且不可恢复。确认清空？')) return;
+
+        setBtnLoading(btn, true);
+        showMsg('正在清空草稿…', 'info', 1200);
+        try {
+          const resp = await fetch('{{ url_for('inventory_stocktake.api_stocktake_reset') }}', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify({store_id: cur.sid, check_date: cur.cd}),
+          });
+
+          const data = await safeJson(resp);
+          if (!resp.ok || !data.ok) throw new Error(data.message || `清空失败(HTTP ${resp.status})`);
+
+          clearInputsOnly();
+          draftCountCache.set(contextKey(cur), 0);
+          showMsg((data.message || '草稿已清空') + `（${formatOwner(cur)}）`, 'success', 5000);
+        } catch (e) {
+          console.error('clearDraftOnServer error:', e);
+          showMsg('清空草稿失败：' + (e && e.message ? e.message : String(e)), 'danger', 8000);
+        } finally {
+          setBtnLoading(btn, false);
+        }
+      }
+
+      // ---------------- context change flow ----------------
+      async function applyContext({silent = false, maybePromptDraft = false} = {}) {
+        const cur = requireStoreAndDate();
+        if (!cur) return;
+
+        const key = contextKey(cur);
+        if (key === lastContextKey && silent) return;
+        lastContextKey = key;
+
+        // bump token to invalidate any in-flight loaders from previous context
+        const myToken = nextContextToken();
+
+        // 切换上下文：必须重置表格（包含未渲染/分页行），确保新日期初始为 0/空
+        await fetchMaterials(true);
+
+        // fetchMaterials(true) 已清空 tbody + touched；这里再保证输入为默认值
+        clearInputsOnly();
+
+        const st = await refreshReadonly(cur, true);
+        if (myToken !== contextToken) return; // stale
+
+        if (st === 'COMMITTED') {
+          await loadDetails(cur, !silent, myToken);
+          return;
+        }
+
+        const n = await getDraftCount(cur);
+        if (myToken !== contextToken) return; // stale
+
+        if (n > 0) {
+          if (maybePromptDraft) {
+            if (confirm(`你已切换到：${formatOwner(cur)}。\n\n检测到已保存草稿 ${n} 行，是否立即加载？`)) {
+              await loadDraft(cur, true, myToken);
+            } else if (!silent) {
+              showMsg(`已切换到：${formatOwner(cur)}（未加载已保存草稿）`, 'secondary', 2500);
+            }
+          } else {
+            await loadDraft(cur, !silent, myToken);
+          }
+        } else if (!silent) {
+          showMsg(`已切换到：${formatOwner(cur)}（无已保存草稿）`, 'secondary', 2500);
+        }
+      }
+
+      function updateUrlQuery(cur) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('store_id', cur.sid);
+        url.searchParams.set('check_date', cur.cd);
+        window.history.replaceState({}, '', url);
+      }
+
+      // ---------------- init & bindings ----------------
+      async function initPage() {
+        await fetchMaterials(true);
+        // 首次：静默应用上下文（不弹窗），若有草稿则静默加载
+        const cur = requireStoreAndDate();
+        if (!cur) return;
+        await applyContext({silent: true, maybePromptDraft: false});
+
+        const st = await fetchStatus(cur);
+        if (st !== 'COMMITTED') {
+          const n = await getDraftCount(cur);
+          if (n > 0) {
+            await loadDraft(cur, false);
+          }
+        }
+      }
+
+
+      // change listeners
+      const storeSel = document.querySelector('select[name="store_id"]');
+      const dateInput = document.querySelector('input[name="check_date"]');
+      if (storeSel) storeSel.addEventListener('change', async () => {
+        const cur = requireStoreAndDate();
+        if (!cur) return;
+        updateUrlQuery(cur);
+        await applyContext({silent: false, maybePromptDraft: true});
+      });
+      if (dateInput) dateInput.addEventListener('change', async () => {
+        const cur = requireStoreAndDate();
+        if (!cur) return;
+        updateUrlQuery(cur);
+        await applyContext({silent: false, maybePromptDraft: true});
+      });
+
+      const btnSave = document.getElementById('mx-save-draft');
+      if (btnSave) btnSave.addEventListener('click', () => saveDraft());
+
+      const btnLoad = document.getElementById('mx-load-draft');
+      if (btnLoad) btnLoad.addEventListener('click', async () => {
+        const cur = requireStoreAndDate();
+        if (!cur) return;
+        await loadDraft(cur, true);
+      });
+
+      const btnCommit = document.getElementById('mx-commit');
+      if (btnCommit) btnCommit.addEventListener('click', () => commit());
+
+      const btnResetUi = document.getElementById('mx-reset-ui');
+      if (btnResetUi) btnResetUi.addEventListener('click', () => {
+        if (!confirm('仅重置当前页面输入，不会删除已保存草稿。确认重置？')) return;
+        clearInputsOnly();
+        showMsg('页面输入已重置（未删除已保存草稿）', 'secondary', 2500);
+      });
+
+      const btnClearDraft = document.getElementById('mx-clear-draft');
+      if (btnClearDraft) btnClearDraft.addEventListener('click', () => clearDraftOnServer());
+
+      // global error catch
+      window.addEventListener('unhandledrejection', (e) => {
+        console.error('Unhandled promise rejection:', e.reason);
+        showMsg('前端异常：' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)), 'danger', 8000);
+      });
+      window.addEventListener('error', (e) => {
+        console.error('Window error:', e.error || e.message);
+        showMsg('前端错误：' + (e.message || '未知错误'), 'danger', 8000);
+      });
+
+      // fire init
+      initPage();
+    })();
+</script>
+{% endblock %}

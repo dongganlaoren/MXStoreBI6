@@ -7,22 +7,25 @@ from flask.cli import with_appcontext
 @click.command("fake-data")
 @with_appcontext
 @click.option("--wipe/--no-wipe", default=True, show_default=True, help="是否先清空业务数据（危险）")
-@click.option("--confirm", default="", help="当 --wipe 时必须输入 WIPE")
+@click.option("--confirm", default="", help="当 --wipe 时必须输入 WIPE（仅在生产防护触发时需要）")
 @click.option("--stores/--no-stores", default=True, show_default=True, help="是否生成门店")
 @click.option("--users/--no-users", default=True, show_default=True, help="是否生成用户")
 @click.option("--daily-sales/--no-daily-sales", default=False, show_default=True, help="是否生成日报数据")
 @click.option("--reimbursement/--no-reimbursement", default=False, show_default=True, help="是否生成报销数据")
 def fake_data_command(wipe, confirm, stores, users, daily_sales, reimbursement):
-    """
-    生成测试数据。
+    """生成测试数据。
 
-    默认会执行 wipe（清空业务数据），为了安全需显式确认：--confirm WIPE。
+    约定：
+    - 默认无参数：清空业务数据（保留 alembic_version）并生成门店+用户。
+    - 为了防止在生产误操作：若检测到生产环境，必须显式输入 --confirm WIPE。
     """
 
+    from flask import current_app
     from app.utils.fake_data import generate_fake_data
 
-    if wipe and confirm != "WIPE":
-        raise click.UsageError("启用 --wipe 时必须同时传入 --confirm WIPE 以防误清库")
+    is_prod = bool(current_app and current_app.config.get("ENV") == "production")
+    if wipe and is_prod and confirm != "WIPE":
+        raise click.UsageError("生产环境启用 --wipe 时必须同时传入 --confirm WIPE 以防误清库")
 
     click.echo("开始生成测试数据...")
     generate_fake_data(

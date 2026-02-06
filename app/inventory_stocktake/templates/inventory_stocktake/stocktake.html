@@ -18,8 +18,8 @@
             {{ form.check_date(class_='form-control') }}
         </div>
         <div class="col-12 col-md-3 d-grid">
-            <label class="form-label">&nbsp;</label>
-            <button class="btn btn-primary" type="submit">进入盘点</button>
+            <label class="form-label">作用：切换店铺/日期</label>
+            <button class="btn btn-primary" type="submit">应用</button>
         </div>
 
         <div class="col-12 col-md-6">
@@ -46,12 +46,12 @@
         <table class="table table-sm table-striped align-middle" id="mx-table">
             <thead>
             <tr>
-                <th>类别</th>
-                <th>物料编码</th>
-                <th>物料名称</th>
-                <th>规格</th>
-                <th style="width:120px;">整件</th>
-                <th style="width:120px;">散件</th>
+                <th class="d-none d-md-table-cell">类别</th>
+                <th class="d-none d-md-table-cell">物料编码</th>
+                <th>物料名称（中/泰）</th>
+                <th class="d-none d-md-table-cell">规格</th>
+                <th style="width:160px;">整件</th>
+                <th style="width:160px;">散件</th>
                 <th style="width:180px;">有效期至</th>
                 <th style="width:120px;">操作</th>
             </tr>
@@ -102,14 +102,28 @@
 
         const tbody = document.querySelector('#mx-table tbody');
         for (const r of data.data.items) {
+          const nameTh = r.th_name || '';
+          const nameDisplay = nameTh ? `${r.cn_name || ''}<br><small class="text-muted">${nameTh}</small>` : (r.cn_name || '');
+          const specDisplay = r.spec_model || '';
+
           const row = el(`\
-            <tr data-code="${r.material_code}">
-              <td>${r.category || ''}</td>
-              <td>${r.material_code}</td>
-              <td>${r.cn_name || ''}</td>
-              <td>${r.spec_model || ''}</td>
-              <td><input class="form-control form-control-sm" type="number" min="0" step="1" value="0" data-field="case"></td>
-              <td><input class="form-control form-control-sm" type="number" min="0" step="1" value="0" data-field="group"></td>
+            <tr data-code="${r.material_code}" data-cn-name="${(r.cn_name || '').replace(/"/g,'&quot;')}" data-spec="${(r.spec_model || '').replace(/"/g,'&quot;')}">
+              <td class="d-none d-md-table-cell">${r.category || ''}</td>
+              <td class="d-none d-md-table-cell">${r.material_code}</td>
+              <td>${nameDisplay}</td>
+              <td class="d-none d-md-table-cell">${specDisplay}</td>
+              <td>
+                <div class="input-group input-group-sm">
+                  <input class="form-control" type="number" min="0" step="1" value="0" data-field="case">
+                  <span class="input-group-text">件</span>
+                </div>
+              </td>
+              <td>
+                <div class="input-group input-group-sm">
+                  <input class="form-control" type="number" min="0" step="1" value="0" data-field="group">
+                  <span class="input-group-text">组</span>
+                </div>
+              </td>
               <td><input class="form-control form-control-sm" type="date" data-field="valid_until"></td>
               <td><button class="btn btn-sm btn-primary" type="button" data-action="save">保存</button></td>
             </tr>`);
@@ -129,8 +143,8 @@
           store_id: storeId,
           check_date: checkDate,
           material_code: code,
-          material_name: tr.children[2].innerText,
-          spec_model: tr.children[3].innerText,
+          material_name: tr.getAttribute('data-cn-name') || tr.children[2].innerText,
+          spec_model: tr.getAttribute('data-spec') || '',
           remaining_case_qty: caseQty,
           remaining_group_qty: groupQty,
           valid_until: validUntil || null,

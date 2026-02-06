@@ -23,6 +23,8 @@ lang_dict = {
 
         # 物料盘点
         'inventory_stocktake': '物料盘点',
+        'inventory_stocktake_records': '盘点记录',
+        'inventory_stocktake_materials': '产品信息管理',
 
         # 报表子项
         'sales_daily': '销售日报',
@@ -279,6 +281,8 @@ lang_dict = {
 
         # 物料盘点
         'inventory_stocktake': 'ตรวจนับสต็อกวัสดุ',
+        'inventory_stocktake_records': 'ประวัติการตรวจนับ',
+        'inventory_stocktake_materials': 'จัดการข้อมูลสินค้า',
 
         # Reports
         'sales_daily': 'รายงานประจำวัน',

@@ -5,7 +5,7 @@ import tempfile
 from datetime import date
 
 from flask import flash, redirect, render_template, request, url_for, send_file, current_app
-from flask_login import current_user, login_required
+from flask_login import login_required
 
 from app.extensions import db
 from app.inventory_stocktake import inventory_stocktake_bp
@@ -13,8 +13,8 @@ from app.inventory_stocktake.forms import StocktakeFilterForm
 from app.inventory_stocktake.models import MXMaterialInfo
 from app.inventory_stocktake.services.material_service import upsert_materials
 from app.inventory_stocktake.services.period_service import default_stocktake_date
+from app.inventory_stocktake.services.store_access_service import get_accessible_stores
 from app.inventory_stocktake.utils.excel_parser import parse_material_template
-from app.models.store import Store
 
 
 @inventory_stocktake_bp.route("/")
@@ -138,27 +138,26 @@ def material_import():
 @inventory_stocktake_bp.route("/stocktake", methods=["GET"])
 @login_required
 def stocktake_page():
-    """库存盘点录入页（第一版占位）。
+    """库存盘点录入（新版本）：
 
-    需求口径：每月最后一天闭店后盘点，第二天录入系统。
-    因此默认日期 = 上个月最后一天，但允许用户修改日期做补录。
-
-    说明：盘点明细录入（物料列表、分页、保存）将通过同域内部接口增强交互，后续迭代完善。
+    - 默认绑定当前登录用户所属店铺（BRANCH_MANAGER/EMPLOYEE）
+    - ADMIN/HEAD_MANAGER 可选择全部店铺
+    - 选择盘点日期
+    - 取消搜索，保留重置
+    - 取消单行保存，改为统一保存；支持草稿保存与正式提交
     """
 
     form = StocktakeFilterForm()
 
-    stores = Store.query.order_by(Store.store_id.asc()).all()
+    stores, default_store_id, locked = get_accessible_stores()
     form.store_id.choices = [(s.store_id, f"{s.store_id} - {s.store_name}") for s in stores]
 
-    # 默认店铺：员工/店长取自己的 store_id；管理员取列表第一项
-    default_store_id = None
-    if hasattr(current_user, "store_id") and getattr(current_user, "store_id"):
-        default_store_id = current_user.store_id
-    elif stores:
-        default_store_id = stores[0].store_id
-
     store_id = request.args.get("store_id") or default_store_id
+    if locked:
+        store_id = default_store_id
+
+    if not store_id:
+        flash("当前用户未绑定店铺，无法进行盘点录入", "warning")
 
     check_date_str = request.args.get("check_date")
     if check_date_str:
@@ -170,14 +169,51 @@ def stocktake_page():
     else:
         d = default_stocktake_date()
 
-    # 表单默认值
     if store_id:
         form.store_id.data = store_id
     form.check_date.data = d
 
     return render_template(
-        "inventory_stocktake/stocktake.html",
+        "inventory_stocktake/stocktake_entry.html",
         form=form,
         store_id=store_id,
-        check_date=d,  # template will stringify to ISO
+        check_date=d,
+        store_locked=locked,
+    )
+
+
+@inventory_stocktake_bp.route("/records", methods=["GET"])
+@login_required
+def stocktake_records_page():
+    """盘点记录：查询各店铺每次盘点信息，并可计算库存价值（泰铢）。"""
+
+    form = StocktakeFilterForm()
+    stores, default_store_id, locked = get_accessible_stores()
+    form.store_id.choices = [(s.store_id, f"{s.store_id} - {s.store_name}") for s in stores]
+
+    store_id = request.args.get("store_id") or default_store_id
+    if locked:
+        store_id = default_store_id
+
+    # records页日期用于筛选（可空）
+    check_date_str = request.args.get("check_date")
+    d = None
+    if check_date_str:
+        try:
+            d = date.fromisoformat(check_date_str)
+        except Exception:
+            d = None
+            flash("check_date 参数格式错误", "warning")
+
+    if store_id:
+        form.store_id.data = store_id
+    if d:
+        form.check_date.data = d
+
+    return render_template(
+        "inventory_stocktake/records.html",
+        form=form,
+        store_id=store_id,
+        check_date=d,
+        store_locked=locked,
     )
