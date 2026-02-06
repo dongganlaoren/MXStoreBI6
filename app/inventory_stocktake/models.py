@@ -96,9 +96,14 @@ class MXInventoryCheck(db.Model):
 
 
 class MXInventoryDraft(db.Model):
-    """盘点草稿明细：用于临时存放某店铺某一天的录入内容。
+    """盘点草稿明细：用于临时存放某店铺的录入内容。
 
-    正式提交后会被清空；正式盘点数据写入 MXInventoryCheck 并被锁定。
+    原始实现按“店铺 + 日期 + 物料编码”区分草稿。
+    现在按产品规则调整为：每个店铺仅允许 1 份有效草稿（与日期无关）。
+
+    - 同一店铺再次保存草稿会覆盖之前草稿（逐物料 upsert）。
+    - check_date 作为“最后一次保存草稿时选择的日期”保留，用于展示与回显。
+    - 正式提交成功后会清空该店铺所有草稿（所有日期/历史）。
     """
 
     __tablename__ = "mx_inventory_draft"
@@ -106,7 +111,7 @@ class MXInventoryDraft(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     store_id = db.Column(db.String(32), nullable=False, index=True, comment="店铺ID")
-    check_date = db.Column(db.Date, nullable=False, index=True, comment="盘点日期")
+    check_date = db.Column(db.Date, nullable=False, index=True, comment="最后保存草稿时选择的盘点日期")
 
     material_code = db.Column(db.String(64), nullable=False, index=True, comment="物料编码")
     material_name = db.Column(db.String(255), nullable=False, comment="物料名称（冗余，便于展示）")
@@ -124,5 +129,5 @@ class MXInventoryDraft(db.Model):
                           comment="关联盘点单头")
 
     __table_args__ = (
-        db.UniqueConstraint("store_id", "check_date", "material_code", name="uq_draft_store_date_material"),
+        db.UniqueConstraint("store_id", "material_code", name="uq_draft_store_material"),
     )

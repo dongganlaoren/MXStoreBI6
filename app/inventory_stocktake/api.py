@@ -271,22 +271,32 @@ def api_stocktake_headers():
 @inventory_stocktake_bp.route("/api/stocktake/draft", methods=["GET"])
 @login_required
 def api_stocktake_draft():
-    """加载草稿明细：返回指定店铺+盘点日期的已保存明细（用于回填页面）。"""
+    """加载草稿明细：返回指定店铺当前唯一有效草稿。
+
+    产品规则：每个店铺当前只允许 1 份有效草稿。
+
+    Query:
+      - store_id (required)
+      - check_date (optional, backward-compat; ignored for identity)
+    """
 
     store_id = request.args.get("store_id")
+    # check_date is kept for backward compatibility, but no longer required
     check_date_str = request.args.get("check_date")
-    if not store_id or not check_date_str:
-        return jsonify({"ok": False, "message": "store_id 和 check_date 必填"}), 400
+    d = None
+    if check_date_str:
+        try:
+            d = date.fromisoformat(check_date_str)
+        except Exception:
+            return jsonify({"ok": False, "message": "check_date 格式必须为 YYYY-MM-DD"}), 400
 
-    try:
-        d = date.fromisoformat(check_date_str)
-    except Exception:
-        return jsonify({"ok": False, "message": "check_date 格式必须为 YYYY-MM-DD"}), 400
+    if not store_id:
+        return jsonify({"ok": False, "message": "store_id 必填"}), 400
 
     from app.inventory_stocktake.services.stocktake_header_service import load_draft_details
 
     try:
-        items = load_draft_details(store_id=store_id, check_date=d)
+        items = load_draft_details(store_id=store_id, check_date=d or date.today())
         return jsonify({"ok": True, "data": {"items": items}})
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 400

@@ -215,8 +215,17 @@
 
       // normalize string keys (material_code, data-code)
       function normCode(v) {
-        return (v === null || v === undefined) ? '' : String(v).trim();
+        let s = (v === null || v === undefined) ? '' : String(v).trim();
+        if (!s) return '';
+
+        // common confusion: letter 'O' used instead of zero in codes, e.g. MO01 -> M001
+        // apply only to the numeric suffix part to avoid over-correction.
+        s = s.replace(/^(M)[oO](\d+)/, (_m, p1, p2) => `${p1}0${p2}`);
+        s = s.replace(/^(M\d+)[oO](\d+)$/, (_m, p1, p2) => `${p1}0${p2}`);
+
+        return s;
       }
+
       // 兜底：避免浏览器缓存/局部刷新导致脚本顺序异常
       window.normCode = window.normCode || normCode;
 
@@ -298,6 +307,22 @@
         return `店铺 ${cur.sid} / 日期 ${cur.cd}`;
       }
 
+      // store-scoped draft key (one effective draft per store)
+      // Updated: keys should be per-date for display purposes
+      function draftKey(cur) {
+        return `${cur.sid}|${cur.cd}`;
+      }
+
+      // brief highlight to make draft load visible on mobile even when values are 0
+      function flashRow(tr) {
+        if (!tr) return;
+        tr.style.transition = 'box-shadow 0.25s ease';
+        tr.style.boxShadow = '0 0 0 3px rgba(25,135,84,0.35)';
+        setTimeout(() => {
+          tr.style.boxShadow = '';
+        }, 900);
+      }
+
       function updateDirtyCount() {
         const el = document.getElementById('mx-dirty-count');
         if (!el) return;
@@ -306,8 +331,31 @@
 
       function getPayloadFromRow(tr) {
         const code = tr.getAttribute('data-code');
-        const vCase = tr.querySelector('[data-field="case"]').value;
-        const vGroup = tr.querySelector('[data-field="group"]').value;
+
+        // Helper: get value from the currently visible input (desktop or mobile)
+        const getVal = (field) => {
+           const inputs = tr.querySelectorAll(`[data-field="${field}"]`);
+
+           // Priority 1: The visible input
+           for (const inp of inputs) {
+               if (inp.offsetParent !== null) {
+                   return inp.value;
+               }
+           }
+
+           // Priority 2: Fallback (if somehow none visible, e.g. detached or aggressive hiding)
+           // Prefer the last non-empty input
+           let val = '';
+           for (const inp of inputs) {
+             if (inp.value && inp.value.trim() !== '') val = inp.value;
+           }
+           return val;
+        };
+
+        const vCase = getVal('case');
+        const vGroup = getVal('group');
+        const vDate = getVal('valid_until');
+
         const normNum = (v) => {
           if (v === null || v === undefined) return 0;
           const s = String(v).trim();
@@ -319,7 +367,7 @@
           material_code: code,
           remaining_case_qty: normNum(vCase),
           remaining_group_qty: normNum(vGroup),
-          valid_until: tr.querySelector('[data-field="valid_until"]').value || null,
+          valid_until: vDate || null,
         };
       }
 
@@ -363,13 +411,10 @@
         const isMobile = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
 
         document.querySelectorAll('#mx-table tbody tr').forEach(tr => {
-          const caseEl = tr.querySelector('[data-field="case"]');
-          const groupEl = tr.querySelector('[data-field="group"]');
-          const dateEl = tr.querySelector('[data-field="valid_until"]');
-
-          if (caseEl) caseEl.value = isMobile ? '' : '0';
-          if (groupEl) groupEl.value = isMobile ? '' : '0';
-          if (dateEl) dateEl.value = '';
+          // Update ALL matching inputs
+          tr.querySelectorAll('[data-field="case"]').forEach(el => el.value = isMobile ? '' : '0');
+          tr.querySelectorAll('[data-field="group"]').forEach(el => el.value = isMobile ? '' : '0');
+          tr.querySelectorAll('[data-field="valid_until"]').forEach(el => el.value = '');
 
           tr.classList.remove('mx-dirty-row');
         });
@@ -399,12 +444,31 @@
         });
       }
 
-      function setQtyValueForMode(inputEl, qty) {
-        if (!inputEl) return;
+      function setQtyValueForMode(rowOrList, qty) {
+        // Handle list of inputs (from querySelectorAll)
+        const inputs = (rowOrList instanceof NodeList || Array.isArray(rowOrList))
+            ? rowOrList
+            : (rowOrList ? [rowOrList] : []);
+
         const isMobile = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
-        const v = (qty === null || qty === undefined) ? 0 : Number(qty);
-        const isZero = !Number.isFinite(v) || v === 0;
-        inputEl.value = (isMobile && isZero) ? '' : String(isZero ? 0 : v);
+
+        inputs.forEach(inputEl => {
+          if (!inputEl) return;
+          if (qty === null || qty === undefined || String(qty).trim() === '') {
+            inputEl.value = isMobile ? '' : '0';
+            return;
+          }
+
+          const v = Number(qty);
+          if (!Number.isFinite(v)) {
+            inputEl.value = isMobile ? '' : '0';
+            return;
+          }
+
+          // If value is 0, mobile prefers empty string to show placeholder?
+          // If we want explicit 0, set '0'.
+          inputEl.value = String(v);
+        });
       }
 
       async function fetchMaterials(resetPage = false) {
@@ -523,12 +587,13 @@
       }
 
       async function getDraftCount(cur) {
-        const key = contextKey(cur);
+        const key = draftKey(cur);
         if (draftCountCache.has(key)) return draftCountCache.get(key);
 
         const url = new URL(window.location.origin + '{{ url_for('inventory_stocktake.api_stocktake_draft') }}');
         url.searchParams.set('store_id', cur.sid);
         url.searchParams.set('check_date', cur.cd);
+        url.searchParams.set('_t', Date.now()); // Prevent browser caching
 
         const resp = await fetch(url, {credentials: 'same-origin'});
         const data = await safeJson(resp);
@@ -563,9 +628,9 @@
           document.querySelectorAll('#mx-table tbody tr').forEach(tr => {
             const it = map.get(tr.getAttribute('data-code'));
             if (!it) return;
-            setQtyValueForMode(tr.querySelector('[data-field="case"]'), it.remaining_case_qty);
-            setQtyValueForMode(tr.querySelector('[data-field="group"]'), it.remaining_group_qty);
-            tr.querySelector('[data-field="valid_until"]').value = it.valid_until || '';
+            setQtyValueForMode(tr.querySelectorAll('[data-field="case"]'), it.remaining_case_qty);
+            setQtyValueForMode(tr.querySelectorAll('[data-field="group"]'), it.remaining_group_qty);
+            tr.querySelectorAll('[data-field="valid_until"]').forEach(el => el.value = it.valid_until || '');
             filled += 1;
           });
 
@@ -592,6 +657,7 @@
         const url = new URL(window.location.origin + '{{ url_for('inventory_stocktake.api_stocktake_draft') }}');
         url.searchParams.set('store_id', cur.sid);
         url.searchParams.set('check_date', cur.cd);
+        url.searchParams.set('_t', Date.now()); // Prevent browser caching
 
         if (showToast) {
           setBtnLoading(btn, true);
@@ -605,26 +671,40 @@
           if (!resp.ok || !data.ok) throw new Error(data.message || `加载失败(HTTP ${resp.status})`);
 
           const items = (data.data && Array.isArray(data.data.items)) ? data.data.items : [];
-          draftCountCache.set(contextKey(cur), items.length);
+          draftCountCache.set(draftKey(cur), items.length);
 
+          // Build a multi-map to handle potential collisions (e.g. M001 vs MO01)
+          // Priority: Exact code match > Normalized match
           const map = new Map();
           for (const it of items) {
             const code = normCode(it.material_code);
             if (!code) continue;
-            map.set(code, it);
+            if (!map.has(code)) map.set(code, []);
+            map.get(code).push(it);
           }
 
           // 补齐草稿中存在但物料分页列表中缺失的行
           ensureDraftRowsExist(map);
 
           let filled = 0;
+          const filledCodes = [];
           document.querySelectorAll('#mx-table tbody tr').forEach(tr => {
-            const it = map.get(normCode(tr.getAttribute('data-code')));
-            if (!it) return;
-            setQtyValueForMode(tr.querySelector('[data-field="case"]'), it.remaining_case_qty);
-            setQtyValueForMode(tr.querySelector('[data-field="group"]'), it.remaining_group_qty);
-            tr.querySelector('[data-field="valid_until"]').value = it.valid_until || '';
+            const rowCode = tr.getAttribute('data-code');
+            const nCode = normCode(rowCode);
+
+            const candidates = map.get(nCode);
+            if (!candidates) return;
+
+            // Priority: Exact match -> First match
+            let it = candidates.find(x => x.material_code === rowCode);
+            if (!it) it = candidates[0];
+
+            setQtyValueForMode(tr.querySelectorAll('[data-field="case"]'), it.remaining_case_qty);
+            setQtyValueForMode(tr.querySelectorAll('[data-field="group"]'), it.remaining_group_qty);
+            tr.querySelectorAll('[data-field="valid_until"]').forEach(el => el.value = it.valid_until || '');
             filled += 1;
+            filledCodes.push(nCode);
+            flashRow(tr);
           });
 
           touched.clear();
@@ -637,7 +717,8 @@
           if (showToast) {
             const miss = items.length - filled;
             const extra = miss > 0 ? `（有 ${miss} 行草稿未能匹配到当前物料列表）` : '';
-            showMsg(`草稿已加载：${formatOwner(cur)}（回填 ${filled} 行）${extra}`, filled > 0 ? 'secondary' : 'warning', 6000);
+            const codesTip = filledCodes.length > 0 ? `\n已回填：${filledCodes.slice(0, 8).join(', ')}${filledCodes.length > 8 ? '…' : ''}` : '';
+            showMsg(`草稿已加载：${formatOwner(cur)}（回填 ${filled} 行）${extra}${codesTip}`, filled > 0 ? 'success' : 'warning', 6500);
           }
         } finally {
           if (showToast) setBtnLoading(btn, false);
@@ -652,10 +733,16 @@
         const existing = new Set();
         tbody.querySelectorAll('tr[data-code]').forEach(tr => existing.add(normCode(tr.getAttribute('data-code'))));
 
-        for (const [code0, it] of map.entries()) {
-          const code = normCode(code0);
-          if (!code) continue;
-          if (existing.has(code)) continue;
+        for (const [code0, candidates] of map.entries()) {
+          const nCode = normCode(code0);
+          if (!nCode) continue;
+          if (existing.has(nCode)) continue;
+
+          // If multiple candidates exist for same normalized code but are not in table,
+          // we just pick the first one to display (or arguably we should display all distinct codes?)
+          // For now, picking first one is enough to show "something is there".
+          const it = candidates[0];
+          const code = it.material_code;
 
           const row = el(`\
               <tr data-code="${code}">
@@ -723,11 +810,23 @@
 
       async function saveDraft() {
         const btn = document.getElementById('mx-save-draft');
-        const items = Array.from(touched.values());
-        if (items.length === 0) {
-          showMsg('没有变更，无需保存', 'secondary');
-          return;
-        }
+
+        // Change: Full snapshot save instead of incremental "touched".
+        // Requirement: "New overwrites old".
+        // Collect all rows with non-empty data.
+        const items = [];
+        document.querySelectorAll('#mx-table tbody tr').forEach(tr => {
+            const p = getPayloadFromRow(tr);
+            // Only include rows that have some data worth saving
+            // (qty > 0 OR has valid_until)
+            if (p.remaining_case_qty > 0 || p.remaining_group_qty > 0 || p.valid_until) {
+                items.push(p);
+            }
+        });
+
+        // Even if items is empty, we might want to save (to clear draft).
+        // But usually user expects to save something.
+        // If empty, it effectively clears the draft for this store.
 
         const cur = requireStoreAndDate();
         if (!cur) return;
@@ -738,39 +837,43 @@
         }
 
         setBtnLoading(btn, true);
-        showMsg('正在保存草稿…', 'info', 1500);
+        showMsg('正在保存草稿（全量覆盖）…', 'info', 1500);
 
         try {
           const resp = await fetch('{{ url_for('inventory_stocktake.api_stocktake_save_batch') }}', {
             method: 'POST',
             credentials: 'same-origin',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            // Always send all current non-empty items
             body: JSON.stringify({store_id: cur.sid, check_date: cur.cd, items}),
           });
 
           const data = await safeJson(resp);
           if (!resp.ok || !data.ok) throw new Error(data.message || `保存失败(HTTP ${resp.status})`);
 
+          // Clear dirty state since we just saved everything valid on screen
           document.querySelectorAll('#mx-table tbody tr.mx-dirty-row').forEach(tr => tr.classList.remove('mx-dirty-row'));
           touched.clear();
           updateDirtyCount();
 
           lastContextKey = contextKey(cur);
 
-          // 保存后用“重新读取草稿”来刷新行数缓存，避免提示行数越来越大
+          // Refresh cache
+          // Critical Fix: Since saving overwrites/clears ALL drafts for this store (including other dates),
+          // we must invalidate the ENTIRE cache or at least all entries for this store.
+          // Simply clearing the map is safest and easiest.
+          draftCountCache.clear();
+
+          // Re-populate current context count immediately
           try {
-            draftCountCache.delete(lastContextKey);
             const n2 = await getDraftCount(cur);
-            draftCountCache.set(lastContextKey, n2);
+            // This is effectively a no-op since getDraftCount sets the cache, but good for flow
           } catch (e) {
             console.warn('refresh draft count after save failed:', e);
-            draftCountCache.delete(lastContextKey);
           }
 
           const saved = data.data && typeof data.data.saved === 'number' ? data.data.saved : null;
-          const failed = data.data && typeof data.data.failed === 'number' ? data.data.failed : null;
-          const summary = (saved === null) ? '' : `（成功${saved}条${failed !== null ? '，失败' + failed + '条' : ''}）`;
-          showMsg(`草稿已保存：${formatOwner(cur)} ${summary}`, 'success', 5000);
+          showMsg(`草稿已保存：${formatOwner(cur)}（覆盖保存 ${saved} 条）`, 'success', 5000);
         } catch (e) {
           console.error('saveDraft error:', e);
           showMsg('保存草稿失败：' + (e && e.message ? e.message : String(e)), 'danger', 8000);
@@ -819,7 +922,7 @@
           document.querySelectorAll('#mx-table tbody tr.mx-dirty-row').forEach(tr => tr.classList.remove('mx-dirty-row'));
 
           // 2) 提交成功后：草稿已在后端清空（传统提交流程会清空）；直提不一定涉及草稿，这里统一刷新 cache
-          draftCountCache.set(contextKey(cur), 0);
+          draftCountCache.set(draftKey(cur), 0);
 
           // 3) 立即切换只读模式 + 从正式表回显（保证展示的是“锁定后的正式数据”）
           setReadonlyMode(true, `盘点已正式提交：${formatOwner(cur)}（只读模式）`);
@@ -861,7 +964,7 @@
           if (!resp.ok || !data.ok) throw new Error(data.message || `清空失败(HTTP ${resp.status})`);
 
           clearInputsOnly();
-          draftCountCache.set(contextKey(cur), 0);
+          draftCountCache.set(draftKey(cur), 0);
           showMsg((data.message || '草稿已清空') + `（${formatOwner(cur)}）`, 'success', 5000);
         } catch (e) {
           console.error('clearDraftOnServer error:', e);
