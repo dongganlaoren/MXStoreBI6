@@ -1,0 +1,42 @@
+位于分支 feature/inventory-stocktake
+您的分支与上游分支 'origin/feature/inventory-stocktake' 一致。
+
+要提交的变更：
+  （使用 "git restore --staged <文件>..." 以取消暂存）
+	新文件：   app/utils/decorators.py
+	新文件：   check_materials.py
+	新文件：   migrations/versions/454871eb1a85_add_total_value_thb_to_mx_stocktake_.py
+	新文件：   test_api_client.py
+	新文件：   test_api_materials.py
+	新文件：   test_material_access.py
+	新文件：   test_query_filter.py
+	新文件：   test_search.py
+	新文件：   tests/test_inventory_stocktake/test_records_and_value.py
+
+尚未暂存以备提交的变更：
+  （使用 "git add/rm <文件>..." 更新要提交的内容）
+  （使用 "git restore <文件>..." 丢弃工作区的改动）
+	修改：     app/inventory_stocktake/api.py
+	修改：     app/inventory_stocktake/forms.py
+	修改：     app/inventory_stocktake/models.py
+	修改：     app/inventory_stocktake/services/material_query_service.py
+	修改：     app/inventory_stocktake/services/stocktake_header_service.py
+	修改：     app/inventory_stocktake/services/value_calc_service.py
+	修改：     app/inventory_stocktake/templates/inventory_stocktake/material.html
+	修改：     app/inventory_stocktake/templates/inventory_stocktake/records.html
+	修改：     app/inventory_stocktake/templates/inventory_stocktake/stocktake_entry.html
+	修改：     app/inventory_stocktake/views.py
+	修改：     app/utils/decorators.py
+	删除：     check_materials.py
+	修改：     migrations/versions/454871eb1a85_add_total_value_thb_to_mx_stocktake_.py
+	删除：     test_api_client.py
+	删除：     test_api_materials.py
+	删除：     test_material_access.py
+	删除：     test_query_filter.py
+	删除：     test_search.py
+	删除：     tests/test_inventory_stocktake/test_records_and_value.py
+
+未跟踪的文件:
+  （使用 "git add <文件>..." 以包含要提交的内容）
+	git_status.txt
+

@@ -10,6 +10,7 @@ from sqlalchemy.exc import OperationalError
 from app.extensions import db
 from app.inventory_stocktake.models import MXInventoryCheck, MXInventoryDraft, MXMaterialInfo, MXStocktakeHeader
 from app.inventory_stocktake.services.store_access_service import get_accessible_stores
+from app.inventory_stocktake.services.value_calc_service import calc_values
 from app.inventory_stocktake.utils.validators import ValidationError, parse_non_negative_int, require_non_empty
 
 
@@ -238,6 +239,13 @@ def commit_stocktake_with_items(
         rec.header_id = header.id
         ok += 1
 
+    db.session.flush()
+    try:
+        _, _, total_val = calc_values(store_id, check_date)
+        header.total_value_thb = total_val
+    except Exception as e:
+        raise ValidationError(str(e))
+
     header.status = "COMMITTED"
     header.committed_by = operator
     header.committed_at = datetime.utcnow()
@@ -286,6 +294,13 @@ def commit_stocktake(*, store_id: str, check_date: date, operator: Optional[str]
         rec.operated_at = datetime.utcnow()
         rec.header_id = header.id
 
+    db.session.flush()
+    try:
+        _, _, total_val = calc_values(store_id, check_date)
+        header.total_value_thb = total_val
+    except Exception as e:
+        raise ValidationError(str(e))
+
     header.status = "COMMITTED"
     header.committed_by = operator
     header.committed_at = datetime.utcnow()
@@ -298,7 +313,9 @@ def commit_stocktake(*, store_id: str, check_date: date, operator: Optional[str]
     return CommitResult(header_id=header.id, message="提交成功")
 
 
-def list_stocktake_headers(*, store_id: Optional[str], status: Optional[str], page: int, page_size: int) -> Tuple[
+def list_stocktake_headers(*, store_id: Optional[str], status: Optional[str],
+                           start_date: Optional[date] = None, end_date: Optional[date] = None,
+                           page: int, page_size: int) -> Tuple[
     List[dict], int]:
     page = max(int(page or 1), 1)
     page_size = min(max(int(page_size or 50), 1), 200)
@@ -317,6 +334,13 @@ def list_stocktake_headers(*, store_id: Optional[str], status: Optional[str], pa
 
     if status:
         q = q.filter(MXStocktakeHeader.status == status)
+    else:
+        q = q.filter(MXStocktakeHeader.status == "COMMITTED")
+
+    if start_date:
+        q = q.filter(MXStocktakeHeader.check_date >= start_date)
+    if end_date:
+        q = q.filter(MXStocktakeHeader.check_date <= end_date)
 
     total = q.count()
     rows = (
@@ -333,6 +357,7 @@ def list_stocktake_headers(*, store_id: Optional[str], status: Optional[str], pa
                 "store_id": r.store_id,
                 "check_date": r.check_date.isoformat(),
                 "status": r.status,
+                "total_value_thb": str(r.total_value_thb) if r.total_value_thb is not None else None,
                 "created_by": r.created_by,
                 "committed_by": r.committed_by,
                 "committed_at": r.committed_at.isoformat() if r.committed_at else None,
@@ -349,8 +374,10 @@ def load_stocktake_details(*, store_id: str, check_date: date) -> List[dict]:
     _ensure_store_access(store_id)
 
     rows = (
-        MXInventoryCheck.query.filter_by(store_id=store_id, check_date=check_date)
-        .order_by(MXInventoryCheck.material_code.asc())
+        db.session.query(MXInventoryCheck)
+        .join(MXMaterialInfo, MXInventoryCheck.material_code == MXMaterialInfo.material_code)
+        .filter(MXInventoryCheck.store_id == store_id, MXInventoryCheck.check_date == check_date)
+        .order_by(MXMaterialInfo.category.asc(), MXMaterialInfo.material_code.asc())
         .all()
     )
 
@@ -379,8 +406,10 @@ def load_draft_details(*, store_id: str, check_date: date) -> List[dict]:
 
     try:
         rows = (
-            MXInventoryDraft.query.filter_by(store_id=store_id, check_date=check_date)
-            .order_by(MXInventoryDraft.material_code.asc())
+            db.session.query(MXInventoryDraft)
+            .join(MXMaterialInfo, MXInventoryDraft.material_code == MXMaterialInfo.material_code)
+            .filter(MXInventoryDraft.store_id == store_id, MXInventoryDraft.check_date == check_date)
+            .order_by(MXMaterialInfo.category.asc(), MXMaterialInfo.material_code.asc())
             .all()
         )
     except OperationalError as e:

@@ -6,16 +6,19 @@
     <p class="text-muted">查询各店铺的每一次盘点信息，并可计算该次盘点库存价值（泰铢）。</p>
 
     <form class="row g-3" method="get">
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-md-4">
             <label class="form-label">店铺</label>
             {{ form.store_id(class_='form-select', disabled=store_locked) }}
         </div>
         <div class="col-12 col-md-3">
-            <label class="form-label">盘点日期（可选）</label>
-            {{ form.check_date(class_='form-control') }}
-            <div class="form-text">不填则返回该店铺所有盘点记录</div>
+            <label class="form-label">开始日期</label>
+            {{ form.start_date(class_='form-control') }}
         </div>
-        <div class="col-12 col-md-3 d-grid">
+        <div class="col-12 col-md-3">
+            <label class="form-label">结束日期</label>
+            {{ form.end_date(class_='form-control') }}
+        </div>
+        <div class="col-12 col-md-2 d-grid">
             <label class="form-label">&nbsp;</label>
             <button class="btn btn-primary" type="submit">查询</button>
         </div>
@@ -29,32 +32,22 @@
             <tr>
                 <th>店铺</th>
                 <th>盘点日期</th>
-                <th>状态</th>
                 <th>提交时间</th>
-                <th style="width:140px;">操作</th>
+                <th>库存价值 (THB)</th>
+                <th style="width: 140px;">明细</th>
             </tr>
             </thead>
             <tbody></tbody>
+            <tfoot>
+            <tr>
+                <th colspan="3" class="text-end">汇总总价值：</th>
+                <th id="mx-summary-total">0.00</th>
+                <th></th>
+            </tr>
+            </tfoot>
         </table>
     </div>
 
-    <div class="card mt-3" id="mx-value-card" style="display:none;">
-        <div class="card-body">
-            <h5 class="card-title">库存价值（泰铢）</h5>
-            <p class="mb-1">总价值：<strong id="mx-total"></strong></p>
-            <div class="table-responsive">
-                <table class="table table-sm">
-                    <thead>
-                    <tr>
-                        <th>类别</th>
-                        <th>价值</th>
-                    </tr>
-                    </thead>
-                    <tbody id="mx-cat-sum"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}
 
@@ -62,7 +55,9 @@
 <script>
     (function() {
       const storeId = {{ (store_id or '')|tojson }};
-      const checkDate = {{ (check_date|string if check_date else '')|tojson }};
+      const startDate = {{ (start_date|string if start_date else '')|tojson }};
+      const endDate = {{ (end_date|string if end_date else '')|tojson }};
+      const stocktakeBaseUrl = {{ url_for('inventory_stocktake.stocktake_page')|tojson }};
 
       function el(html) {
         const t = document.createElement('template');
@@ -70,9 +65,18 @@
         return t.content.firstChild;
       }
 
+      function buildDetailUrl(r) {
+        const u = new URL(window.location.origin + stocktakeBaseUrl);
+        if (r.store_id) u.searchParams.set('store_id', r.store_id);
+        if (r.check_date) u.searchParams.set('check_date', r.check_date);
+        return u.toString();
+      }
+
       async function loadRecords() {
         const url = new URL(window.location.origin + '{{ url_for('inventory_stocktake.api_stocktake_headers') }}');
         if (storeId) url.searchParams.set('store_id', storeId);
+        if (startDate) url.searchParams.set('start_date', startDate);
+        if (endDate) url.searchParams.set('end_date', endDate);
 
         const resp = await fetch(url, {credentials: 'same-origin'});
         const data = await resp.json();
@@ -84,47 +88,32 @@
         const tbody = document.querySelector('#mx-records-table tbody');
         tbody.innerHTML = '';
 
+        let totalSum = 0;
+
         for (const r of data.data.items) {
+          const val = r.total_value_thb === null ? 0 : parseFloat(r.total_value_thb);
+          totalSum += val;
+
+          const detailUrl = buildDetailUrl(r);
+          const valDisplay = val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
           const tr = el(`\
             <tr>
               <td>${r.store_id}</td>
               <td>${r.check_date}</td>
-              <td>${r.status}</td>
               <td>${r.committed_at || ''}</td>
-              <td><button class="btn btn-sm btn-outline-primary" type="button" data-action="value" data-store="${r.store_id}" data-date="${r.check_date}">计算价值</button></td>
+              <td>${valDisplay}</td>
+              <td>
+                <a class="btn btn-sm btn-outline-primary" href="${detailUrl}" target="_blank" rel="noopener">
+                  查看盘点明细
+                </a>
+              </td>
             </tr>`);
           tbody.appendChild(tr);
         }
+
+        document.getElementById('mx-summary-total').innerText = totalSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
       }
-
-      async function calcValue(store, dateStr) {
-        const url = new URL(window.location.origin + '{{ url_for('inventory_stocktake.api_value_calc') }}');
-        url.searchParams.set('store_id', store);
-        url.searchParams.set('check_date', dateStr);
-
-        const resp = await fetch(url, {credentials: 'same-origin'});
-        const data = await resp.json();
-        if (!data.ok) {
-          alert(data.message || '计算失败');
-          return;
-        }
-
-        document.getElementById('mx-value-card').style.display = '';
-        document.getElementById('mx-total').innerText = data.data.total;
-
-        const tbody = document.getElementById('mx-cat-sum');
-        tbody.innerHTML = '';
-        const entries = Object.entries(data.data.category_sum || {});
-        for (const [k, v] of entries) {
-          tbody.appendChild(el(`<tr><td>${k}</td><td>${v}</td></tr>`));
-        }
-      }
-
-      document.querySelector('#mx-records-table tbody').addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-action="value"]');
-        if (!btn) return;
-        calcValue(btn.getAttribute('data-store'), btn.getAttribute('data-date'));
-      });
 
       loadRecords();
     })();

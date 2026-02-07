@@ -6,6 +6,7 @@ from datetime import date
 
 from flask import flash, redirect, render_template, request, url_for, send_file, current_app
 from flask_login import login_required
+from sqlalchemy import distinct
 
 from app.extensions import db
 from app.inventory_stocktake import inventory_stocktake_bp
@@ -15,6 +16,8 @@ from app.inventory_stocktake.services.material_service import upsert_materials
 from app.inventory_stocktake.services.period_service import default_stocktake_date
 from app.inventory_stocktake.services.store_access_service import get_accessible_stores
 from app.inventory_stocktake.utils.excel_parser import parse_material_template
+from app.models.enums import RoleType
+from app.utils.decorators import role_required
 
 
 @inventory_stocktake_bp.route("/")
@@ -39,6 +42,7 @@ def material_template_download():
 
 @inventory_stocktake_bp.route("/material", methods=["GET", "POST"])
 @login_required
+@role_required(RoleType.ADMIN.name)
 def material_import():
     """产品信息维护页：
 
@@ -46,6 +50,13 @@ def material_import():
     - 支持 Excel 批量导入（新增/更新）
     - 支持对已有产品做基本字段维护（表格编辑）
     """
+
+    # 获取去重类别列表供下拉框使用
+    existing_categories = [r[0] for r in
+                           db.session.query(distinct(MXMaterialInfo.category)).order_by(MXMaterialInfo.category).all()]
+    if not existing_categories:
+        # 提供一些默认值以防数据库完全为空
+        existing_categories = ["食材类", "包材类", "耗材类"]
 
     summary = None
 
@@ -75,6 +86,13 @@ def material_import():
             flash("安全库存必须为整数或留空", "warning")
             return redirect(url_for("inventory_stocktake.material_import"))
 
+        try:
+            m.per_group_qty = int(request.form.get("per_group_qty")) if (request.form.get(
+                "per_group_qty") or "").strip() != "" else m.per_group_qty
+        except Exception:
+            flash("每件组数必须为整数", "warning")
+            return redirect(url_for("inventory_stocktake.material_import"))
+
         # 单价允许为空；如果填写则校验为数字
         def _parse_decimal(name: str):
             v = (request.form.get(name) or "").strip()
@@ -91,6 +109,28 @@ def material_import():
         except ValueError as e:
             flash(str(e), "warning")
             return redirect(url_for("inventory_stocktake.material_import"))
+
+        # 图片上传处理
+        img_file = request.files.get("product_image_file")
+        if img_file and img_file.filename:
+            try:
+                ext = os.path.splitext(img_file.filename)[1].lower()
+                if ext not in ['.jpg', '.jpeg', '.png', '.gif']:
+                    raise ValueError("仅支持 jpg/png/gif 图片格式")
+
+                # 使用物料编码命名，避免乱码和冲突
+                new_filename = f"{m.material_code}{ext}"
+                upload_dir = os.path.join(current_app.static_folder, 'uploads', 'materials')
+                if not os.path.exists(upload_dir):
+                    os.makedirs(upload_dir)
+
+                img_path = os.path.join(upload_dir, new_filename)
+                img_file.save(img_path)
+
+                # 存入数据库的是相对路径
+                m.product_image = f"uploads/materials/{new_filename}"
+            except Exception as e:
+                flash(f"图片上传失败: {str(e)}", "warning")
 
         db.session.commit()
         flash("保存成功", "success")
@@ -130,9 +170,11 @@ def material_import():
             (MXMaterialInfo.category.like(like))
         )
 
+    # 第一排序规则是物料类别，第二排序规则是物料编码
     materials = query.order_by(MXMaterialInfo.category.asc(), MXMaterialInfo.material_code.asc()).limit(300).all()
 
-    return render_template("inventory_stocktake/material.html", summary=summary, materials=materials, q=q)
+    return render_template("inventory_stocktake/material.html", summary=summary, materials=materials, q=q,
+                           categories=existing_categories)
 
 
 @inventory_stocktake_bp.route("/stocktake", methods=["GET"])
@@ -189,31 +231,48 @@ def stocktake_records_page():
 
     form = StocktakeFilterForm()
     stores, default_store_id, locked = get_accessible_stores()
-    form.store_id.choices = [(s.store_id, f"{s.store_id} - {s.store_name}") for s in stores]
 
-    store_id = request.args.get("store_id") or default_store_id
+    # 构建选项：管理员允许看见"全部店铺"
+    choices = [(s.store_id, f"{s.store_id} - {s.store_name}") for s in stores]
+    if not locked:
+        # 为管理员添加空选项，用于"全部"
+        choices.insert(0, ("", "全部店铺"))
+    form.store_id.choices = choices
+
+    store_id = request.args.get("store_id")
+
     if locked:
+        # 锁定状态：必须是 default_store_id
         store_id = default_store_id
+    else:
+        # 非锁定状态：如果没有指定参数，则默认为空（即全部）
+        # 原逻辑：or default_store_id 会强制选中第一个
+        if store_id is None:
+            store_id = ""
 
     # records页日期用于筛选（可空）
-    check_date_str = request.args.get("check_date")
-    d = None
-    if check_date_str:
+    start_date_str = request.args.get("start_date")
+    end_date_str = request.args.get("end_date")
+
+    if start_date_str:
         try:
-            d = date.fromisoformat(check_date_str)
+            form.start_date.data = date.fromisoformat(start_date_str)
         except Exception:
-            d = None
-            flash("check_date 参数格式错误", "warning")
+            pass
+    if end_date_str:
+        try:
+            form.end_date.data = date.fromisoformat(end_date_str)
+        except Exception:
+            pass
 
     if store_id:
         form.store_id.data = store_id
-    if d:
-        form.check_date.data = d
 
     return render_template(
         "inventory_stocktake/records.html",
         form=form,
         store_id=store_id,
-        check_date=d,
+        start_date=form.start_date.data,
+        end_date=form.end_date.data,
         store_locked=locked,
     )

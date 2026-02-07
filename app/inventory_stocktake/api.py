@@ -261,10 +261,33 @@ def api_stocktake_headers():
 
     store_id = request.args.get("store_id")
     status = request.args.get("status")
+    start_date_str = request.args.get("start_date")
+    end_date_str = request.args.get("end_date")
     page = int(request.args.get("page", 1))
     page_size = int(request.args.get("page_size", 50))
 
-    items, total = list_stocktake_headers(store_id=store_id, status=status, page=page, page_size=page_size)
+    start_date = None
+    if start_date_str:
+        try:
+            start_date = date.fromisoformat(start_date_str)
+        except Exception:
+            pass
+
+    end_date = None
+    if end_date_str:
+        try:
+            end_date = date.fromisoformat(end_date_str)
+        except Exception:
+            pass
+
+    items, total = list_stocktake_headers(
+        store_id=store_id,
+        status=status,
+        start_date=start_date,
+        end_date=end_date,
+        page=page,
+        page_size=page_size
+    )
     return jsonify({"ok": True, "data": {"items": items, "total": total, "page": page, "page_size": page_size}})
 
 

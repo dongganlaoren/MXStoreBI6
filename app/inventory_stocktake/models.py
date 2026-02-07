@@ -57,6 +57,8 @@ class MXStocktakeHeader(db.Model):
     committed_by = db.Column(db.String(64), nullable=True, comment="提交人(username)")
     committed_at = db.Column(db.DateTime, nullable=True, comment="提交时间")
 
+    total_value_thb = db.Column(db.Numeric(12, 2), nullable=True, comment="库存总价值（泰铢），提交时计算")
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 

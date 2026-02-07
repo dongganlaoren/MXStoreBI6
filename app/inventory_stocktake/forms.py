@@ -8,7 +8,9 @@ from wtforms.validators import DataRequired
 
 
 class StocktakeFilterForm(FlaskForm):
-    store_id = SelectField("店铺", validators=[DataRequired()], choices=[])
+    store_id = SelectField("店铺", validators=[], choices=[])
     check_date = DateField("盘点日期", validators=[DataRequired()], default=date.today)
+    start_date = DateField("开始日期", validators=[], default=None)
+    end_date = DateField("结束日期", validators=[], default=None)
 
     submit = SubmitField("查询")

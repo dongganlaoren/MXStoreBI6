@@ -16,7 +16,7 @@ def search_materials(*, q: str | None, page: int = 1, page_size: int = 50) -> Tu
     page = max(int(page or 1), 1)
     page_size = min(max(int(page_size or 50), 1), 200)
 
-    query = MXMaterialInfo.query
+    query = MXMaterialInfo.query.filter(MXMaterialInfo.status == '启用')
 
     if q:
         s = q.strip()
@@ -33,7 +33,7 @@ def search_materials(*, q: str | None, page: int = 1, page_size: int = 50) -> Tu
 
     total = query.count()
     rows = (
-        query.order_by(MXMaterialInfo.material_code.asc())
+        query.order_by(MXMaterialInfo.category.asc(), MXMaterialInfo.material_code.asc())
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()

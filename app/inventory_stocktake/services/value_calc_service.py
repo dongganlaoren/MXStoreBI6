@@ -41,6 +41,7 @@ def calc_values(store_id: str, check_date) -> Tuple[List[MaterialValueRow], Dict
         db.session.query(MXInventoryCheck, MXMaterialInfo)
         .join(MXMaterialInfo, MXMaterialInfo.material_code == MXInventoryCheck.material_code)
         .filter(MXInventoryCheck.store_id == store_id, MXInventoryCheck.check_date == check_date)
+        .order_by(MXMaterialInfo.category.asc(), MXMaterialInfo.material_code.asc())
     )
 
     details: List[MaterialValueRow] = []

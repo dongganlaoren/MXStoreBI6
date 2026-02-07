@@ -165,6 +165,57 @@
             color: #6c757d;
             margin-top: 2px;
         }
+
+        /* --- Make the primary action (commit) more prominent --- */
+        #mx-commit.mx-commit-btn {
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            padding: 0.65rem 1.1rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 18px rgba(255, 193, 7, 0.28);
+        }
+        #mx-commit.mx-commit-btn:hover {
+            filter: brightness(0.98);
+            box-shadow: 0 12px 22px rgba(255, 193, 7, 0.35);
+            transform: translateY(-1px);
+        }
+        #mx-commit.mx-commit-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 8px 14px rgba(255, 193, 7, 0.25);
+        }
+        #mx-commit.mx-commit-btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.35), 0 10px 18px rgba(255, 193, 7, 0.28);
+        }
+        #mx-commit.mx-commit-btn[disabled],
+        #mx-commit.mx-commit-btn:disabled {
+            opacity: 0.75;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Mobile: sticky action bar + full-width commit */
+        @media (max-width: 576px) {
+            .mx-actions {
+                position: sticky;
+                bottom: 0;
+                background: rgba(255,255,255,0.96);
+                backdrop-filter: blur(6px);
+                border-top: 1px solid #e9ecef;
+                padding: 0.5rem 0.25rem;
+                margin: 0 -0.5rem; /* align to container edges */
+                z-index: 1030;
+            }
+            .mx-actions .btn {
+                flex: 1 1 auto;
+            }
+            #mx-commit.mx-commit-btn {
+                flex: 1 1 100%;
+                width: 100%;
+                font-size: 16px;
+                padding: 0.75rem 1rem;
+            }
+        }
     </style>
 
     <div class="table-responsive">
@@ -192,7 +243,10 @@
             {#
             <button class="btn btn-outline-secondary" type="button" id="mx-load-draft">加载</button>
             #}
-            <button class="btn btn-warning" type="button" id="mx-commit">提交</button>
+            <button class="btn btn-warning mx-commit-btn" type="button" id="mx-commit"
+                    title="正式提交后将锁定该日期盘点数据">
+                正式提交
+            </button>
             <button class="btn btn-outline-secondary" type="button" id="mx-reset-ui">重置</button>
             {# 已全局隐藏：清空草稿按钮 #}
             {#
@@ -385,10 +439,11 @@
           inp.disabled = isReadonly;
         });
 
-        ['mx-save-draft', 'mx-commit', 'mx-reset-ui', 'mx-clear-draft'].forEach(id => {
-          const b = document.getElementById(id);
-          if (b) b.disabled = isReadonly;
-        });
+        // 隐藏/显示底部操作区（不仅是禁用，而是隐藏）
+        const actionsDiv = document.querySelector('.mx-actions');
+        if (actionsDiv) {
+            actionsDiv.style.display = isReadonly ? 'none' : '';
+        }
 
         // 店铺/日期下拉仍允许切换
         const storeSel = document.querySelector('select[name="store_id"]');
@@ -479,7 +534,8 @@
           updateDirtyCount();
         }
 
-        const url = new URL(window.location.origin + '{{ url_for('inventory_stocktake.api_materials') }}');
+        // Use strict URL construction
+        const url = new URL('{{ url_for("inventory_stocktake.api_materials") }}', window.location.origin);
         url.searchParams.set('q', '');
         url.searchParams.set('page', String(page));
         url.searchParams.set('page_size', String(pageSize));
@@ -487,6 +543,7 @@
         const resp = await fetch(url, {credentials: 'same-origin'});
         const data = await resp.json();
         if (!data.ok) {
+          console.error('fetchMaterials error:', data);
           alert(data.message || '加载失败');
           return;
         }
@@ -500,8 +557,8 @@
           const secondary = th && cn ? cn : '';
 
           const nameDisplay = secondary
-            ? `<div class="mx-name-primary">${primary}</div><div class="mx-name-secondary">${secondary}</div>`
-            : `<div class="mx-name-primary">${primary}</div>`;
+            ? `<div class="d-md-none text-muted" style="font-size: 0.85em; margin-bottom: 2px;">${r.material_code}</div><div class="mx-name-primary">${primary}</div><div class="mx-name-secondary">${secondary}</div>`
+            : `<div class="d-md-none text-muted" style="font-size: 0.85em; margin-bottom: 2px;">${r.material_code}</div><div class="mx-name-primary">${primary}</div>`;
 
           const row = el(`\
               <tr data-code="${r.material_code}">
@@ -563,6 +620,52 @@
         }
 
         page += 1;
+      }
+
+      // Load ALL materials (paginated) so the page shows the full product list on PC.
+      // Safety: cap the maximum pages to avoid infinite loops if backend returns inconsistent totals.
+      async function loadAllMaterials({silent = true} = {}) {
+        const btnDraft = document.getElementById('mx-save-draft');
+        const btnCommit = document.getElementById('mx-commit');
+        const btnReset = document.getElementById('mx-reset-ui');
+
+        const maxPages = 200; // 200 * 50 = 10k rows cap
+
+        setBtnLoading(btnDraft, true);
+        setBtnLoading(btnCommit, true);
+        setBtnLoading(btnReset, true);
+
+        if (!silent) showMsg('正在加载全部物料…', 'info', 2500);
+
+        try {
+          await fetchMaterials(true);
+
+          for (let i = 1; i < maxPages; i += 1) {
+            // Stop when last fetch returned less than a full page.
+            const rowsNow = document.querySelectorAll('#mx-table tbody tr').length;
+            if (rowsNow < page * pageSize - pageSize) {
+              // Defensive: if DOM row count doesn't match expected growth, keep going.
+            }
+
+            // Heuristic: If the previous page wasn't full, we're done.
+            // We don't have `total` exposed by fetchMaterials, so we detect by counting new rows.
+            const before = rowsNow;
+            await fetchMaterials(false);
+            const after = document.querySelectorAll('#mx-table tbody tr').length;
+            const added = after - before;
+            if (added < pageSize) break;
+          }
+
+          if (!silent) {
+            const n = document.querySelectorAll('#mx-table tbody tr').length;
+            showMsg(`物料加载完成：共 ${n} 条`, 'secondary', 3000);
+          }
+        } finally {
+          // Buttons may still be disabled by readonly mode; restore only "loading" state.
+          setBtnLoading(btnDraft, false);
+          setBtnLoading(btnCommit, false);
+          setBtnLoading(btnReset, false);
+        }
       }
 
       async function fetchStatus(cur) {
@@ -840,7 +943,7 @@
         showMsg('正在保存草稿（全量覆盖）…', 'info', 1500);
 
         try {
-          const resp = await fetch('{{ url_for('inventory_stocktake.api_stocktake_save_batch') }}', {
+          const resp = await fetch('{{ url_for("inventory_stocktake.api_stocktake_save_batch") }}', {
             method: 'POST',
             credentials: 'same-origin',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
@@ -906,7 +1009,7 @@
             payload.items = Array.from(touched.values());
           }
 
-          const resp = await fetch('{{ url_for('inventory_stocktake.api_stocktake_commit') }}', {
+          const resp = await fetch('{{ url_for("inventory_stocktake.api_stocktake_commit") }}', {
             method: 'POST',
             credentials: 'same-origin',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
@@ -953,7 +1056,7 @@
         setBtnLoading(btn, true);
         showMsg('正在清空草稿…', 'info', 1200);
         try {
-          const resp = await fetch('{{ url_for('inventory_stocktake.api_stocktake_reset') }}', {
+          const resp = await fetch('{{ url_for("inventory_stocktake.api_stocktake_reset") }}', {
             method: 'POST',
             credentials: 'same-origin',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
@@ -1092,8 +1195,9 @@
         showMsg('前端错误：' + (e.message || '未知错误'), 'danger', 8000);
       });
 
-      // fire init
-      initPage();
+      // ---------------- boot ----------------
+      // Ensure the entry page loads the full material list.
+      loadAllMaterials({silent: true}).then(() => applyContext({silent: true, maybePromptDraft: false}));
     })();
 </script>
 {% endblock %}
