@@ -2,25 +2,26 @@
 
 {% block content %}
 <div class="container" style="max-width: 1100px;">
-    <h2>盘点记录</h2>
-    <p class="text-muted">查询各店铺的每一次盘点信息，并可计算该次盘点库存价值（泰铢）。</p>
+    <h2>{{ get_text('title_stocktake_records', '盘点记录') }}</h2>
+    <p class="text-muted">{{ get_text('text_records_intro', '查询各店铺的每一次盘点信息，并可计算该次盘点库存价值（泰铢）。')
+        }}</p>
 
     <form class="row g-3" method="get">
         <div class="col-12 col-md-4">
-            <label class="form-label">店铺</label>
+            <label class="form-label">{{ get_text('label_store', '店铺') }}</label>
             {{ form.store_id(class_='form-select', disabled=store_locked) }}
         </div>
         <div class="col-12 col-md-3">
-            <label class="form-label">开始日期</label>
+            <label class="form-label">{{ get_text('label_start_date', '开始日期') }}</label>
             {{ form.start_date(class_='form-control') }}
         </div>
         <div class="col-12 col-md-3">
-            <label class="form-label">结束日期</label>
+            <label class="form-label">{{ get_text('label_end_date', '结束日期') }}</label>
             {{ form.end_date(class_='form-control') }}
         </div>
         <div class="col-12 col-md-2 d-grid">
             <label class="form-label">&nbsp;</label>
-            <button class="btn btn-primary" type="submit">查询</button>
+            <button class="btn btn-primary" type="submit">{{ get_text('btn_query', '查询') }}</button>
         </div>
     </form>
 
@@ -30,17 +31,17 @@
         <table class="table table-sm table-striped align-middle" id="mx-records-table">
             <thead>
             <tr>
-                <th>店铺</th>
-                <th>盘点日期</th>
-                <th>提交时间</th>
-                <th>库存价值 (THB)</th>
-                <th style="width: 140px;">明细</th>
+                <th>{{ get_text('col_store', '店铺') }}</th>
+                <th>{{ get_text('label_check_date', '盘点日期') }}</th>
+                <th>{{ get_text('col_submit_time', '提交时间') }}</th>
+                <th>{{ get_text('col_stock_value', '库存价值 (THB)') }}</th>
+                <th style="width: 140px;">{{ get_text('col_detail', '明细') }}</th>
             </tr>
             </thead>
             <tbody></tbody>
             <tfoot>
             <tr>
-                <th colspan="3" class="text-end">汇总总价值：</th>
+                <th colspan="3" class="text-end">{{ get_text('label_summary_total', '汇总总价值：') }}</th>
                 <th id="mx-summary-total">0.00</th>
                 <th></th>
             </tr>
@@ -58,6 +59,11 @@
       const startDate = {{ (start_date|string if start_date else '')|tojson }};
       const endDate = {{ (end_date|string if end_date else '')|tojson }};
       const stocktakeBaseUrl = {{ url_for('inventory_stocktake.stocktake_page')|tojson }};
+      const btnViewDetailText = {{ get_text('btn_view_detail', '查看盘点明细')|tojson }};
+
+      // Pass role from backend if available, or assume non-admin if not injected.
+      // Since this template extends base, current_user is available in Jinja context.
+      const currentUserRole = {{ current_user.role.name|default('')|tojson }};
 
       function el(html) {
         const t = document.createElement('template');
@@ -69,6 +75,12 @@
         const u = new URL(window.location.origin + stocktakeBaseUrl);
         if (r.store_id) u.searchParams.set('store_id', r.store_id);
         if (r.check_date) u.searchParams.set('check_date', r.check_date);
+
+        // If current user is ADMIN, append the special flag to allow editing committed records
+        if (currentUserRole === 'ADMIN') {
+            u.searchParams.set('admin_edit', '1');
+        }
+
         return u.toString();
       }
 
@@ -105,7 +117,7 @@
               <td>${valDisplay}</td>
               <td>
                 <a class="btn btn-sm btn-outline-primary" href="${detailUrl}" target="_blank" rel="noopener">
-                  查看盘点明细
+                  ${btnViewDetailText}
                 </a>
               </td>
             </tr>`);

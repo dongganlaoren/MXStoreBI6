@@ -84,7 +84,8 @@ def get_header_status(*, store_id: str, check_date: date) -> Optional[str]:
     return h.status if h else None
 
 
-def save_draft_batch(*, store_id: str, check_date: date, operator: Optional[str], items: List[dict]) -> DraftSaveResult:
+def save_draft_batch(*, store_id: str, check_date: date, operator: Optional[str], items: List[dict],
+                     allow_update_committed: bool = False) -> DraftSaveResult:
     """Unified save for draft: OVERWRITE all draft rows for the store.
 
     User Requirement: "New overwrites old".
@@ -99,7 +100,7 @@ def save_draft_batch(*, store_id: str, check_date: date, operator: Optional[str]
     store_id = require_non_empty(store_id, "店铺")
     header = get_or_create_header(store_id=store_id, check_date=check_date, operator=operator)
 
-    if header.status != "DRAFT":
+    if header.status != "DRAFT" and not allow_update_committed:
         raise ValidationError("该盘点已提交，无法继续保存草稿")
 
     # 1. Clear ALL drafts for this store (Complete Overwrite Strategy)
@@ -186,6 +187,7 @@ def commit_stocktake_with_items(
         check_date: date,
         operator: Optional[str],
         items: List[dict],
+        allow_update_committed: bool = False,
 ) -> CommitWithItemsResult:
     """Commit stocktake directly from provided items without using draft table.
 
@@ -199,7 +201,7 @@ def commit_stocktake_with_items(
     store_id = require_non_empty(store_id, "店铺")
     header = get_or_create_header(store_id=store_id, check_date=check_date, operator=operator)
 
-    if header.status == "COMMITTED":
+    if header.status == "COMMITTED" and not allow_update_committed:
         return CommitWithItemsResult(header_id=header.id, committed=0, message="已提交，无需重复提交")
 
     if not items:
@@ -258,11 +260,12 @@ def commit_stocktake_with_items(
     return CommitWithItemsResult(header_id=header.id, committed=ok, message=f"提交成功（{ok}条）")
 
 
-def commit_stocktake(*, store_id: str, check_date: date, operator: Optional[str]) -> CommitResult:
+def commit_stocktake(*, store_id: str, check_date: date, operator: Optional[str],
+                     allow_update_committed: bool = False) -> CommitResult:
     store_id = require_non_empty(store_id, "店铺")
     header = get_or_create_header(store_id=store_id, check_date=check_date, operator=operator)
 
-    if header.status == "COMMITTED":
+    if header.status == "COMMITTED" and not allow_update_committed:
         return CommitResult(header_id=header.id, message="已提交，无需重复提交")
 
     # must have at least one draft detail (store-scoped)

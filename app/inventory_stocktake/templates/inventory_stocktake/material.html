@@ -3,52 +3,56 @@
 {% block content %}
 <div class="container" style="max-width: 1100px;">
     <div class="d-flex justify-content-between align-items-center">
-        <h2>产品信息维护</h2>
-        <a class="btn btn-outline-success" href="{{ url_for('inventory_stocktake.material_template_download') }}">下载模板
-            inventory_stocktake_template.xlsx</a>
+        <h2>{{ get_text('inventory_stocktake_materials', '产品信息维护') }}</h2>
+        <a class="btn btn-outline-success" href="{{ url_for('inventory_stocktake.material_template_download') }}">{{
+            get_text('download_attachment', '下载模板') }} inventory_stocktake_template.xlsx</a>
     </div>
 
     <p class="text-muted mt-2">
-        你可以通过 <strong>Excel模板导入</strong> 批量新增/更新产品信息；也可以在下方表格对已有产品做基本维护（单价字段可留空）。
-        模板工作表名称必须为：<code>产品信息</code>，表头必须完全一致。
+        {{ get_text('text_download_template_intro', '你可以通过 Excel模板导入 批量新增/更新产品信息...')|safe }}
     </p>
 
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title">Excel模板导入</h5>
+            <h5 class="card-title">{{ get_text('title_import_excel', 'Excel模板导入') }}</h5>
             <form method="post" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="row g-2 align-items-center">
                     <div class="col-12 col-md-8">
                         <input class="form-control" type="file" name="file" accept=".xlsx" required>
-                        <div class="form-text">仅支持标准模板 inventory_stocktake_template.xlsx（工作表：产品信息）</div>
+                        <div class="form-text">{{ get_text('text_template_tip', '仅支持标准模板...') }}</div>
                     </div>
                     <div class="col-12 col-md-4 d-grid">
-                        <button class="btn btn-primary" type="submit">上传并导入</button>
+                        <button class="btn btn-primary" type="submit">{{ get_text('btn_upload_import', '上传并导入')
+                            }}
+                        </button>
                     </div>
                 </div>
             </form>
 
             {% if summary %}
             <hr>
-            <h6>导入结果</h6>
-            <p>成功：{{ summary.success_count }} 条；失败：{{ summary.fail_count }} 条</p>
+            <h6>{{ get_text('title_import_result', '导入结果') }}</h6>
+            <p>{{ get_text('text_success_count', '成功') }}：{{ summary.success_count }} ; {{ get_text('text_fail_count',
+                '失败') }}：{{ summary.fail_count }}</p>
 
             {% if summary.results %}
             <div class="table-responsive">
                 <table class="table table-sm table-striped">
                     <thead>
                     <tr>
-                        <th>行号</th>
-                        <th>结果</th>
-                        <th>说明</th>
+                        <th>{{ get_text('col_row_number', '行号') }}</th>
+                        <th>{{ get_text('col_result', '结果') }}</th>
+                        <th>{{ get_text('col_description', '说明') }}</th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for r in summary.results %}
                     <tr>
                         <td>{{ r.row_number }}</td>
-                        <td>{% if r.success %}成功{% else %}失败{% endif %}</td>
+                        <td>{% if r.success %}{{ get_text('col_success', '成功') }}{% else %}{{ get_text('col_fail',
+                            '失败') }}{% endif %}
+                        </td>
                         <td style="max-width: 520px; word-break: break-all;">{{ r.message }}</td>
                     </tr>
                     {% endfor %}
@@ -63,11 +67,12 @@
     <div class="card">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">已有产品信息（最多显示300条）</h5>
+                <h5 class="card-title mb-0">{{ get_text('title_existing_products', '已有产品信息') }}</h5>
                 <form method="get" class="d-flex" style="gap:8px;">
-                    <input class="form-control" name="q" value="{{ q }}" placeholder="搜索：编码/中文名/类别"
+                    <input class="form-control" name="q" value="{{ q }}"
+                           placeholder="{{ get_text('placeholder_search', '搜索...') }}"
                            style="width: 280px;"/>
-                    <button class="btn btn-outline-primary" type="submit">搜索</button>
+                    <button class="btn btn-outline-primary" type="submit">{{ get_text('btn_query', '搜索') }}</button>
                 </form>
             </div>
 
@@ -75,19 +80,19 @@
                 <table class="table table-sm table-striped table-hover align-middle">
                     <thead class="table-light">
                     <tr>
-                        <th style="width: 50px;">图片</th>
-                        <th>物料编码</th>
-                        <th>中文名称</th>
-                        <th>泰文名称</th>
-                        <th>规格型号</th>
-                        <th>物料类别</th>
-                        <th>每件组数</th>
-                        <th>每件单价</th>
-                        <th>每组单价</th>
-                        <th>安全库存</th>
-                        <th>状态</th>
-                        <th>备注</th>
-                        <th style="width: 80px;">操作</th>
+                        <th style="width: 50px;">{{ get_text('label_material_image', '图片') }}</th>
+                        <th>{{ get_text('table_col_code', '物料编码') }}</th>
+                        <th>{{ get_text('table_col_name', '物料名称') }}</th>
+                        <th>{{ get_text('table_col_name', '泰文名称') }}</th>
+                        <th>{{ get_text('table_col_spec', '规格型号') }}</th>
+                        <th>{{ get_text('table_col_category', '物料类别') }}</th>
+                        <th>{{ get_text('label_per_group_qty', '每件组数') }}</th>
+                        <th>{{ get_text('label_price_per_case', '每件单价') }}</th>
+                        <th>{{ get_text('label_price_per_group', '每组单价') }}</th>
+                        <th>{{ get_text('label_safety_stock', '安全库存') }}</th>
+                        <th>{{ get_text('label_status', '状态') }}</th>
+                        <th>{{ get_text('label_remark', '备注') }}</th>
+                        <th style="width: 80px;">{{ get_text('action', '操作') }}</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -100,7 +105,8 @@
                                      style="width: 40px; height: 40px; object-fit: cover;" class="rounded border">
                             </a>
                             {% else %}
-                            <span class="text-muted" style="font-size: 0.8rem;">无图</span>
+                            <span class="text-muted"
+                                  style="font-size: 0.8rem;">{{ get_text('text_no_image', '无图') }}</span>
                             {% endif %}
                         </td>
                         <td class="fw-bold">{{ m.material_code }}</td>
@@ -114,9 +120,9 @@
                         <td>{{ m.safety_stock if m.safety_stock is not none else '-' }}</td>
                         <td>
                             {% if m.status == '启用' %}
-                            <span class="badge bg-success">启用</span>
+                            <span class="badge bg-success">{{ get_text('status_enable', '启用') }}</span>
                             {% else %}
-                            <span class="badge bg-secondary">禁用</span>
+                            <span class="badge bg-secondary">{{ get_text('status_disable', '禁用') }}</span>
                             {% endif %}
                         </td>
                         <td>
@@ -140,13 +146,15 @@
                                     data-status="{{ m.status }}"
                                     data-remark="{{ m.remark or '' }}"
                                     data-img="{{ url_for('static', filename=m.product_image) if m.product_image else '' }}">
-                                编辑
+                                {{ get_text('reimbursement_edit', '编辑') }}
                             </button>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="13" class="text-center text-muted py-4">暂无数据</td>
+                        <td colspan="13" class="text-center text-muted py-4">{{ get_text('text_no_data', '暂无数据')
+                            }}
+                        </td>
                     </tr>
                     {% endfor %}
                     </tbody>

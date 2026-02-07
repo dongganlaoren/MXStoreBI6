@@ -4,43 +4,45 @@
 <div class="container" style="max-width: 1100px;">
     {# removed title to save vertical space #}
     <p class="text-muted">
-        本页面用于录入盘点明细，并支持 <strong>保存草稿</strong> 与 <strong>正式提交</strong>。
-        保存草稿可多次覆盖；正式提交后将锁定该日期盘点数据（需管理员重置才可修改）。
+        {{ get_text('text_stocktake_intro', '本页面用于录入盘点明细，并支持 <strong>保存草稿</strong> 与
+        <strong>正式提交</strong>。保存草稿可多次覆盖；正式提交后将锁定该日期盘点数据（需管理员重置才可修改）。')|safe }}
     </p>
 
     <form class="row g-3" method="get" id="mx-context-form">
         <div class="col-12 col-md-6">
-            <label class="form-label">店铺</label>
+            <label class="form-label">{{ get_text('label_store', '店铺') }}</label>
             {{ form.store_id(class_='form-select', disabled=store_locked) }}
             {% if store_locked %}
-            <div class="form-text">已绑定当前登录账号所属店铺</div>
+            <div class="form-text">{{ get_text('text_store_bound_tip', '已绑定当前登录账号所属店铺') }}</div>
             {% endif %}
         </div>
         <div class="col-12 col-md-3">
-            <label class="form-label">盘点日期</label>
+            <label class="form-label">{{ get_text('label_check_date', '盘点日期') }}</label>
             {{ form.check_date(class_='form-control') }}
         </div>
         <div class="col-12 col-md-3 d-none d-md-block">
-            <label class="form-label">提示</label>
-            <div class="form-text">切换店铺/日期会自动加载</div>
+            <label class="form-label">{{ get_text('label_tip', '提示') }}</label>
+            <div class="form-text">{{ get_text('text_auto_load_tip', '切换店铺/日期会自动加载') }}</div>
         </div>
     </form>
 
     <hr>
 
     <div class="alert alert-info d-none d-md-block">
-        说明：本页取消搜索与单行保存。
-        你可以逐行录入数量与有效期，然后点击「保存草稿」统一保存；确认无误后点击「正式提交」。
+        {{ get_text('text_stocktake_note', '说明：本页取消搜索与单行保存。你可以逐行录入数量与有效期，然后点击「保存草稿」统一保存；确认无误后点击「正式提交」。')|safe
+        }}
     </div>
 
     <div id="mx-toast" class="alert alert-secondary" style="display:none;"></div>
 
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
         <div class="text-muted">
-            待保存变更：<span class="badge text-bg-primary" id="mx-dirty-count">0</span>
+            {{ get_text('text_unsaved_changes', '待保存变更') }}：<span class="badge text-bg-primary"
+                                                                       id="mx-dirty-count">0</span>
         </div>
         <div class="form-text d-none d-md-block">
-            提示：修改任一行后，该行会高亮显示；点击“保存草稿”会一次性保存所有高亮行。
+            {{ get_text('text_highlight_tip', '提示：修改任一行后，该行会高亮显示；点击“保存草稿”会一次性保存所有高亮行。')
+            }}
         </div>
     </div>
 
@@ -222,13 +224,13 @@
         <table class="table table-sm table-striped align-middle" id="mx-table">
             <thead>
             <tr>
-                <th class="d-none d-md-table-cell mx-col-category">类别</th>
-                <th class="d-none d-md-table-cell mx-col-code">物料编码</th>
-                <th>物料名称（中/泰）</th>
-                <th class="d-none d-md-table-cell mx-col-spec">规格</th>
-                <th style="width:150px;">整件</th>
-                <th style="width:150px;">散件</th>
-                <th style="width:160px;">有效期至</th>
+                <th class="d-none d-md-table-cell mx-col-category">{{ get_text('table_col_category', '类别') }}</th>
+                <th class="d-none d-md-table-cell mx-col-code">{{ get_text('table_col_code', '物料编码') }}</th>
+                <th>{{ get_text('table_col_name', '物料名称（中/泰）') }}</th>
+                <th class="d-none d-md-table-cell mx-col-spec">{{ get_text('table_col_spec', '规格') }}</th>
+                <th style="width:150px;">{{ get_text('table_col_case', '整件') }}</th>
+                <th style="width:150px;">{{ get_text('table_col_group', '散件') }}</th>
+                <th style="width:160px;">{{ get_text('table_col_valid_until', '有效期至') }}</th>
             </tr>
             </thead>
             <tbody></tbody>
@@ -238,16 +240,20 @@
     <!-- 操作按钮移到页面底部，减少头部拥挤；移动端将粘底显示 -->
     <div class="mx-actions">
         <div class="d-flex gap-2 flex-wrap justify-content-center justify-content-md-start">
-            <button class="btn btn-success" type="button" id="mx-save-draft">存草稿</button>
+            <button class="btn btn-success" type="button" id="mx-save-draft">{{ get_text('btn_save_draft', '存草稿')
+                }}
+            </button>
             {# 已全局隐藏：加载按钮 #}
             {#
             <button class="btn btn-outline-secondary" type="button" id="mx-load-draft">加载</button>
             #}
             <button class="btn btn-warning mx-commit-btn" type="button" id="mx-commit"
-                    title="正式提交后将锁定该日期盘点数据">
-                正式提交
+                    title="{{ get_text('text_commit_lock_tip', '正式提交后将锁定该日期盘点数据') }}">
+                {{ get_text('btn_submit_commit', '正式提交') }}
             </button>
-            <button class="btn btn-outline-secondary" type="button" id="mx-reset-ui">重置</button>
+            <button class="btn btn-outline-secondary" type="button" id="mx-reset-ui">{{ get_text('btn_reset_ui', '重置')
+                }}
+            </button>
             {# 已全局隐藏：清空草稿按钮 #}
             {#
             <button class="btn btn-outline-danger" type="button" id="mx-clear-draft">清空</button>
@@ -266,6 +272,34 @@
       const storeId = {{ (store_id or '')|tojson }};
       const checkDate = {{ (check_date|string)|tojson }};
       const csrfToken = {{ csrf_token()|tojson }};
+      const currentUserRole = {{ current_user.role.name|default('')|tojson }};
+
+      // Check if URL has admin override flag (e.g. ?admin_edit=1)
+      const urlParams = new URLSearchParams(window.location.search);
+      const enableAdminOverride = urlParams.get('admin_edit') === '1';
+
+      const TRANS = {
+        col_case: {{ get_text('table_col_case', '整件')|tojson }},
+        col_group: {{ get_text('table_col_group', '散件')|tojson }},
+        col_valid: {{ get_text('table_col_valid_until', '有效期')|tojson }},
+        loading: {{ get_text('msg_loading', '加载中...')|tojson }},
+        load_fail: '加载失败', // Simple fallback or add key
+        saved: {{ get_text('msg_draft_saved', '保存成功')|tojson }},
+        committed: {{ get_text('msg_committed', '提交成功')|tojson }},
+        highlight_tip: {{ get_text('text_highlight_tip', '提示：修改任一行后...')|tojson }},
+        unsaved_changes: {{ get_text('text_unsaved_changes', '待保存变更')|tojson }},
+        msg_loading_all: {{ get_text('msg_loading_all_materials', '正在加载全部物料…')|tojson }},
+        msg_loaded_count: '物料加载完成：共 {n} 条', // Complex fmt, keep simpel or standard
+        status_committed: {{ get_text('status_committed', '已提交（只读）')|tojson }},
+        status_editable: {{ get_text('status_editable', '可编辑')|tojson }},
+        status_readonly_mode: {{ get_text('status_readonly_mode', '该盘点已正式提交，当前页面为只读模式')|tojson }},
+        draft_loading: {{ get_text('msg_loading', '正在加载草稿…')|tojson }},
+        draft_loaded: '草稿已加载',
+        saving: '正在保存...',
+        committing: '正在提交...',
+        clearing: '正在清空...',
+        cleared: '已清空'
+      };
 
       // normalize string keys (material_code, data-code)
       function normCode(v) {
@@ -571,13 +605,13 @@
                     <div class="col-md-4">
                       <div class="input-group input-group-sm">
                         <input class="form-control" type="number" min="0" step="1" value="0" data-field="case" inputmode="numeric" autocomplete="off">
-                        <span class="input-group-text">件</span>
+                        <span class="input-group-text">${TRANS.col_case}</span>
                       </div>
                     </div>
                     <div class="col-md-4">
                       <div class="input-group input-group-sm">
                         <input class="form-control" type="number" min="0" step="1" value="0" data-field="group" inputmode="numeric" autocomplete="off">
-                        <span class="input-group-text">组</span>
+                        <span class="input-group-text">${TRANS.col_group}</span>
                       </div>
                     </div>
                     <div class="col-md-4">
@@ -587,25 +621,25 @@
 
                   <div class="d-md-none">
                     <div class="mx-field">
-                      <div class="mx-field-label">整件</div>
+                      <div class="mx-field-label">${TRANS.col_case}</div>
                       <div>
                         <div class="input-group input-group-sm">
                           <input class="form-control" type="number" min="0" step="1" value="" placeholder="0" data-field="case" inputmode="numeric" autocomplete="off">
-                          <span class="input-group-text">件</span>
+                          <span class="input-group-text">${TRANS.col_case}</span>
                         </div>
                       </div>
                     </div>
                     <div class="mx-field">
-                      <div class="mx-field-label">散件</div>
+                      <div class="mx-field-label">${TRANS.col_group}</div>
                       <div>
                         <div class="input-group input-group-sm">
                           <input class="form-control" type="number" min="0" step="1" value="" placeholder="0" data-field="group" inputmode="numeric" autocomplete="off">
-                          <span class="input-group-text">组</span>
+                          <span class="input-group-text">${TRANS.col_group}</span>
                         </div>
                       </div>
                     </div>
                     <div class="mx-field">
-                      <div class="mx-field-label">有效期</div>
+                      <div class="mx-field-label">${TRANS.col_valid}</div>
                       <div>
                         <input class="form-control form-control-sm" type="date" data-field="valid_until" autocomplete="off">
                       </div>
@@ -681,10 +715,16 @@
       async function refreshReadonly(cur, silent = false) {
         const st = await fetchStatus(cur);
         if (st === 'COMMITTED') {
-          setReadonlyMode(true, `该盘点已正式提交：${formatOwner(cur)}（只读模式）`);
+          // 只允许在特定模式下（如从记录页跳转且带参数）由管理员修改
+          if (currentUserRole === 'ADMIN' && enableAdminOverride) {
+             setReadonlyMode(false);
+             if (!silent) showMsg(TRANS.status_committed + ' (Admin Edit Mode)', 'warning', 3500);
+          } else {
+             setReadonlyMode(true, TRANS.status_readonly_mode);
+          }
         } else {
           setReadonlyMode(false);
-          if (!silent) showMsg(`已切换到：${formatOwner(cur)}（可编辑）`, 'secondary', 2500);
+          if (!silent) showMsg(TRANS.status_editable, 'secondary', 2500);
         }
         return st;
       }
@@ -861,13 +901,13 @@
                     <div class="col-md-4">
                       <div class="input-group input-group-sm">
                         <input class="form-control" type="number" min="0" step="1" value="0" data-field="case" inputmode="numeric" autocomplete="off">
-                        <span class="input-group-text">件</span>
+                        <span class="input-group-text">${TRANS.col_case}</span>
                       </div>
                     </div>
                     <div class="col-md-4">
                       <div class="input-group input-group-sm">
                         <input class="form-control" type="number" min="0" step="1" value="0" data-field="group" inputmode="numeric" autocomplete="off">
-                        <span class="input-group-text">组</span>
+                        <span class="input-group-text">${TRANS.col_group}</span>
                       </div>
                     </div>
                     <div class="col-md-4">
@@ -877,25 +917,25 @@
 
                   <div class="d-md-none">
                     <div class="mx-field">
-                      <div class="mx-field-label">整件</div>
+                      <div class="mx-field-label">${TRANS.col_case}</div>
                       <div>
                         <div class="input-group input-group-sm">
                           <input class="form-control" type="number" min="0" step="1" value="" placeholder="0" data-field="case" inputmode="numeric" autocomplete="off">
-                          <span class="input-group-text">件</span>
+                          <span class="input-group-text">${TRANS.col_case}</span>
                         </div>
                       </div>
                     </div>
                     <div class="mx-field">
-                      <div class="mx-field-label">散件</div>
+                      <div class="mx-field-label">${TRANS.col_group}</div>
                       <div>
                         <div class="input-group input-group-sm">
                           <input class="form-control" type="number" min="0" step="1" value="" placeholder="0" data-field="group" inputmode="numeric" autocomplete="off">
-                          <span class="input-group-text">组</span>
+                          <span class="input-group-text">${TRANS.col_group}</span>
                         </div>
                       </div>
                     </div>
                     <div class="mx-field">
-                      <div class="mx-field-label">有效期</div>
+                      <div class="mx-field-label">${TRANS.col_valid}</div>
                       <div>
                         <input class="form-control form-control-sm" type="date" data-field="valid_until" autocomplete="off">
                       </div>

@@ -23,6 +23,7 @@ from app.inventory_stocktake.services.stocktake_header_service import (
 )
 from app.inventory_stocktake.services.stocktake_service import reset, save_one
 from app.inventory_stocktake.services.value_calc_service import UnitPriceMissingError, calc_values
+from app.models.enums import RoleType
 
 
 @inventory_stocktake_bp.route("/api/value", methods=["GET"])
@@ -197,8 +198,15 @@ def api_stocktake_save_batch():
         return jsonify({"ok": False, "message": "check_date 格式必须为 YYYY-MM-DD"}), 400
 
     try:
-        res = save_draft_batch(store_id=store_id, check_date=d, operator=getattr(current_user, "username", None),
-                               items=items)
+        allow_update = getattr(current_user, "role", None) == RoleType.ADMIN
+
+        res = save_draft_batch(
+            store_id=store_id,
+            check_date=d,
+            operator=getattr(current_user, "username", None),
+            items=items,
+            allow_update_committed=allow_update,
+        )
         return jsonify({"ok": True, "data": {"saved": res.saved, "failed": res.failed}, "message": res.message})
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 400
@@ -228,11 +236,17 @@ def api_stocktake_commit():
         return jsonify({"ok": False, "message": "check_date 格式必须为 YYYY-MM-DD"}), 400
 
     try:
+        allow_update = getattr(current_user, "role", None) == RoleType.ADMIN
+
         if isinstance(items, list):
             from app.inventory_stocktake.services.stocktake_header_service import commit_stocktake_with_items
 
             res = commit_stocktake_with_items(
-                store_id=store_id, check_date=d, operator=getattr(current_user, "username", None), items=items
+                store_id=store_id,
+                check_date=d,
+                operator=getattr(current_user, "username", None),
+                items=items,
+                allow_update_committed=allow_update,
             )
             return jsonify(
                 {
@@ -242,7 +256,12 @@ def api_stocktake_commit():
                 }
             )
 
-        res = commit_stocktake(store_id=store_id, check_date=d, operator=getattr(current_user, "username", None))
+        res = commit_stocktake(
+            store_id=store_id,
+            check_date=d,
+            operator=getattr(current_user, "username", None),
+            allow_update_committed=allow_update,
+        )
         return jsonify(
             {
                 "ok": True,
