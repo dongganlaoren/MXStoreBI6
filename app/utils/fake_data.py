@@ -9,6 +9,7 @@ from sqlalchemy import text
 from werkzeug.security import generate_password_hash
 
 from app.extensions import db
+from app.inventory_stocktake.models import MXMaterialInfo
 from app.models import Store, User, DailySales
 from app.models.enums import RoleType
 from app.models.reimbursement import ReimbursementRequest
@@ -52,6 +53,7 @@ def generate_fake_data(
         include_users: bool = True,
         include_daily_sales: bool = False,
         include_reimbursement: bool = False,
+        include_inventory: bool = True,
 ) -> None:
     try:
         # 安全措施：禁止在生产环境执行
@@ -176,6 +178,33 @@ def generate_fake_data(
                 emp.employee_number = int(store.store_id) * 1000 + random.randint(100, 999)
                 db.session.add(emp)
             db.session.commit()
+
+        if include_inventory:
+            # 生成物料信息
+            materials = [
+                {"material_code": "M001", "cn_name": "柠檬", "spec_model": "15kg/件", "category": "食材类",
+                 "per_group_qty": 1},
+                {"material_code": "M002", "cn_name": "珍珠", "spec_model": "1kg/包", "category": "食材类",
+                 "per_group_qty": 20},
+                {"material_code": "M003", "cn_name": "茶叶", "spec_model": "500g/袋", "category": "食材类",
+                 "per_group_qty": 10},
+                {"material_code": "P001", "cn_name": "杯子", "spec_model": "500ml", "category": "包材类",
+                 "per_group_qty": 50},
+                {"material_code": "P002", "cn_name": "吸管", "spec_model": "粗管", "category": "包材类",
+                 "per_group_qty": 100},
+            ]
+
+            for m_data in materials:
+                m = MXMaterialInfo(**m_data)
+                # 随机生成价格
+                m.price_per_case = round(random.uniform(500, 2000), 2)
+                m.price_per_group = round(m.price_per_case / m.per_group_qty, 2)
+                m.safety_stock = random.randint(10, 50)
+                m.remark = "测试物料"
+                db.session.add(m)
+            db.session.commit()
+
+            print("✅ 基础物料信息生成完成")
 
         # 下面两块默认不生成，只有显式开启才做
         if include_daily_sales:
