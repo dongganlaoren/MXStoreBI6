@@ -38,7 +38,7 @@ def _wipe_all_tables() -> None:
             continue
 
         quoted = insp.dialect.identifier_preparer.quote(table)
-        db.session.execute(text(f'DELETE FROM {quoted}'))
+        db.session.execute(text('DELETE FROM {}'.format(quoted)))
 
     if 'sqlite' in db_url:
         db.session.execute(text('PRAGMA foreign_keys = ON'))
@@ -57,9 +57,12 @@ def generate_fake_data(
 ) -> None:
     try:
         # 安全措施：禁止在生产环境执行
+        # 兼容 Flask 老版本/新版本配置：ENV / FLASK_ENV
         from flask import current_app
-        if current_app and current_app.config.get('ENV') == 'production':
-            raise RuntimeError('禁止在生产环境运行 fake-data 命令')
+        if current_app:
+            env = (current_app.config.get('ENV') or current_app.config.get('FLASK_ENV') or '').lower()
+            if env == 'production':
+                raise RuntimeError('禁止在生产环境运行 fake-data 命令')
 
         if wipe:
             with db.session.begin_nested():
@@ -130,7 +133,7 @@ def generate_fake_data(
 
             # 其他管理组用户（保留原逻辑）
             for idx, role in enumerate([RoleType.HEAD_MANAGER]):
-                uname = "ccc"  # 仅保留��个示例管理用户
+                uname = "ccc"  # 仅保留一个示例管理用户
                 user = User()
                 user.username = uname
                 user.password_hash = generate_password_hash(uname)
@@ -148,7 +151,7 @@ def generate_fake_data(
             # 门店分店长和员工
             for store in stores:
                 # 分店长
-                mgr_username = f"mgr_{store.store_id}"
+                mgr_username = "mgr_{}".format(store.store_id)
                 mgr = User()
                 mgr.username = mgr_username
                 mgr.password_hash = generate_password_hash(mgr_username)
@@ -163,7 +166,7 @@ def generate_fake_data(
                 mgr.employee_number = int(store.store_id) * 1000 + random.randint(100, 999)
                 db.session.add(mgr)
                 # 员工
-                emp_username = f"emp_{store.store_id}"
+                emp_username = "emp_{}".format(store.store_id)
                 emp = User()
                 emp.username = emp_username
                 emp.password_hash = generate_password_hash(emp_username)
@@ -230,7 +233,7 @@ def generate_fake_data(
 
     except Exception as e:
         db.session.rollback()
-        print(f"❌ 生成测试数据时发生严重错误: {e}")
+        print("❌ 生成测试数据时发生严重错误: {}".format(e))
         raise
 
 
