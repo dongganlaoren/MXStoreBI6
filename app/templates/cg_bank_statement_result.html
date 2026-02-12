@@ -24,12 +24,25 @@
     </div>
     {% endif %}
 
+    {% set can_save = validation and validation.ok and not stmt_file.is_locked %}
+
     <!-- File Card -->
     <div class="card shadow-sm mb-3">
         <div class="card-header d-flex justify-content-between">
             <strong>文件信息</strong>
-            <a class="btn btn-sm btn-outline-primary"
-               href="{{ url_for('cg_bank_statement.download', file_id=stmt_file.id) }}">下载原始PDF</a>
+            <div class="d-flex gap-2">
+                <form method="post" action="{{ url_for('cg_bank_statement.save', file_id=stmt_file.id) }}">
+                    {{ save_form.csrf_token }}
+                    <button type="submit" class="btn btn-sm btn-primary" {% if not can_save %}disabled
+                            aria-disabled="true" {% endif %}>保存
+                    </button>
+                </form>
+                {% if stmt_file.is_locked %}
+                <span class="badge text-bg-secondary align-self-center">已锁定</span>
+                {% endif %}
+                <a class="btn btn-sm btn-outline-primary"
+                   href="{{ url_for('cg_bank_statement.download', file_id=stmt_file.id) }}">下载原始PDF</a>
+            </div>
         </div>
         <div class="card-body">
             <div class="row">
@@ -120,7 +133,7 @@
     <div class="card shadow-sm mb-3">
         <div class="card-header d-flex justify-content-between">
             <strong>校验结果</strong>
-            {% if validation and validation.layer1.ok and validation.layer2.ok and validation.layer3.ok %}
+            {% if validation and validation.ok %}
             <span class="badge text-bg-success">PASS</span>
             {% else %}
             <span class="badge text-bg-danger">FAIL</span>
@@ -129,7 +142,7 @@
         <div class="card-body">
             {% if validation %}
             <div class="mb-3">
-                {% if validation.layer1.ok and validation.layer2.ok and validation.layer3.ok %}
+                {% if validation.ok %}
                 <span class="text-success fw-semibold">三层校验全部通过</span>
                 {% else %}
                 <span class="text-danger fw-semibold">校验未通过</span>

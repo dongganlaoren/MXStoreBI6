@@ -66,5 +66,21 @@ local_dev.sqlite
 *.sqlite-wal
 *.sqlite-shm
 
- # Coverage / test artifacts
+# Coverage / test artifacts
 coverage.json
+
+# pytest / coverage artifacts
+htmlcov/
+.pytest_cache/
+test_execution.log
+
+# Local debug / scratch outputs
+/tmp_*
+tmp_*
+zzz_check.txt
+*.txt
+*.json
+
+# Demo PDFs used locally for parsing tests (keep large binaries out of git)
+docs/*.pdf
+docs/*.PDF

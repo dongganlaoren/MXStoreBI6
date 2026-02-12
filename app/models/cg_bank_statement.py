@@ -32,6 +32,9 @@ class CgBankStatementFile(db.Model):
     parsed_errors_json = db.Column(db.JSON, nullable=True)
     parsed_at = db.Column(db.DateTime, nullable=True)
 
+    is_locked = db.Column(db.Boolean, default=False, comment='保存后只读锁定')
+    locked_at = db.Column(db.DateTime, nullable=True, comment='锁定时间')
+
 
 class CgBankStatementTxn(db.Model):
     """成本治理：银行流水交易明细（按复合键去重）。"""

@@ -140,6 +140,7 @@ class BankParserEngine:
         self.bank_type: Optional[str] = None
         self.summary: Dict[str, Any] = {}
         self.transactions: List[Dict[str, Any]] = []
+        self.parse_error: Optional[str] = None
 
     def _split_kbank_tail(self, tail: str) -> Tuple[str, str]:
         if not tail:
@@ -187,6 +188,7 @@ class BankParserEngine:
         self.summary = {}
         self.transactions = []
         self.validation_layers = {}  # reset
+        self.parse_error = None
 
         try:
             with self._open_pdf_with_password_fallback() as pdf:
@@ -216,6 +218,8 @@ class BankParserEngine:
                     return self._process_bbl(pdf)
 
                 logger.error("未识别的银行格式")
+                self.bank_type = "UNKNOWN"
+                self.parse_error = "unknown_bank"
                 return False
 
         except BankParserPasswordRequired:
@@ -630,30 +634,38 @@ class BankParserEngine:
         # Use Decimal strings or floats for JSON serialization later if needed across API
         self.validation_layers = {
             "layer1": {
-                "ok": True,
-                "message": "汇总笔数/金额校验通过",
+                "ok": False,
+                "message": "未完成校验",
                 "expected": None,
                 "actual": None,
                 "diff": None,
                 "detail": None,
             },
             "layer2": {
-                "ok": True,
-                "message": "余额连续性校验通过",
+                "ok": False,
+                "message": "未完成校验",
                 "expected": None,
                 "actual": None,
                 "diff": None,
                 "detail": None,
             },
             "layer3": {
-                "ok": True,
-                "message": "总账期初期末校验通过",
+                "ok": False,
+                "message": "未完成校验",
                 "expected": None,
                 "actual": None,
                 "diff": None,
                 "detail": None,
             }
         }
+
+        if not self.transactions:
+            msg = "无交易明细，无法校验"
+            for layer in self.validation_layers.values():
+                layer["ok"] = False
+                layer["message"] = msg
+            errors.append(msg)
+            return False, errors
 
         calc_dep_amt = sum((t.get('deposit') or Decimal('0.00')) for t in self.transactions)
         calc_wdl_amt = sum((t.get('withdrawal') or Decimal('0.00')) for t in self.transactions)
@@ -684,81 +696,99 @@ class BankParserEngine:
             act_cnt,
         )
 
-        # Check Amount
-        if exp_dep is not None and calc_dep_amt != exp_dep:
-            l1_fail_reasons.append("进账金额不符")
-            errors.append("进账总额不符：概况 {} vs 明细 {}".format(exp_dep, calc_dep_amt))
-
-        exp_wdl = self.summary.get('total_wdl_amt')
-        if exp_wdl is not None and calc_wdl_amt != exp_wdl:
-            l1_fail_reasons.append("出账金额不符")
-            errors.append("出账总额不符：概况 {} vs 明细 {}".format(exp_wdl, calc_wdl_amt))
-
-        # Check Count
-        if exp_cnt is not None and exp_cnt != act_cnt:
-            l1_fail_reasons.append("笔数不符")
-            errors.append("明细总笔数不符：概况 {} vs 明细 {}".format(exp_cnt, act_cnt))
-
-        if l1_fail_reasons:
-            msg = " / ".join(l1_fail_reasons)
-            logger.warning("Layer 1 Validation Failed: %s", msg)
+        if exp_dep is None and exp_wdl is None and exp_cnt is None:
+            msg = "缺少汇总信息，未完成校验"
             self.validation_layers["layer1"]["ok"] = False
             self.validation_layers["layer1"]["message"] = msg
-            # For display, we might prioritize Count diff if present, else Amount
-            if exp_cnt is not None:
-                self.validation_layers["layer1"]["expected"] = str(exp_cnt)
-                self.validation_layers["layer1"]["actual"] = str(act_cnt)
-                self.validation_layers["layer1"]["diff"] = str(exp_cnt - act_cnt)
+            errors.append(msg)
+        else:
+            # Check Amount
+            if exp_dep is not None and calc_dep_amt != exp_dep:
+                l1_fail_reasons.append("进账金额不符")
+                errors.append("进账总额不符：概况 {} vs 明细 {}".format(exp_dep, calc_dep_amt))
+
+            exp_wdl = self.summary.get('total_wdl_amt')
+            if exp_wdl is not None and calc_wdl_amt != exp_wdl:
+                l1_fail_reasons.append("出账金额不符")
+                errors.append("出账总额不符：概况 {} vs 明细 {}".format(exp_wdl, calc_wdl_amt))
+
+            # Check Count
+            if exp_cnt is not None and exp_cnt != act_cnt:
+                l1_fail_reasons.append("笔数不符")
+                errors.append("明细总笔数不符：概况 {} vs 明细 {}".format(exp_cnt, act_cnt))
+
+            if l1_fail_reasons:
+                msg = " / ".join(l1_fail_reasons)
+                logger.warning("Layer 1 Validation Failed: %s", msg)
+                self.validation_layers["layer1"]["ok"] = False
+                self.validation_layers["layer1"]["message"] = msg
+                # For display, we might prioritize Count diff if present, else Amount
+                if exp_cnt is not None:
+                    self.validation_layers["layer1"]["expected"] = str(exp_cnt)
+                    self.validation_layers["layer1"]["actual"] = str(act_cnt)
+                    self.validation_layers["layer1"]["diff"] = str(exp_cnt - act_cnt)
+                else:
+                    # If only amount check failed but no counts
+                    # We can't show a single number expected/actual for multiple amounts (dep vs wdl) easily in one cell
+                    # Just show "check details" or first mismatch
+                    if calc_dep_amt != exp_dep:
+                        self.validation_layers["layer1"]["expected"] = str(exp_dep)
+                        self.validation_layers["layer1"]["actual"] = str(calc_dep_amt)
+                        self.validation_layers["layer1"]["diff"] = str(exp_dep - calc_dep_amt)
+                    elif calc_wdl_amt != exp_wdl:
+                        self.validation_layers["layer1"]["expected"] = str(exp_wdl)
+                        self.validation_layers["layer1"]["actual"] = str(calc_wdl_amt)
+                        self.validation_layers["layer1"]["diff"] = str(exp_wdl - calc_wdl_amt)
             else:
-                # If only amount check failed but no counts
-                # We can't show a single number expected/actual for multiple amounts (dep vs wdl) easily in one cell
-                # Just show "check details" or first mismatch
-                if calc_dep_amt != exp_dep:
-                    self.validation_layers["layer1"]["expected"] = str(exp_dep)
-                    self.validation_layers["layer1"]["actual"] = str(calc_dep_amt)
-                    self.validation_layers["layer1"]["diff"] = str(exp_dep - calc_dep_amt)
-                elif calc_wdl_amt != exp_wdl:
-                    self.validation_layers["layer1"]["expected"] = str(exp_wdl)
-                    self.validation_layers["layer1"]["actual"] = str(calc_wdl_amt)
-                    self.validation_layers["layer1"]["diff"] = str(exp_wdl - calc_wdl_amt)
+                self.validation_layers["layer1"]["ok"] = True
+                self.validation_layers["layer1"]["message"] = "汇总笔数/金额校验通过"
 
         # ---------------------------------------------------------
         # 第二层：余额连续性校验
         # ---------------------------------------------------------
-        prev_balance = self.summary.get('begin_balance') or Decimal('0.00')
-        first_bad_idx = -1
-        bad_row_details = None
-        self.validation_layers["layer2"]["detail"] = "余额校验: 上一行余额 + 进账 - 出账 = 本行余额"
-
-        for i, t in enumerate(self.transactions):
-            deposit = t.get('deposit') or Decimal('0.00')
-            withdrawal = t.get('withdrawal') or Decimal('0.00')
-
-            expected = prev_balance + deposit - withdrawal
-            expected = expected.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-
-            bal = (t.get('balance') or Decimal('0.00')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-
-            if abs(expected - bal) > Decimal('0.01'):
-                if first_bad_idx == -1:
-                    first_bad_idx = i + 1
-                    bad_row_details = (expected, bal)
-
-                errors.append("行 {} 余额不连续：预期 {} 实际 {}".format(i + 1, expected, bal))
-                if len(errors) >= 10:  # limit error spam
-                    break
-            prev_balance = bal
-
-        if first_bad_idx != -1:
-            logger.warning("Layer 2 Validation Failed: Balance discontinuity at row %s", first_bad_idx)
+        if self.summary.get('begin_balance') is None:
+            msg = "缺少期初余额，未完成校验"
             self.validation_layers["layer2"]["ok"] = False
-            self.validation_layers["layer2"]["message"] = "余额计算不连续 (行 {})".format(first_bad_idx)
-            self.validation_layers["layer2"]["expected"] = str(bad_row_details[0])
-            self.validation_layers["layer2"]["actual"] = str(bad_row_details[1])
-            self.validation_layers["layer2"]["diff"] = str(bad_row_details[0] - bad_row_details[1])
-            self.validation_layers["layer2"]["detail"] = (
-                "行 {}: 期望余额 {} = 上一行余额 + 进账 - 出账；实际余额 {}"
-            ).format(first_bad_idx, bad_row_details[0], bad_row_details[1])
+            self.validation_layers["layer2"]["message"] = msg
+            errors.append(msg)
+        else:
+            prev_balance = self.summary.get('begin_balance') or Decimal('0.00')
+            first_bad_idx = -1
+            bad_row_details = None
+            self.validation_layers["layer2"]["detail"] = "余额校验: 上一行余额 + 进账 - 出账 = 本行余额"
+
+            for i, t in enumerate(self.transactions):
+                deposit = t.get('deposit') or Decimal('0.00')
+                withdrawal = t.get('withdrawal') or Decimal('0.00')
+
+                expected = prev_balance + deposit - withdrawal
+                expected = expected.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+                bal = (t.get('balance') or Decimal('0.00')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+                if abs(expected - bal) > Decimal('0.01'):
+                    if first_bad_idx == -1:
+                        first_bad_idx = i + 1
+                        bad_row_details = (expected, bal)
+
+                    errors.append("行 {} 余额不连续：预期 {} 实际 {}".format(i + 1, expected, bal))
+                    if len(errors) >= 10:  # limit error spam
+                        break
+                prev_balance = bal
+
+            if first_bad_idx != -1:
+                logger.warning("Layer 2 Validation Failed: Balance discontinuity at row %s", first_bad_idx)
+                self.validation_layers["layer2"]["ok"] = False
+                self.validation_layers["layer2"]["message"] = "余额计算不连续 (行 {})".format(first_bad_idx)
+                self.validation_layers["layer2"]["expected"] = str(bad_row_details[0])
+                self.validation_layers["layer2"]["actual"] = str(bad_row_details[1])
+                self.validation_layers["layer2"]["diff"] = str(bad_row_details[0] - bad_row_details[1])
+                self.validation_layers["layer2"]["detail"] = (
+                    "行 {}: 期望余额 {} = 上一行余额 + 进账 - 出账；实际余额 {}"
+                ).format(first_bad_idx, bad_row_details[0], bad_row_details[1])
+            else:
+                self.validation_layers["layer2"]["ok"] = True
+                self.validation_layers["layer2"]["message"] = "余额连续性校验通过"
 
         # ---------------------------------------------------------
         # 第三层：期初期末校验
@@ -786,10 +816,14 @@ class BankParserEngine:
                 self.validation_layers["layer3"]["detail"] = (
                     "期初 {} + 进账合计 {} - 出账合计 {} = 期末(计算) {}；概况期末 {}"
                 ).format(begin, calc_dep_amt, calc_wdl_amt, expected_end, end)
+            else:
+                self.validation_layers["layer3"]["ok"] = True
+                self.validation_layers["layer3"]["message"] = "总账期初期末校验通过"
         else:
-            # If end balance missing, we can't truly validate layer 3, consider PASS or WARN?
-            # Current logic: PASS with no error if end balance is missing (BBL sometimes misses it).
-            pass
+            msg = "缺少期末余额，未完成校验"
+            self.validation_layers["layer3"]["ok"] = False
+            self.validation_layers["layer3"]["message"] = msg
+            errors.append(msg)
 
         return len(errors) == 0, errors
 
@@ -800,7 +834,7 @@ class BankParserEngine:
             try:
                 with self._open_pdf_with_password_fallback() as pdf:
                     full = "\n".join([(p.extract_text() or '') for p in pdf.pages])
-                if self.bank_type is None:
+                if self.bank_type is None or self.bank_type == "UNKNOWN":
                     if ("Total Deposit" in full and "Total Withdrawal" in full) or "Beginning Balance" in full:
                         self.bank_type = 'KBANK'
                     elif "Total No. of Debits" in full or "Total No. of Credits" in full:
@@ -808,12 +842,16 @@ class BankParserEngine:
             except Exception:
                 pass
 
+            errors = ['解析失败']
+            if self.parse_error == "unknown_bank":
+                errors = ['未识别的银行']
+
             return BankParseResult(
                 ok=False,
                 bank_type=self.bank_type or '',
                 summary=self.summary,
                 transactions=self.transactions,
-                errors=['解析失败'],
+                errors=errors,
                 validation_layers={}  # Empty
             )
 

@@ -14,3 +14,7 @@ class CgBankStatementUploadForm(FlaskForm):
 class CgBankStatementPasswordForm(FlaskForm):
     password = PasswordField('PDF 密码', validators=[Optional()])
     submit = SubmitField('重试解析')
+
+
+class CgBankStatementSaveForm(FlaskForm):
+    submit = SubmitField('保存')

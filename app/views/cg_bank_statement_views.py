@@ -1,6 +1,7 @@
 # app/views/cg_bank_statement_views.py
 from __future__ import annotations
 
+import hashlib
 import os
 from datetime import datetime
 from decimal import Decimal
@@ -11,7 +12,9 @@ from werkzeug.utils import secure_filename
 
 from app.extensions import db
 from app.forms.cg_bank_statement_forms import CgBankStatementPasswordForm, CgBankStatementUploadForm
+from app.forms.cg_bank_statement_forms import CgBankStatementSaveForm
 from app.models.cg_bank_statement import CgBankStatementFile
+from app.models.cg_bank_statement import CgBankStatementTxn
 from app.services.cg_bank_statement_service import (
     CgPdfPasswordRequired,
     cg_bsave_path,
@@ -54,6 +57,29 @@ def _normalize_cached_for_validation(cached_summary, cached_txns):
             'balance': _to_decimal_or_none(t.get('balance')),
         })
     return summary, txns
+
+
+def _txn_key(txn_date, txn_time, credit, debit, balance):
+    return (
+        txn_date or '',
+        txn_time or '',
+        round(float(credit or 0.0), 2),
+        round(float(debit or 0.0), 2),
+        round(float(balance or 0.0), 2),
+    )
+
+
+def _txn_row_hash(file_hash: str, txn: dict) -> str:
+    seed = "{}|{}|{}|{}|{}|{}|{}".format(
+        file_hash,
+        txn.get('date') or '',
+        txn.get('time') or '',
+        txn.get('desc') or '',
+        txn.get('deposit') or 0,
+        txn.get('withdrawal') or 0,
+        txn.get('balance') or 0,
+    )
+    return hashlib.md5(seed.encode('utf-8')).hexdigest()
 
 
 cg_bank_statement_bp = Blueprint('cg_bank_statement', __name__, url_prefix='/cg/bank-statement')
@@ -109,7 +135,16 @@ def upload():
 def result(file_id: int):
     stmt_file = CgBankStatementFile.query.get_or_404(file_id)
 
+    if stmt_file.bank_code == 'UNKNOWN':
+        flash('未知银行，暂不支持解析，请重新上传。', 'warning')
+        return redirect(url_for('cg_bank_statement.upload'))
+
+    if stmt_file.is_locked and request.args.get('reparse') in ('1', 'true', 'yes'):
+        flash('已保存并锁定，禁止重新解析。', 'warning')
+        return redirect(url_for('cg_bank_statement.result', file_id=file_id))
+
     pwd_form = CgBankStatementPasswordForm()
+    save_form = CgBankStatementSaveForm()
 
     abs_pdf_path = _resolve_abs_path(stmt_file.storage_path)
 
@@ -142,18 +177,8 @@ def result(file_id: int):
         # - If parser version changed, force re-parse and overwrite cache.
         should_reparse = force_reparse or (stmt_file.parser_version != PARSER_VERSION) or bool(user_pwd)
 
-        # 如果缓存缺少关键字段（如账期），自动触发重新解析
-        if not should_reparse and stmt_file.parsed_summary_json is not None:
-            cached_period = (stmt_file.parsed_summary_json or {}).get('period')
-            if cached_period in (None, ''):
-                should_reparse = True
-            if stmt_file.bank_code == 'KBANK':
-                cached_txns = stmt_file.parsed_txns_json or []
-                if cached_txns and all('details' not in t for t in cached_txns):
-                    should_reparse = True
-            cached_txns = stmt_file.parsed_txns_json
-            if cached_txns in (None, []) and not should_reparse:
-                should_reparse = True
+        if stmt_file.is_locked:
+            should_reparse = False
 
         if not should_reparse and stmt_file.parsed_summary_json is not None:
             current_app.logger.info('使用缓存解析结果 file_id=%s hash=%s', stmt_file.id, stmt_file.file_hash)
@@ -163,6 +188,11 @@ def result(file_id: int):
             cached_ok = len(cached_errors) == 0
 
             txns = cached_txns
+            if not txns:
+                flash('未提取到交易明细，已清理文件记录，请重新上传。', 'warning')
+                _delete_stmt_file(stmt_file)
+                db.session.commit()
+                return redirect(url_for('cg_bank_statement.upload'))
             summary = {
                 'period': cached_summary.get('period'),
                 'opening_balance': _to_float_or_none(cached_summary.get('begin_balance')),
@@ -181,11 +211,15 @@ def result(file_id: int):
             engine.transactions = normalized_txns
             _ = engine.validate()
             validation_layers = engine.validation_layers or {}
+            layer1 = validation_layers.get('layer1') or {'ok': False, 'message': '未完成校验'}
+            layer2 = validation_layers.get('layer2') or {'ok': False, 'message': '未完成校验'}
+            layer3 = validation_layers.get('layer3') or {'ok': False, 'message': '未完成校验'}
+            overall_ok = cached_ok and all(l.get('ok') for l in (layer1, layer2, layer3))
             validation = {
-                'ok': cached_ok,
-                'layer1': validation_layers.get('layer1') or {'ok': True, 'message': '汇总笔数/金额校验通过'},
-                'layer2': validation_layers.get('layer2') or {'ok': True, 'message': '余额连续性校验通过'},
-                'layer3': validation_layers.get('layer3') or {'ok': True, 'message': '总账期初期末校验通过'},
+                'ok': overall_ok,
+                'layer1': layer1,
+                'layer2': layer2,
+                'layer3': layer3,
                 'errors': cached_errors,
             }
         else:
@@ -196,7 +230,18 @@ def result(file_id: int):
             if res.bank_type:
                 stmt_file.bank_code = res.bank_type
 
+            if res.bank_type == 'UNKNOWN':
+                _delete_stmt_file(stmt_file)
+                db.session.commit()
+                flash('未知银行，暂不支持解析，请重新上传。', 'warning')
+                return redirect(url_for('cg_bank_statement.upload'))
+
             txns = res.transactions or []
+            if not txns:
+                _delete_stmt_file(stmt_file)
+                db.session.commit()
+                flash('未提取到交易明细，已清理文件记录，请重新上传。', 'warning')
+                return redirect(url_for('cg_bank_statement.upload'))
 
             # cache results by version
             stmt_file.parser_version = PARSER_VERSION
@@ -217,11 +262,15 @@ def result(file_id: int):
                 'currency': 'THB',
             }
 
+            layer1 = res.layer1 or {'ok': False, 'message': '未完成校验'}
+            layer2 = res.layer2 or {'ok': False, 'message': '未完成校验'}
+            layer3 = res.layer3 or {'ok': False, 'message': '未完成校验'}
+            overall_ok = bool(res.ok) and all(l.get('ok') for l in (layer1, layer2, layer3))
             validation = {
-                'ok': res.ok,
-                'layer1': res.layer1 or {'ok': True, 'message': '汇总笔数/金额校验通过'},
-                'layer2': res.layer2 or {'ok': True, 'message': '余额连续性校验通过'},
-                'layer3': res.layer3 or {'ok': True, 'message': '总账期初期末校验通过'},
+                'ok': overall_ok,
+                'layer1': layer1,
+                'layer2': layer2,
+                'layer3': layer3,
                 'errors': res.errors,
             }
 
@@ -251,6 +300,7 @@ def result(file_id: int):
         validation=validation,
         need_password=need_pwd,
         pwd_form=pwd_form,
+        save_form=save_form,
         txns=txns_page,
         page=page,
         per_page=per_page,
@@ -269,6 +319,97 @@ def download(file_id: int):
     stmt_file = CgBankStatementFile.query.get_or_404(file_id)
     abs_pdf_path = _resolve_abs_path(stmt_file.storage_path)
     return send_file(abs_pdf_path, as_attachment=True, download_name=stmt_file.original_filename)
+
+
+@cg_bank_statement_bp.route('/<int:file_id>/save', methods=['POST'])
+@login_required
+def save(file_id: int):
+    stmt_file = CgBankStatementFile.query.get_or_404(file_id)
+    form = CgBankStatementSaveForm()
+    if not form.validate_on_submit():
+        flash('保存请求无效，请重试。', 'warning')
+        return redirect(url_for('cg_bank_statement.result', file_id=file_id))
+
+    if not stmt_file.parsed_summary_json or not stmt_file.parsed_txns_json:
+        flash('暂无可保存的解析结果，请先完成解析。', 'warning')
+        return redirect(url_for('cg_bank_statement.result', file_id=file_id))
+
+    if stmt_file.is_locked:
+        flash('已保存并锁定，无需重复保存。', 'info')
+        return redirect(url_for('cg_bank_statement.result', file_id=file_id))
+
+    abs_pdf_path = _resolve_abs_path(stmt_file.storage_path)
+    engine = BankParserEngine(abs_pdf_path)
+    normalized_summary, normalized_txns = _normalize_cached_for_validation(
+        stmt_file.parsed_summary_json,
+        stmt_file.parsed_txns_json,
+    )
+    engine.summary = normalized_summary
+    engine.transactions = normalized_txns
+    _ = engine.validate()
+    validation_layers = engine.validation_layers or {}
+    layer1 = validation_layers.get('layer1') or {'ok': False}
+    layer2 = validation_layers.get('layer2') or {'ok': False}
+    layer3 = validation_layers.get('layer3') or {'ok': False}
+    overall_ok = all(l.get('ok') for l in (layer1, layer2, layer3))
+    if not overall_ok:
+        flash('校验未通过，禁止保存。', 'danger')
+        return redirect(url_for('cg_bank_statement.result', file_id=file_id))
+
+    if not stmt_file.parsed_txns_json:
+        flash('未提取到交易明细，禁止保存。', 'danger')
+        return redirect(url_for('cg_bank_statement.result', file_id=file_id))
+
+    existing_rows = CgBankStatementTxn.query.filter_by(file_id=stmt_file.id).with_entities(
+        CgBankStatementTxn.txn_date,
+        CgBankStatementTxn.txn_time,
+        CgBankStatementTxn.credit,
+        CgBankStatementTxn.debit,
+        CgBankStatementTxn.balance,
+    ).all()
+    existing_keys = set(_txn_key(*row) for row in existing_rows)
+
+    new_count = 0
+    dup_count = 0
+    for txn in stmt_file.parsed_txns_json or []:
+        credit = _to_float_or_none(txn.get('deposit')) or 0.0
+        debit = _to_float_or_none(txn.get('withdrawal')) or 0.0
+        balance = _to_float_or_none(txn.get('balance')) or 0.0
+        key = _txn_key(txn.get('date'), txn.get('time'), credit, debit, balance)
+        if key in existing_keys:
+            dup_count += 1
+            continue
+
+        row = CgBankStatementTxn(
+            file_id=stmt_file.id,
+            txn_date=txn.get('date') or '',
+            txn_time=txn.get('time') or None,
+            description=txn.get('desc'),
+            credit=credit,
+            debit=debit,
+            balance=balance,
+            raw_row_hash=_txn_row_hash(stmt_file.file_hash, txn),
+        )
+        db.session.add(row)
+        existing_keys.add(key)
+        new_count += 1
+
+    stmt_file.is_locked = True
+    stmt_file.locked_at = datetime.now()
+    db.session.commit()
+    flash('保存完成：新增 {} 条，跳过重复 {} 条。'.format(new_count, dup_count), 'success')
+    return redirect(url_for('cg_bank_statement.result', file_id=file_id))
+
+
+def _delete_stmt_file(stmt_file: CgBankStatementFile) -> None:
+    abs_pdf_path = _resolve_abs_path(stmt_file.storage_path)
+    try:
+        if os.path.exists(abs_pdf_path):
+            os.remove(abs_pdf_path)
+    except Exception:
+        current_app.logger.warning('删除文件失败: %s', abs_pdf_path)
+
+    db.session.delete(stmt_file)
 
 
 def _resolve_abs_path(storage_path: str) -> str:
