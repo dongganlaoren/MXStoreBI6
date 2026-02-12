@@ -12,49 +12,50 @@ from app.inventory_stocktake.models import MXMaterialInfo, MXInventoryCheck
 from .attachment import DailySalesAttachments
 from .attendance import AttendanceRecord
 from .bank_deposit_history import BankDepositHistory
+from .cg_bank_statement import CgBankStatementFile, CgBankStatementTxn
 from .daily_sales import DailySales
 from .email_report_config import EmailReportConfig
 # 邮件任务日志
 from .email_task_log import EmailTaskLog, EmailTaskType, EmailTaskStatus
 # 统一导出所有在项目中使用到的枚举
 from .enums import (
-	RoleType,
-	AttachmentType,
-	FinancialCheckStatus,
-	BankDepositHistoryAction,
-	ReimbursementPrimaryCategory,
-	ReimbursementSecondaryCategory,
-	ReimbursementAttachmentType,
-	ReimbursementStatus,
-	ReimbursementCheckStatus,
-	AttendanceAction,
-	AttendanceSource,
-	RenovationTaskStatus,
-	RenovationTaskPriority,
-	RenovationRecordAction,
-	VerificationResult,
-	NotificationType,
-	NotificationChannel,
-	NotificationStatus,
+    RoleType,
+    AttachmentType,
+    FinancialCheckStatus,
+    BankDepositHistoryAction,
+    ReimbursementPrimaryCategory,
+    ReimbursementSecondaryCategory,
+    ReimbursementAttachmentType,
+    ReimbursementStatus,
+    ReimbursementCheckStatus,
+    AttendanceAction,
+    AttendanceSource,
+    RenovationTaskStatus,
+    RenovationTaskPriority,
+    RenovationRecordAction,
+    VerificationResult,
+    NotificationType,
+    NotificationChannel,
+    NotificationStatus,
 )
 from .notification import (
-	NotificationConfig,
-	NotificationTask,
-	NotificationTemplate,
+    NotificationConfig,
+    NotificationTask,
+    NotificationTemplate,
 )
 # 报销相关模型
 from .reimbursement import (
-	ReimbursementRequest,
-	ReimbursementAttachment,
-	ReimbursementCCRecipient,
-	ReimbursementDefaultCCRecipient,
+    ReimbursementRequest,
+    ReimbursementAttachment,
+    ReimbursementCCRecipient,
+    ReimbursementDefaultCCRecipient,
 )
 # 整改与通知相关模型（如后续使用，可直接从此处导出）
 from .renovation import (
-	RenovationCategory,
-	RenovationTask,
-	RenovationRecord,
-	RenovationAttachment as RenovationAttachmentModel,  # 避免与报销附件名冲突
+    RenovationCategory,
+    RenovationTask,
+    RenovationRecord,
+    RenovationAttachment as RenovationAttachmentModel,  # 避免与报销附件名冲突
 )
 # 核心业务模型
 from .store import Store
@@ -89,6 +90,11 @@ __all__ = [
     "EmailTaskLog",
     "EmailTaskType",
     "EmailTaskStatus",
+
+    # 成本治理：银行流水
+    "CgBankStatementFile",
+    "CgBankStatementTxn",
+
     # 枚举
     "RoleType",
     "AttachmentType",

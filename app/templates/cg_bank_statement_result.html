@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">成本治理｜解析结果</h4>
+        <a class="btn btn-outline-secondary" href="{{ url_for('cg_bank_statement.upload') }}">返回上传</a>
+    </div>
+
+    {% if need_password %}
+    <div class="alert alert-warning">
+        <div class="fw-semibold">PDF 已加密</div>
+        <div class="small">系统默认密码尝试失败，请输入密码后重试解析。</div>
+        <form method="post" class="row g-2 mt-2">
+            {{ pwd_form.csrf_token }}
+            <div class="col-md-4">
+                {{ pwd_form.password(class_='form-control', placeholder='请输入PDF密码') }}
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-warning">重试解析</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- File Card -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header d-flex justify-content-between">
+            <strong>文件信息</strong>
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('cg_bank_statement.download', file_id=stmt_file.id) }}">下载原始PDF</a>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="text-muted small">文件名</div>
+                    <div class="fw-semibold">{{ stmt_file.original_filename }}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">银行类型</div>
+                    <div class="fw-semibold">{{ stmt_file.bank_code }}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">解析时间</div>
+                    <div class="fw-semibold">{{ stmt_file.created_at|strftime('%Y-%m-%d %H:%M:%S') if
+                        stmt_file.created_at else '-' }}
+                    </div>
+                </div>
+            </div>
+            <div class="mt-2">
+                <details>
+                    <summary class="text-muted small">文件哈希</summary>
+                    <code>{{ stmt_file.file_hash }}</code>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Card -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header"><strong>概况数据</strong></div>
+        <div class="card-body">
+            {% if summary %}
+            <div class="row gy-3">
+                <div class="col-md-12 border-bottom pb-2 mb-2">
+                    <div class="text-muted small">账期 (Period)</div>
+                    <div class="fw-semibold">{{ (summary.period if summary.period is defined else summary.get('period'))
+                        or '-' }}
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="text-muted small">期初金额</div>
+                    <div class="fs-5 fw-semibold">{{ (summary.opening_balance if summary.opening_balance is defined else
+                        summary['opening_balance'])|money }}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">期末金额</div>
+                    <div class="fs-5 fw-semibold">{{ (summary.closing_balance if summary.closing_balance is defined else
+                        summary['closing_balance'])|money }}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted small">币种</div>
+                    <div class="fs-5 fw-semibold">{{ (summary.currency if summary.currency is defined else
+                        summary.get('currency')) or '-' }}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="text-muted small">进账总笔数 / 进账总金额</div>
+                    <div class="fw-semibold">
+                        {% set cc = (summary.credit_count if summary.credit_count is defined else
+                        summary['credit_count']) %}
+                        {% set ct = (summary.credit_total if summary.credit_total is defined else
+                        summary['credit_total']) %}
+                        {{ cc if cc is not none else '-' }} / {{ ct|money if ct is not none else '-' }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="text-muted small">出账总笔数 / 出账总金额</div>
+                    <div class="fw-semibold">
+                        {% set dc = (summary.debit_count if summary.debit_count is defined else summary['debit_count'])
+                        %}
+                        {% set dt = (summary.debit_total if summary.debit_total is defined else summary['debit_total'])
+                        %}
+                        {{ dc if dc is not none else '-' }} / {{ dt|money if dt is not none else '-' }}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-muted">未能提取到完整概况数据。</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Validation Card -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header d-flex justify-content-between">
+            <strong>校验结果</strong>
+            {% if validation and validation.layer1.ok and validation.layer2.ok and validation.layer3.ok %}
+            <span class="badge text-bg-success">PASS</span>
+            {% else %}
+            <span class="badge text-bg-danger">FAIL</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if validation %}
+            <div class="mb-3">
+                {% if validation.layer1.ok and validation.layer2.ok and validation.layer3.ok %}
+                <span class="text-success fw-semibold">三层校验全部通过</span>
+                {% else %}
+                <span class="text-danger fw-semibold">校验未通过</span>
+                {% endif %}
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                    <tr>
+                        <th style="width: 110px;">层级</th>
+                        <th style="width: 80px;">状态</th>
+                        <th>说明</th>
+                        <th class="text-end" style="width: 140px;">期望值</th>
+                        <th class="text-end" style="width: 140px;">实际值</th>
+                        <th class="text-end" style="width: 120px;">差值</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% set l1 = validation.layer1 %}
+                    <tr>
+                        <td>第一层</td>
+                        <td>{% if l1.ok %}<span class="badge text-bg-success">PASS</span>{% else %}<span
+                                class="badge text-bg-danger">FAIL</span>{% endif %}
+                        </td>
+                        <td>
+                            {{ l1.message }}
+                            {% if l1.detail %}
+                            <div class="small text-muted">{{ l1.detail }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ l1.expected if l1.expected else '-' }}</td>
+                        <td class="text-end">{{ l1.actual if l1.actual else '-' }}</td>
+                        <td class="text-end">{{ l1.diff if l1.diff else '-' }}</td>
+                    </tr>
+
+                    {% set l2 = validation.layer2 %}
+                    <tr>
+                        <td>第二层</td>
+                        <td>{% if l2.ok %}<span class="badge text-bg-success">PASS</span>{% else %}<span
+                                class="badge text-bg-danger">FAIL</span>{% endif %}
+                        </td>
+                        <td>
+                            {{ l2.message }}
+                            {% if l2.detail %}
+                            <div class="small text-muted">{{ l2.detail }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ l2.expected if l2.expected else '-' }}</td>
+                        <td class="text-end">{{ l2.actual if l2.actual else '-' }}</td>
+                        <td class="text-end">{{ l2.diff if l2.diff else '-' }}</td>
+                    </tr>
+
+                    {% set l3 = validation.layer3 %}
+                    <tr>
+                        <td>第三层</td>
+                        <td>{% if l3.ok %}<span class="badge text-bg-success">PASS</span>{% else %}<span
+                                class="badge text-bg-danger">FAIL</span>{% endif %}
+                        </td>
+                        <td>
+                            {{ l3.message }}
+                            {% if l3.detail %}
+                            <div class="small text-muted">{{ l3.detail }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">{{ (l3.expected|float|money) if l3.expected else '-' }}</td>
+                        <td class="text-end">{{ (l3.actual|float|money) if l3.actual else '-' }}</td>
+                        <td class="text-end">{{ (l3.diff|float|money) if l3.diff else '-' }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-muted">暂无校验结果。</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Transactions Card -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>交易明细</strong>
+            <span class="text-muted small">
+            共 {{ total_count if total_count is defined else (txns|length if txns is defined else 0) }} 条，
+            当前显示 {{ (start_index + 1) if total_count and total_count > 0 else 0 }}
+            - {{ (start_index + (txns|length)) if txns is defined else 0 }}
+            （每页 {{ per_page if per_page is defined else 200 }} 条）
+        </span>
+        </div>
+        <div class="card-body">
+            {% if txns is defined and txns|length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th style="width: 50px;">序号</th>
+                        <th style="width: 110px;">日期</th>
+                        <th style="width: 80px;">时间</th>
+                        {% if stmt_file.bank_code == 'KBANK' %}
+                        <th>Descriptions</th>
+                        <th>Channel</th>
+                        <th>Details</th>
+                        {% else %}
+                        <th>摘要</th>
+                        <th>渠道</th>
+                        <th style="width: 90px;">来源标记</th>
+                        {% endif %}
+                        <th class="text-end" style="width: 140px;">进账</th>
+                        <th class="text-end" style="width: 140px;">出账</th>
+                        <th class="text-end" style="width: 160px;">余额</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for t in txns %}
+                    <tr>
+                        <td>{{ (start_index if start_index is defined else 0) + loop.index }}</td>
+                        <td>{{ t.date }}</td>
+                        <td>{{ t.time }}</td>
+                        {% if stmt_file.bank_code == 'KBANK' %}
+                        <td title="{{ t.desc }}" style="white-space: normal;">{{ t.desc }}</td>
+                        <td>{{ t.channel or '-' }}</td>
+                        <td title="{{ t.details }}" style="white-space: normal;">{{ t.details or '-' }}</td>
+                        {% else %}
+                        <td title="{{ t.desc }}" style="white-space: normal;">{{ t.desc }}</td>
+                        <td>{{ t.channel or '-' }}</td>
+                        <td>{{ t.tail_tag or '-' }}</td>
+                        {% endif %}
+                        <td class="text-end text-success">{{ (t.deposit or 0)|money }}</td>
+                        <td class="text-end text-danger">{{ (t.withdrawal or 0)|money }}</td>
+                        <td class="text-end">{{ (t.balance or 0)|money }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if total_pages is defined and total_pages > 1 %}
+            <nav aria-label="Transaction pagination">
+                <ul class="pagination pagination-sm justify-content-center mb-2">
+                    <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                        <a class="page-link"
+                           href="{{ url_for('cg_bank_statement.result', file_id=stmt_file.id, page=page-1) }}">上一页</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">第 {{ page }} / {{ total_pages }} 页</span>
+                    </li>
+                    <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                        <a class="page-link"
+                           href="{{ url_for('cg_bank_statement.result', file_id=stmt_file.id, page=page+1) }}">下一页</a>
+                    </li>
+                </ul>
+                <form class="row g-2 justify-content-center" method="get"
+                      action="{{ url_for('cg_bank_statement.result', file_id=stmt_file.id) }}">
+                    <div class="col-auto">
+                        <input type="number" name="page" min="1" max="{{ total_pages }}"
+                               class="form-control form-control-sm" style="width: 180px;" placeholder="跳转页" required>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">跳转</button>
+                    </div>
+                </form>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-muted">未提取到交易明细。</div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

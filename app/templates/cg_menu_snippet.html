@@ -1,0 +1,11 @@
+{# app/templates/cg_menu_snippet.html #}
+<li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" href="#" id="cgMenu" role="button" data-bs-toggle="dropdown"
+       aria-expanded="false">
+        成本治理
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="cgMenu">
+        <li><a class="dropdown-item" href="{{ url_for('cg_bank_statement.upload') }}">银行流水导入</a></li>
+    </ul>
+</li>
+

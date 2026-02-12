@@ -25,6 +25,10 @@ psutil
 pytest
 pytest-cov
 
+# bank-statement PDF parsing
+pypdf>=4.0.0
+pdfplumber>=0.11.0
+
 # inventory-stocktake（库存盘点）子系统依赖
 openpyxl>=3.1.2
 python-dateutil>=2.8.2

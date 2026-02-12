@@ -261,6 +261,7 @@ def register_blueprints(app: Flask) -> None:
     from app.views.attendance_views import attendance_bp
     from app.views.renovation_views import renovation_bp  # 新增：店铺整改模块
     from app.inventory_stocktake import inventory_stocktake_bp  # 新增：库存盘点模块
+    from app.views.cg_bank_statement_views import cg_bank_statement_bp  # 新增：成本治理-银行流水
     # from app.views.root_views import root_bp  # 已合并到 __init__，不再注册蓝图
 
     # 注册蓝图
@@ -273,6 +274,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(attendance_bp)
     app.register_blueprint(renovation_bp)  # 新增：注册店铺整改模块蓝图
     app.register_blueprint(inventory_stocktake_bp)  # 新增：注册库存盘点模块蓝图
+    app.register_blueprint(cg_bank_statement_bp)  # 新增：注册成本治理-银行流水蓝图
     # app.register_blueprint(root_bp)
 
 
