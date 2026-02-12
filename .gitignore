@@ -78,8 +78,8 @@ test_execution.log
 /tmp_*
 tmp_*
 zzz_check.txt
-*.txt
-*.json
+tmp_*.txt
+tmp_*.json
 
 # Demo PDFs used locally for parsing tests (keep large binaries out of git)
 docs/*.pdf
