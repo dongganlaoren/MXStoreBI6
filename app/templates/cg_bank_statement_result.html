@@ -31,17 +31,28 @@
         <div class="card-header d-flex justify-content-between">
             <strong>文件信息</strong>
             <div class="d-flex gap-2">
+                {% if draft_token %}
+                <form method="post" action="{{ url_for('cg_bank_statement.save', draft_token=draft_token, filename=stmt_file.original_filename) }}">
+                    {{ save_form.csrf_token }}
+                    <button type="submit" class="btn btn-sm btn-primary" {% if not can_save %}disabled
+                            aria-disabled="true" {% endif %}>保存
+                    </button>
+                </form>
+                {% else %}
                 <form method="post" action="{{ url_for('cg_bank_statement.save', file_id=stmt_file.id) }}">
                     {{ save_form.csrf_token }}
                     <button type="submit" class="btn btn-sm btn-primary" {% if not can_save %}disabled
                             aria-disabled="true" {% endif %}>保存
                     </button>
                 </form>
+                {% endif %}
                 {% if stmt_file.is_locked %}
                 <span class="badge text-bg-secondary align-self-center">已锁定</span>
                 {% endif %}
+                {% if not draft_token %}
                 <a class="btn btn-sm btn-outline-primary"
                    href="{{ url_for('cg_bank_statement.download', file_id=stmt_file.id) }}">下载原始PDF</a>
+                {% endif %}
             </div>
         </div>
         <div class="card-body">
@@ -56,17 +67,23 @@
                 </div>
                 <div class="col-md-3">
                     <div class="text-muted small">解析时间</div>
+                    {% if draft_token %}
+                    <div class="fw-semibold">{{ preview_parsed_at|strftime('%Y-%m-%d %H:%M:%S') if preview_parsed_at else '-' }}</div>
+                    {% else %}
                     <div class="fw-semibold">{{ stmt_file.created_at|strftime('%Y-%m-%d %H:%M:%S') if
                         stmt_file.created_at else '-' }}
                     </div>
+                    {% endif %}
                 </div>
             </div>
+            {% if not draft_token %}
             <div class="mt-2">
                 <details>
                     <summary class="text-muted small">文件哈希</summary>
                     <code>{{ stmt_file.file_hash }}</code>
                 </details>
             </div>
+            {% endif %}
         </div>
     </div>
 
@@ -283,19 +300,35 @@
             <nav aria-label="Transaction pagination">
                 <ul class="pagination pagination-sm justify-content-center mb-2">
                     <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                        {% if draft_token %}
+                        <a class="page-link"
+                           href="{{ url_for('cg_bank_statement.result_draft', draft_token=draft_token, filename=stmt_file.original_filename, page=page-1) }}">上一页</a>
+                        {% else %}
                         <a class="page-link"
                            href="{{ url_for('cg_bank_statement.result', file_id=stmt_file.id, page=page-1) }}">上一页</a>
+                        {% endif %}
                     </li>
                     <li class="page-item disabled">
                         <span class="page-link">第 {{ page }} / {{ total_pages }} 页</span>
                     </li>
                     <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                        {% if draft_token %}
+                        <a class="page-link"
+                           href="{{ url_for('cg_bank_statement.result_draft', draft_token=draft_token, filename=stmt_file.original_filename, page=page+1) }}">下一页</a>
+                        {% else %}
                         <a class="page-link"
                            href="{{ url_for('cg_bank_statement.result', file_id=stmt_file.id, page=page+1) }}">下一页</a>
+                        {% endif %}
                     </li>
                 </ul>
+                {% if draft_token %}
+                <form class="row g-2 justify-content-center" method="get"
+                      action="{{ url_for('cg_bank_statement.result_draft', draft_token=draft_token) }}">
+                    <input type="hidden" name="filename" value="{{ stmt_file.original_filename }}">
+                {% else %}
                 <form class="row g-2 justify-content-center" method="get"
                       action="{{ url_for('cg_bank_statement.result', file_id=stmt_file.id) }}">
+                {% endif %}
                     <div class="col-auto">
                         <input type="number" name="page" min="1" max="{{ total_pages }}"
                                class="form-control form-control-sm" style="width: 180px;" placeholder="跳转页" required>

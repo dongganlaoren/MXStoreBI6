@@ -15,6 +15,11 @@ from app.forms.cg_bank_statement_forms import CgBankStatementPasswordForm, CgBan
 from app.forms.cg_bank_statement_forms import CgBankStatementSaveForm
 from app.models.cg_bank_statement import CgBankStatementFile
 from app.models.cg_bank_statement import CgBankStatementTxn
+from app.services.cg_bank_statement_draft_service import (
+    create_draft_from_upload,
+    delete_draft,
+    resolve_draft_path,
+)
 from app.services.cg_bank_statement_service import (
     CgPdfPasswordRequired,
     cg_bsave_path,
@@ -95,39 +100,139 @@ def upload():
             flash('请选择 PDF 文件', 'warning')
             return redirect(url_for('cg_bank_statement.upload'))
 
-        filename = secure_filename(f.filename)
+        # 1) Save to draft (no DB record yet)
+        draft = create_draft_from_upload(f)
+        filename = secure_filename(draft.original_filename or "statement.pdf")
 
-        # save temp first to hash
-        tmp_dir = os.path.join(current_app.root_path, 'instance', 'tmp')
-        os.makedirs(tmp_dir, exist_ok=True)
-        tmp_path = os.path.join(tmp_dir, "cg_stmt_{}_{}".format(datetime.now().timestamp(), filename))
-        f.save(tmp_path)
-
-        file_hash = cg_md5_file(tmp_path)
-
-        existed = CgBankStatementFile.query.filter_by(file_hash=file_hash).first()
+        # 2) Check if file already imported (only for *persisted* files)
+        existed = CgBankStatementFile.query.filter_by(file_hash=draft.file_hash).first()
         if existed:
-            os.remove(tmp_path)
+            delete_draft(draft.token)
             flash('文件已导入过，已为你打开解析结果页面。', 'info')
             return redirect(url_for('cg_bank_statement.result', file_id=existed.id))
 
-        abs_path, rel_path = cg_bsave_path(filename, file_hash)
-        os.replace(tmp_path, abs_path)
-
-        stmt_file = CgBankStatementFile(
-            original_filename=filename,
-            storage_path=rel_path,
-            file_hash=file_hash,
-            bank_code='AUTO',
-            is_encrypted=False,
-            created_by=getattr(current_user, 'user_id', None),
-        )
-        db.session.add(stmt_file)
-        db.session.commit()
-
-        return redirect(url_for('cg_bank_statement.result', file_id=stmt_file.id))
+        # 3) Go to result page with draft token
+        return redirect(url_for('cg_bank_statement.result_draft', draft_token=draft.token, filename=filename))
 
     return render_template('cg_bank_statement_upload.html', form=form)
+
+
+@cg_bank_statement_bp.route('/draft/<string:draft_token>', methods=['GET', 'POST'])
+@login_required
+def result_draft(draft_token: str):
+    """Parse and preview a draft upload.
+
+    Important: this does NOT create/update any DB record.
+    """
+
+    draft_path = resolve_draft_path(draft_token)
+    if not draft_path:
+        flash('上传草稿已过期或不存在，请重新上传。', 'warning')
+        return redirect(url_for('cg_bank_statement.upload'))
+
+    pwd_form = CgBankStatementPasswordForm()
+    save_form = CgBankStatementSaveForm()
+
+    summary = None
+    validation = None
+    need_pwd = False
+    txns = []
+    txns_page = []
+    page = 1
+    per_page = 200
+    total_count = 0
+    total_pages = 1
+    start_index = 0
+
+    user_pwd = None
+    if pwd_form.validate_on_submit():
+        user_pwd = pwd_form.password.data or None
+
+    # pagination params
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+    except Exception:
+        page = 1
+
+    try:
+        engine = BankParserEngine(draft_path, password=user_pwd)
+        res = engine.parse_and_validate()
+
+        if res.bank_type == 'UNKNOWN':
+            flash('未知银行，暂不支持解析，请重新上传。', 'warning')
+            return redirect(url_for('cg_bank_statement.upload'))
+
+        txns = res.transactions or []
+        if not txns:
+            flash('未提取到交易明细，请重新上传。', 'warning')
+            return redirect(url_for('cg_bank_statement.upload'))
+
+        summary = {
+            'period': res.summary.get('period'),
+            'opening_balance': _to_float_or_none(res.summary.get('begin_balance')),
+            'closing_balance': _to_float_or_none(res.summary.get('end_balance')),
+            'credit_count': res.summary.get('total_dep_cnt'),
+            'credit_total': _to_float_or_none(res.summary.get('total_dep_amt')),
+            'debit_count': res.summary.get('total_wdl_cnt'),
+            'debit_total': _to_float_or_none(res.summary.get('total_wdl_amt')),
+            'currency': 'THB',
+        }
+
+        layer1 = res.layer1 or {'ok': False, 'message': '未完成校验'}
+        layer2 = res.layer2 or {'ok': False, 'message': '未完成校验'}
+        layer3 = res.layer3 or {'ok': False, 'message': '未完成校验'}
+        overall_ok = bool(res.ok) and all(l.get('ok') for l in (layer1, layer2, layer3))
+        validation = {
+            'ok': overall_ok,
+            'layer1': layer1,
+            'layer2': layer2,
+            'layer3': layer3,
+            'errors': res.errors,
+        }
+
+    except (CgPdfPasswordRequired, BankParserPasswordRequired):
+        need_pwd = True
+
+    except Exception as e:
+        current_app.logger.exception('银行流水解析失败(draft)')
+        flash('解析失败：{}'.format(e), 'danger')
+
+    total_count = len(txns or [])
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
+    if page > total_pages:
+        page = total_pages
+    start_index = (page - 1) * per_page
+    end_index = start_index + per_page
+    txns_page = (txns or [])[start_index:end_index]
+
+    # Create a lightweight stmt_file-like dict for template reuse.
+    stmt_file = {
+        'id': None,
+        'original_filename': request.args.get('filename') or 'statement.pdf',
+        'storage_path': draft_path,
+        'file_hash': None,
+        'bank_code': getattr(res, 'bank_type', None) if 'res' in locals() else None,
+        'is_encrypted': False,
+        'is_locked': False,
+    }
+
+    return render_template(
+        'cg_bank_statement_result.html',
+        stmt_file=stmt_file,
+        summary=summary,
+        validation=validation,
+        need_password=need_pwd,
+        pwd_form=pwd_form,
+        save_form=save_form,
+        txns=txns_page,
+        page=page,
+        per_page=per_page,
+        total_count=total_count,
+        total_pages=total_pages,
+        start_index=start_index,
+        draft_token=draft_token,
+        preview_parsed_at=datetime.now(),
+    )
 
 
 @cg_bank_statement_bp.route('/<int:file_id>', methods=['GET', 'POST'])
@@ -322,9 +427,138 @@ def download(file_id: int):
 
 
 @cg_bank_statement_bp.route('/<int:file_id>/save', methods=['POST'])
+@cg_bank_statement_bp.route('/draft/<string:draft_token>/save', methods=['POST'])
 @login_required
-def save(file_id: int):
+def save(file_id: int | None = None, draft_token: str | None = None):
+    """Persist parsed results.
+
+    - Old flow: save by file_id, file already exists in DB.
+    - New flow: save by draft_token, create file record + txns in one transaction.
+    """
+
+    form = CgBankStatementSaveForm()
+    if not form.validate_on_submit():
+        flash('保存请求无效，请重试。', 'warning')
+        if file_id is not None:
+            return redirect(url_for('cg_bank_statement.result', file_id=file_id))
+        return redirect(url_for('cg_bank_statement.result_draft', draft_token=draft_token))
+
+    # -----------------------
+    # New flow: draft -> DB
+    # -----------------------
+    if draft_token is not None:
+        draft_path = resolve_draft_path(draft_token)
+        if not draft_path:
+            flash('上传草稿已过期或不存在，请重新上传。', 'warning')
+            return redirect(url_for('cg_bank_statement.upload'))
+
+        original_filename = request.args.get('filename') or request.form.get('filename') or 'statement.pdf'
+        original_filename = secure_filename(original_filename)
+
+        # Always parse on save (single source of truth)
+        try:
+            engine = BankParserEngine(draft_path)
+            res = engine.parse_and_validate()
+
+            if res.bank_type == 'UNKNOWN':
+                delete_draft(draft_token)
+                flash('未知银行，暂不支持解析，请重新上传。', 'warning')
+                return redirect(url_for('cg_bank_statement.upload'))
+
+            txns = res.transactions or []
+            if not txns:
+                delete_draft(draft_token)
+                flash('未提取到交易明细，禁止保存。', 'danger')
+                return redirect(url_for('cg_bank_statement.upload'))
+
+            layer1 = res.layer1 or {'ok': False}
+            layer2 = res.layer2 or {'ok': False}
+            layer3 = res.layer3 or {'ok': False}
+            overall_ok = all(l.get('ok') for l in (layer1, layer2, layer3))
+            if not overall_ok:
+                flash('校验未通过，禁止保存。', 'danger')
+                return redirect(url_for('cg_bank_statement.result_draft', draft_token=draft_token, filename=original_filename))
+
+            file_hash = cg_md5_file(draft_path)
+            existed = CgBankStatementFile.query.filter_by(file_hash=file_hash).first()
+            if existed:
+                delete_draft(draft_token)
+                flash('文件已导入过，已为你打开解析结果页面。', 'info')
+                return redirect(url_for('cg_bank_statement.result', file_id=existed.id))
+
+            abs_path, rel_path = cg_bsave_path(original_filename, file_hash)
+
+            # Everything below must be atomic: move file + create file row + insert txns.
+            try:
+                os.replace(draft_path, abs_path)
+
+                stmt_file = CgBankStatementFile(
+                    original_filename=original_filename,
+                    storage_path=rel_path,
+                    file_hash=file_hash,
+                    bank_code=res.bank_type or 'AUTO',
+                    is_encrypted=False,
+                    created_by=getattr(current_user, 'user_id', None),
+                    parser_version=PARSER_VERSION,
+                    parsed_summary_json=_json_compatible(res.summary),
+                    parsed_txns_json=_json_compatible(txns),
+                    parsed_errors_json=list(res.errors or []),
+                    parsed_at=datetime.now(),
+                    is_locked=True,
+                    locked_at=datetime.now(),
+                )
+                db.session.add(stmt_file)
+                db.session.flush()  # get stmt_file.id
+
+                # Insert txns
+                existing_keys = set()
+                new_count = 0
+                for txn in txns:
+                    credit = _to_float_or_none(txn.get('deposit')) or 0.0
+                    debit = _to_float_or_none(txn.get('withdrawal')) or 0.0
+                    balance = _to_float_or_none(txn.get('balance')) or 0.0
+                    key = _txn_key(txn.get('date'), txn.get('time'), credit, debit, balance)
+                    if key in existing_keys:
+                        continue
+                    row = CgBankStatementTxn(
+                        file_id=stmt_file.id,
+                        txn_date=txn.get('date') or '',
+                        txn_time=txn.get('time') or None,
+                        description=txn.get('desc'),
+                        credit=credit,
+                        debit=debit,
+                        balance=balance,
+                        raw_row_hash=_txn_row_hash(file_hash, txn),
+                    )
+                    db.session.add(row)
+                    existing_keys.add(key)
+                    new_count += 1
+
+                db.session.commit()
+
+            except Exception:
+                db.session.rollback()
+                # best-effort: remove moved file if any
+                try:
+                    if os.path.exists(abs_path):
+                        os.remove(abs_path)
+                except Exception:
+                    pass
+                raise
+
+            flash('保存完成：新增 {} 条。'.format(new_count), 'success')
+            return redirect(url_for('cg_bank_statement.result', file_id=stmt_file.id))
+
+        except Exception as e:
+            current_app.logger.exception('银行流水保存失败(draft)')
+            flash('保存失败：{}'.format(e), 'danger')
+            return redirect(url_for('cg_bank_statement.result_draft', draft_token=draft_token, filename=original_filename))
+
+    # -----------------------
+    # Old flow: existing file
+    # -----------------------
     stmt_file = CgBankStatementFile.query.get_or_404(file_id)
+
     form = CgBankStatementSaveForm()
     if not form.validate_on_submit():
         flash('保存请求无效，请重试。', 'warning')

@@ -10,7 +10,11 @@ from datetime import datetime
 from pathlib import Path
 
 # 设置项目目录
-PROJECT_DIR = "/Users/renweimin/PycharmProjects/FlaskProject/Git/0723007"
+# 优先使用环境变量 MXSTOREBI_PROJECT_DIR，其次使用脚本所在目录作为项目根目录。
+PROJECT_DIR = os.environ.get("MXSTOREBI_PROJECT_DIR")
+if not PROJECT_DIR:
+    PROJECT_DIR = str(Path(__file__).resolve().parent)
+
 os.chdir(PROJECT_DIR)
 
 # 确保项目目录在 sys.path 中
@@ -65,12 +69,22 @@ print("✓ 环境配置检查")
 env_file = Path(PROJECT_DIR) / ".env"
 if env_file.exists():
     print(f"  .env 文件: 存在")
-    with open(env_file) as f:
-        for line in f:
-            if "FLASK_ENV=" in line:
-                print(f"  FLASK_ENV: {line.strip()}")
-            elif "DATABASE_URL=" in line:
-                print(f"  DATABASE_URL: 已配置")
+    try:
+        # Windows 下默认编码可能是 gbk，显式使用 utf-8（兼容 BOM）读取
+        with open(env_file, encoding="utf-8-sig") as f:
+            for line in f:
+                if "FLASK_ENV=" in line:
+                    print(f"  FLASK_ENV: {line.strip()}")
+                elif "DATABASE_URL=" in line:
+                    print(f"  DATABASE_URL: 已配置")
+    except UnicodeDecodeError:
+        # 回退：忽略无法解码的字符，保证测试脚本不中断
+        with open(env_file, encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                if "FLASK_ENV=" in line:
+                    print(f"  FLASK_ENV: {line.strip()}")
+                elif "DATABASE_URL=" in line:
+                    print(f"  DATABASE_URL: 已配置")
 else:
     print("  ⚠ .env 文件未找到")
 

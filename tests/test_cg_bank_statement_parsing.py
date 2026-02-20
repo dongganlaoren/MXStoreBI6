@@ -1,4 +1,6 @@
+import os
 import pdfplumber
+import pytest
 
 from app.utils.bank_parser import BankParserEngine
 
@@ -9,7 +11,11 @@ def _pages_text(path: str):
 
 
 def test_bank_parser_kbank_demo_pdf_ok():
-    engine = BankParserEngine('docs/KASIKORNBANK_Statement_Demo2.pdf')
+    path = 'docs/KASIKORNBANK_Statement_Demo2.pdf'
+    if not os.path.exists(path):
+        pytest.skip(f"missing sample pdf: {path}")
+
+    engine = BankParserEngine(path)
     res = engine.parse_and_validate()
     assert res.bank_type in ('KBANK', 'KBANK ') or res.bank_type != ''
     assert res.summary.get('begin_balance') is not None
@@ -22,7 +28,11 @@ def test_bank_parser_kbank_demo_pdf_ok():
 
 
 def test_bank_parser_bbl_demo_pdf_ok_or_has_explained_errors():
-    engine = BankParserEngine('docs/BBL_Statement_Demo.pdf')
+    path = 'docs/BBL_Statement_Demo.pdf'
+    if not os.path.exists(path):
+        pytest.skip(f"missing sample pdf: {path}")
+
+    engine = BankParserEngine(path)
     res = engine.parse_and_validate()
     assert res.bank_type == 'BBL'
     assert len(res.transactions) > 0

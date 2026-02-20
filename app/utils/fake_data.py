@@ -93,8 +93,15 @@ def generate_fake_data(
                  "third_party_platform": False},
             ]
             for data in store_data:
-                store = Store(**data)
-                db.session.add(store)
+                store = Store.query.get(data["store_id"])
+                if store is None:
+                    store = Store(**data)
+                    db.session.add(store)
+                else:
+                    # keep it idempotent: update basic fields
+                    store.store_name = data.get("store_name")
+                    store.store_address = data.get("store_address")
+                    store.third_party_platform = data.get("third_party_platform")
                 stores.append(store)
             db.session.commit()
         else:
@@ -102,49 +109,54 @@ def generate_fake_data(
 
         if include_users:
             # 生成用户数据（admin、管理组、每门店分店长和员工）
-            admin_user = User()
+            admin_user = User.query.filter_by(username="admin").first() or User()
             admin_user.username = "admin"
             admin_user.password_hash = generate_password_hash("admin")
             admin_user.role = RoleType.ADMIN
             admin_user.user_status = 1
-            admin_user.real_name = fake.name()
+            admin_user.real_name = admin_user.real_name or fake.name()
+            # 管理组用户不绑定门店
+            admin_user.store_id = None
             # 要求：固定 admin 邮箱
             admin_user.email = "32191681@qq.com"
-            admin_user.phone = fake.phone_number()
-            admin_user.created_at = datetime.now()
+            admin_user.phone = admin_user.phone or fake.phone_number()
+            admin_user.created_at = admin_user.created_at or datetime.now()
             admin_user.updated_at = datetime.now()
-            admin_user.employee_number = random.randint(1, 9) * 11111
+            admin_user.employee_number = admin_user.employee_number or (random.randint(1, 9) * 11111)
             db.session.add(admin_user)
             db.session.commit()
 
             # 要求：新增管理组用户 aaa 并指定邮箱
-            aaa = User()
+            aaa = User.query.filter_by(username="aaa").first() or User()
             aaa.username = "aaa"
             aaa.password_hash = generate_password_hash("aaa")
             aaa.role = RoleType.FINANCE
             aaa.user_status = 1
-            aaa.real_name = fake.name()
+            aaa.real_name = aaa.real_name or fake.name()
+            # 管理组用户不绑定门店
+            aaa.store_id = None
             aaa.email = "renweimin@gmail.com"
-            aaa.phone = fake.phone_number()
-            aaa.created_at = datetime.now()
+            aaa.phone = aaa.phone or fake.phone_number()
+            aaa.created_at = aaa.created_at or datetime.now()
             aaa.updated_at = datetime.now()
-            aaa.employee_number = random.randint(1, 9) * 11111
+            aaa.employee_number = aaa.employee_number or (random.randint(1, 9) * 11111)
             db.session.add(aaa)
 
             # 其他管理组用户（保留原逻辑）
             for idx, role in enumerate([RoleType.HEAD_MANAGER]):
                 uname = "ccc"  # 仅保留一个示例管理用户
-                user = User()
+                user = User.query.filter_by(username=uname).first() or User()
                 user.username = uname
                 user.password_hash = generate_password_hash(uname)
                 user.role = role
                 user.user_status = 1
-                user.real_name = fake.name()
-                user.email = fake.email()
-                user.phone = fake.phone_number()
-                user.created_at = datetime.now()
+                user.real_name = user.real_name or fake.name()
+                user.store_id = None
+                user.email = user.email or fake.email()
+                user.phone = user.phone or fake.phone_number()
+                user.created_at = user.created_at or datetime.now()
                 user.updated_at = datetime.now()
-                user.employee_number = random.randint(1, 9) * 11111
+                user.employee_number = user.employee_number or (random.randint(1, 9) * 11111)
                 db.session.add(user)
             db.session.commit()
 
@@ -152,33 +164,41 @@ def generate_fake_data(
             for store in stores:
                 # 分店长
                 mgr_username = "mgr_{}".format(store.store_id)
-                mgr = User()
+                mgr = User.query.filter_by(username=mgr_username).first() or User()
                 mgr.username = mgr_username
                 mgr.password_hash = generate_password_hash(mgr_username)
                 mgr.role = RoleType.BRANCH_MANAGER
                 mgr.user_status = 1
                 mgr.store_id = store.store_id
-                mgr.real_name = fake.name()
-                mgr.email = fake.email()
-                mgr.phone = fake.phone_number()
-                mgr.created_at = datetime.now()
+                mgr.real_name = mgr.real_name or fake.name()
+                mgr.email = mgr.email or fake.email()
+                mgr.phone = mgr.phone or fake.phone_number()
+                mgr.created_at = mgr.created_at or datetime.now()
                 mgr.updated_at = datetime.now()
-                mgr.employee_number = int(store.store_id) * 1000 + random.randint(100, 999)
+                # employee_number: 门店ID + 3位序号 (例如 91123)
+                try:
+                    mgr.employee_number = mgr.employee_number or int("{}{:03d}".format(int(store.store_id), random.randint(1, 999)))
+                except Exception:
+                    mgr.employee_number = mgr.employee_number or (random.randint(1, 9) * 11111)
                 db.session.add(mgr)
+
                 # 员工
                 emp_username = "emp_{}".format(store.store_id)
-                emp = User()
+                emp = User.query.filter_by(username=emp_username).first() or User()
                 emp.username = emp_username
                 emp.password_hash = generate_password_hash(emp_username)
                 emp.role = RoleType.EMPLOYEE
                 emp.user_status = 1
                 emp.store_id = store.store_id
-                emp.real_name = fake.name()
-                emp.email = fake.email()
-                emp.phone = fake.phone_number()
-                emp.created_at = datetime.now()
+                emp.real_name = emp.real_name or fake.name()
+                emp.email = emp.email or fake.email()
+                emp.phone = emp.phone or fake.phone_number()
+                emp.created_at = emp.created_at or datetime.now()
                 emp.updated_at = datetime.now()
-                emp.employee_number = int(store.store_id) * 1000 + random.randint(100, 999)
+                try:
+                    emp.employee_number = emp.employee_number or int("{}{:03d}".format(int(store.store_id), random.randint(1, 999)))
+                except Exception:
+                    emp.employee_number = emp.employee_number or (random.randint(1, 9) * 11111)
                 db.session.add(emp)
             db.session.commit()
 
@@ -198,12 +218,18 @@ def generate_fake_data(
             ]
 
             for m_data in materials:
-                m = MXMaterialInfo(**m_data)
+                m = MXMaterialInfo.query.filter_by(material_code=m_data["material_code"]).first() or MXMaterialInfo(**m_data)
+                m.material_code = m_data["material_code"]
+                m.cn_name = m_data["cn_name"]
+                m.spec_model = m_data["spec_model"]
+                m.category = m_data["category"]
+                m.per_group_qty = m_data["per_group_qty"]
+
                 # 随机生成价格
-                m.price_per_case = round(random.uniform(500, 2000), 2)
-                m.price_per_group = round(m.price_per_case / m.per_group_qty, 2)
-                m.safety_stock = random.randint(10, 50)
-                m.remark = "测试物料"
+                m.price_per_case = m.price_per_case or round(random.uniform(500, 2000), 2)
+                m.price_per_group = m.price_per_group or round(float(m.price_per_case) / m.per_group_qty, 2)
+                m.safety_stock = m.safety_stock or random.randint(10, 50)
+                m.remark = m.remark or "测试物料"
                 db.session.add(m)
             db.session.commit()
 
@@ -216,7 +242,8 @@ def generate_fake_data(
         else:
             # 仅清空后跳过插入（保留原行为）
             try:
-                db.session.query(DailySales).delete()
+                # 只在表存在且会话可用时清理，避免某些环境外键约束/权限问题
+                db.session.query(DailySales).delete(synchronize_session=False)
                 db.session.commit()
             except Exception:
                 db.session.rollback()
@@ -226,7 +253,7 @@ def generate_fake_data(
             pass
         else:
             try:
-                db.session.query(ReimbursementRequest).delete()
+                db.session.query(ReimbursementRequest).delete(synchronize_session=False)
                 db.session.commit()
             except Exception:
                 db.session.rollback()
